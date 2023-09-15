@@ -103,12 +103,15 @@ func Run(cfg config.Config) (Report, error) {
 
 // beforeRun is called by the agent before creating each check
 // container.
+//
+// TODO(rm): handle Git repositories.
 func beforeRun(params backend.RunParams, rc *docker.RunConfig) error {
 	// Register a host pointing to the host gateway.
 	rc.HostConfig.ExtraHosts = []string{dockerInternalHost + ":host-gateway"}
 
 	// Allow all checks to scan local assets.
 	rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_ALLOW_PRIVATE_IPS", "true")
+	rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_SKIP_REACHABILITY", "true")
 
 	// Remote Docker daemons are not supported because, among
 	// other things, it would require passing credentials to the
@@ -130,19 +133,6 @@ func beforeRun(params backend.RunParams, rc *docker.RunConfig) error {
 		return fmt.Errorf("fix check target: %w", err)
 	}
 	rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, backend.CheckTargetVar, target)
-
-	// TODO(rm): handle Git repositories.
-	if types.AssetType(params.AssetType) == types.DockerImage {
-		// Some checks will fail because they expect remote
-		// URLs. This workaround will bypass the following
-		// check:
-		//
-		// https://github.com/adevinta/vulcan-check-sdk/blob/master/helpers/target.go#L294
-		//
-		// TODO(rm): replace this workaround with a proper
-		// fix.
-		rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, backend.CheckAssetTypeVar, "LocalDockerImage")
-	}
 
 	return nil
 }
