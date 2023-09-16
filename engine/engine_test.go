@@ -4,12 +4,14 @@ package engine
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"log/slog"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	agentconfig "github.com/adevinta/vulcan-agent/config"
@@ -21,6 +23,20 @@ import (
 	"github.com/adevinta/lava/config"
 	"github.com/adevinta/lava/dockerutil"
 )
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+
+	level := slog.LevelError
+	if testing.Verbose() {
+		level = slog.LevelDebug
+	}
+
+	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})
+	slog.SetDefault(slog.New(h))
+
+	os.Exit(m.Run())
+}
 
 func TestRun(t *testing.T) {
 	if err := dockerBuild("testdata/engine/lava-engine-test", "lava-engine-test:latest"); err != nil {
@@ -36,22 +52,20 @@ func TestRun(t *testing.T) {
 
 	t.Logf("test server listening at %v", srv.URL)
 
-	cfg := config.Config{
-		LavaVersion:    "v1.0.0",
-		ChecktypesURLs: []string{"testdata/engine/checktypes_lava_engine_test.json"},
-		LogLevel:       slog.LevelError,
-		AgentConfig: config.AgentConfig{
-			PullPolicy: agentconfig.PullPolicyNever,
-		},
-		Targets: []config.Target{
+	var (
+		checktypesURLs = []string{"testdata/engine/checktypes_lava_engine_test.json"}
+		targets        = []config.Target{
 			{
 				Identifier: srv.URL,
 				AssetType:  config.AssetType(types.WebAddress),
 			},
-		},
-	}
+		}
+		agentConfig = config.AgentConfig{
+			PullPolicy: agentconfig.PullPolicyNever,
+		}
+	)
 
-	engineReport, err := Run(cfg)
+	engineReport, err := Run(checktypesURLs, targets, agentConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -81,22 +95,20 @@ func TestRun(t *testing.T) {
 }
 
 func TestRun_docker_image(t *testing.T) {
-	cfg := config.Config{
-		LavaVersion:    "v1.0.0",
-		ChecktypesURLs: []string{"testdata/engine/checktypes_trivy.json"},
-		LogLevel:       slog.LevelError,
-		AgentConfig: config.AgentConfig{
-			PullPolicy: agentconfig.PullPolicyIfNotPresent,
-		},
-		Targets: []config.Target{
+	var (
+		checktypesURLs = []string{"testdata/engine/checktypes_trivy.json"}
+		targets        = []config.Target{
 			{
 				Identifier: "python:3.4-alpine",
 				AssetType:  config.AssetType(types.DockerImage),
 			},
-		},
-	}
+		}
+		agentConfig = config.AgentConfig{
+			PullPolicy: agentconfig.PullPolicyIfNotPresent,
+		}
+	)
 
-	engineReport, err := Run(cfg)
+	engineReport, err := Run(checktypesURLs, targets, agentConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -118,19 +130,19 @@ func TestRun_docker_image(t *testing.T) {
 	if len(gotReport.Vulnerabilities) == 0 {
 		t.Fatalf("no vulnerabilities found")
 	}
+
+	t.Logf("found %v vulnerabilities", len(gotReport.Vulnerabilities))
 }
 
 func TestRun_no_jobs(t *testing.T) {
-	cfg := config.Config{
-		LavaVersion:    "v1.0.0",
-		ChecktypesURLs: []string{"testdata/engine/checktypes_lava_engine_test.json"},
-		LogLevel:       slog.LevelError,
-		AgentConfig: config.AgentConfig{
+	var (
+		checktypesURLs = []string{"testdata/engine/checktypes_lava_engine_test.json"}
+		agentConfig    = config.AgentConfig{
 			PullPolicy: agentconfig.PullPolicyNever,
-		},
-	}
+		}
+	)
 
-	engineReport, err := Run(cfg)
+	engineReport, err := Run(checktypesURLs, nil, agentConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

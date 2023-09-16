@@ -12,7 +12,6 @@ import (
 	"log/slog"
 	"net"
 	"net/url"
-	"os"
 	"path"
 	"strings"
 	"sync"
@@ -42,17 +41,17 @@ const dockerInternalHost = "host.docker.internal"
 // indexed by check ID.
 type Report map[string]report.Report
 
-// TODO(rm): add logging.
-
-// Run runs vulcan checks and returns the received results following
-// the provided Lava configuration.
-func Run(cfg config.Config) (Report, error) {
-	checktypes, err := config.NewChecktypeCatalog(cfg.ChecktypesURLs)
+// Run runs vulcan checks and returns the generated report. The check
+// list is based on the provided checktypes and targets. These checks
+// are run by a Vulcan agent, which is configured using the specified
+// configuration.
+func Run(checktypesURLs []string, targets []config.Target, cfg config.AgentConfig) (Report, error) {
+	checktypes, err := config.NewChecktypeCatalog(checktypesURLs)
 	if err != nil {
 		return nil, fmt.Errorf("get checkype catalog: %w", err)
 	}
 
-	jl, err := newJobList(checktypes, cfg.Targets)
+	jl, err := newJobList(checktypes, targets)
 	if err != nil {
 		return nil, fmt.Errorf("create job list: %w", err)
 	}
@@ -66,8 +65,7 @@ func Run(cfg config.Config) (Report, error) {
 		return nil, fmt.Errorf("get agent config: %w", err)
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: cfg.LogLevel}))
-	alogger := newAgentLogger(logger)
+	alogger := newAgentLogger(slog.Default())
 
 	backend, err := docker.NewBackend(alogger, agentConfig, beforeRun)
 	if err != nil {
@@ -85,7 +83,7 @@ func Run(cfg config.Config) (Report, error) {
 
 	reports := &reportStore{}
 
-	pg, err := proxyLocalTargets(cfg.Targets)
+	pg, err := proxyLocalTargets(targets)
 	if err != nil {
 		return nil, fmt.Errorf("proxy local services: %w", err)
 	}
@@ -194,13 +192,13 @@ func setenv(env []string, key, value string) []string {
 
 // newAgentConfig creates a new [agentconfig.Config] based on the
 // provided Lava configuration.
-func newAgentConfig(cfg config.Config) (agentconfig.Config, error) {
+func newAgentConfig(cfg config.AgentConfig) (agentconfig.Config, error) {
 	listenHost, err := bridgeHost()
 	if err != nil {
 		return agentconfig.Config{}, fmt.Errorf("get listen host: %w", err)
 	}
 
-	parallel := cfg.AgentConfig.Parallel
+	parallel := cfg.Parallel
 	if parallel == 0 {
 		parallel = 1
 	}
@@ -211,7 +209,7 @@ func newAgentConfig(cfg config.Config) (agentconfig.Config, error) {
 	}
 
 	auths := []agentconfig.Auth{}
-	for _, r := range cfg.AgentConfig.RegistriesAuth {
+	for _, r := range cfg.RegistriesAuth {
 		auths = append(auths, agentconfig.Auth{
 			Server: r.Server,
 			User:   r.Username,
@@ -231,12 +229,12 @@ func newAgentConfig(cfg config.Config) (agentconfig.Config, error) {
 			Listener: ln,
 		},
 		Check: agentconfig.CheckConfig{
-			Vars: cfg.AgentConfig.Vars,
+			Vars: cfg.Vars,
 		},
 		Runtime: agentconfig.RuntimeConfig{
 			Docker: agentconfig.DockerConfig{
 				Registry: agentconfig.RegistryConfig{
-					PullPolicy:          cfg.AgentConfig.PullPolicy,
+					PullPolicy:          cfg.PullPolicy,
 					BackoffMaxRetries:   5,
 					BackoffInterval:     5,
 					BackoffJitterFactor: 0.5,
