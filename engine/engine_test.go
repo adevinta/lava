@@ -349,6 +349,24 @@ func TestTargetAddr(t *testing.T) {
 			want:       "",
 			wantNilErr: false,
 		},
+		{
+			name: "GitRepository with empty host",
+			target: config.Target{
+				AssetType:  config.AssetType(types.GitRepository),
+				Identifier: "/path",
+			},
+			want:       "",
+			wantNilErr: false,
+		},
+		{
+			name: "WebAddress with empty host",
+			target: config.Target{
+				AssetType:  config.AssetType(types.WebAddress),
+				Identifier: "/path",
+			},
+			want:       "",
+			wantNilErr: false,
+		},
 	}
 
 	for _, tt := range tests {

@@ -392,11 +392,17 @@ func targetAddr(target config.Target) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("parse URL: %w", err)
 		}
+		if u.Host == "" {
+			return "", fmt.Errorf("empty URL host: %v", u)
+		}
 		return u.Host, nil
 	case types.GitRepository:
 		u, err := parseGitURL(target.Identifier)
 		if err != nil {
 			return "", fmt.Errorf("parse Git URL: %w", err)
+		}
+		if u.Host == "" {
+			return "", fmt.Errorf("empty Git URL host: %v", u)
 		}
 		return u.Host, nil
 	}
