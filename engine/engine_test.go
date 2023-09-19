@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 
 	agentconfig "github.com/adevinta/vulcan-agent/config"
@@ -22,6 +23,7 @@ import (
 
 	"github.com/adevinta/lava/config"
 	"github.com/adevinta/lava/dockerutil"
+	"github.com/adevinta/lava/gitserver/gittest"
 )
 
 func TestMain(m *testing.M) {
@@ -134,6 +136,89 @@ func TestRun_docker_image(t *testing.T) {
 	t.Logf("found %v vulnerabilities", len(gotReport.Vulnerabilities))
 }
 
+func TestRun_git_repository(t *testing.T) {
+	var (
+		checktypesURLs = []string{"testdata/engine/checktypes_trivy.json"}
+		agentConfig    = config.AgentConfig{
+			PullPolicy: agentconfig.PullPolicyIfNotPresent,
+		}
+	)
+
+	tmpPath, err := gittest.ExtractTemp("testdata/engine/vulnrepo.tar")
+	if err != nil {
+		t.Fatalf("unexpected error extracting test repository: %v", err)
+	}
+	defer os.RemoveAll(tmpPath)
+
+	tests := []struct {
+		name       string
+		target     config.Target
+		wantErr    bool
+		wantStatus string
+		wantVulns  bool
+	}{
+		{
+			name: "dir",
+			target: config.Target{
+				Identifier: tmpPath,
+				AssetType:  config.AssetType(types.GitRepository),
+			},
+			wantErr:    false,
+			wantStatus: "FINISHED",
+			wantVulns:  true,
+		},
+		{
+			name: "file",
+			target: config.Target{
+				Identifier: filepath.Join(tmpPath, "Dockerfile"),
+				AssetType:  config.AssetType(types.GitRepository),
+			},
+			wantErr: true,
+		},
+		{
+			name: "not exist",
+			target: config.Target{
+				Identifier: filepath.Join(tmpPath, "notexist"),
+				AssetType:  config.AssetType(types.GitRepository),
+			},
+			wantErr:    false,
+			wantStatus: "INCONCLUSIVE",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			engineReport, err := Run(checktypesURLs, []config.Target{tt.target}, agentConfig)
+			if err != nil {
+				if !tt.wantErr {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+
+			var checkReports []report.Report
+			for _, v := range engineReport {
+				checkReports = append(checkReports, v)
+			}
+
+			if len(checkReports) != 1 {
+				t.Fatalf("unexpected number of reports: %v", len(checkReports))
+			}
+
+			gotReport := checkReports[0]
+			if gotReport.Status != tt.wantStatus {
+				t.Fatalf("unexpected status: %v", gotReport.Status)
+			}
+
+			if (len(gotReport.Vulnerabilities) > 0) != tt.wantVulns {
+				t.Fatalf("unexpected number of vulnerabilities: %v", len(gotReport.Vulnerabilities))
+			}
+
+			t.Logf("found %v vulnerabilities", len(gotReport.Vulnerabilities))
+		})
+	}
+}
+
 func TestRun_no_jobs(t *testing.T) {
 	var (
 		checktypesURLs = []string{"testdata/engine/checktypes_lava_engine_test.json"}
@@ -149,310 +234,6 @@ func TestRun_no_jobs(t *testing.T) {
 
 	if len(engineReport) != 0 {
 		t.Fatalf("unexpected number of reports: %v", len(engineReport))
-	}
-}
-
-func TestFixCheckTarget(t *testing.T) {
-	tests := []struct {
-		name       string
-		target     string
-		assetType  string
-		want       string
-		wantNilErr bool
-	}{
-		{
-			name:       "local IP",
-			target:     "127.0.0.1",
-			assetType:  "IP",
-			want:       dockerInternalHost,
-			wantNilErr: true,
-		},
-		{
-			name:       "remote IP",
-			target:     "192.168.1.1",
-			assetType:  "IP",
-			want:       "192.168.1.1",
-			wantNilErr: true,
-		},
-		{
-			name:       "local Hostname",
-			target:     "localhost",
-			assetType:  "Hostname",
-			want:       dockerInternalHost,
-			wantNilErr: true,
-		},
-		{
-			name:       "remote Hostname",
-			target:     "example.com",
-			assetType:  "Hostname",
-			want:       "example.com",
-			wantNilErr: true,
-		},
-		{
-			name:       "local WebAddress",
-			target:     "http://127.0.0.1:12345/path",
-			assetType:  "WebAddress",
-			want:       fmt.Sprintf("http://%v:12345/path", dockerInternalHost),
-			wantNilErr: true,
-		},
-		{
-			name:       "remote WebAddress",
-			target:     "http://192.168.1.1/path",
-			assetType:  "WebAddress",
-			want:       "http://192.168.1.1/path",
-			wantNilErr: true,
-		},
-		{
-			name:       "local GitRepository",
-			target:     "ssh://git@localhost:12345/path/to/repo.git",
-			assetType:  "GitRepository",
-			want:       fmt.Sprintf("ssh://git@%v:12345/path/to/repo.git", dockerInternalHost),
-			wantNilErr: true,
-		},
-		{
-			name:       "remote GitRepository",
-			target:     "git@example.com:/path/to/repo.git",
-			assetType:  "GitRepository",
-			want:       "ssh://git@example.com/path/to/repo.git",
-			wantNilErr: true,
-		},
-		{
-			name:       "multiple host occurrences",
-			target:     "localhost://localhost:12345/path",
-			assetType:  "WebAddress",
-			want:       fmt.Sprintf("localhost://%v:12345/path", dockerInternalHost),
-			wantNilErr: true,
-		},
-		{
-			name:       "DockerImage",
-			target:     "alpine:3.18",
-			assetType:  "DockerImage",
-			want:       "alpine:3.18",
-			wantNilErr: true,
-		},
-		{
-			name:       "invalid GitRepository",
-			target:     "ssh://git@localhost:invalidport/path/to/repo.git",
-			assetType:  "GitRepository",
-			want:       "",
-			wantNilErr: false,
-		},
-		{
-			name:       "invalid WebAddress",
-			target:     "http://127.0.0.1:invalidport/path",
-			assetType:  "WebAddress",
-			want:       "",
-			wantNilErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := fixCheckTarget(tt.target, tt.assetType)
-
-			if (err == nil) != tt.wantNilErr {
-				t.Errorf("unexpected error: %v", err)
-			}
-
-			if got != tt.want {
-				t.Errorf("unexpected target: got: %q, want: %q", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestTargetAddr(t *testing.T) {
-	tests := []struct {
-		name       string
-		target     config.Target
-		want       string
-		wantNilErr bool
-	}{
-		{
-			name: "IPv4",
-			target: config.Target{
-				AssetType:  config.AssetType(types.IP),
-				Identifier: "127.0.0.1",
-			},
-			want:       "127.0.0.1",
-			wantNilErr: true,
-		},
-		{
-			name: "IPv6",
-			target: config.Target{
-				AssetType:  config.AssetType(types.IP),
-				Identifier: "::1",
-			},
-			want:       "::1",
-			wantNilErr: true,
-		},
-		{
-			name: "Hostname",
-			target: config.Target{
-				AssetType:  config.AssetType(types.Hostname),
-				Identifier: "example.com",
-			},
-			want:       "example.com",
-			wantNilErr: true,
-		},
-		{
-			name: "WebAddress",
-			target: config.Target{
-				AssetType:  config.AssetType(types.WebAddress),
-				Identifier: "https://example.com/path",
-			},
-			want:       "example.com",
-			wantNilErr: true,
-		},
-		{
-			name: "invalid WebAddress",
-			target: config.Target{
-				AssetType:  config.AssetType(types.WebAddress),
-				Identifier: "https://example.com:invalidport/path",
-			},
-			want:       "",
-			wantNilErr: false,
-		},
-		{
-			name: "GitRepository scp-like syntax",
-			target: config.Target{
-				AssetType:  config.AssetType(types.GitRepository),
-				Identifier: "git@github.com:adevinta/lava.git",
-			},
-			want:       "github.com",
-			wantNilErr: true,
-		},
-		{
-			name: "GitRepository URL",
-			target: config.Target{
-				AssetType:  config.AssetType(types.GitRepository),
-				Identifier: "https://example.com:443/path/to/repo.git/",
-			},
-			want:       "example.com:443",
-			wantNilErr: true,
-		},
-		{
-			name: "invalid GitRepository URL",
-			target: config.Target{
-				AssetType:  config.AssetType(types.GitRepository),
-				Identifier: "https://example.com:invalidport/path/to/repo.git/",
-			},
-			want:       "",
-			wantNilErr: false,
-		},
-		{
-			name: "invalid asset type",
-			target: config.Target{
-				AssetType:  config.AssetType(types.IPRange),
-				Identifier: "127.0.0.1/8",
-			},
-			want:       "",
-			wantNilErr: false,
-		},
-		{
-			name: "GitRepository with empty host",
-			target: config.Target{
-				AssetType:  config.AssetType(types.GitRepository),
-				Identifier: "/path",
-			},
-			want:       "",
-			wantNilErr: false,
-		},
-		{
-			name: "WebAddress with empty host",
-			target: config.Target{
-				AssetType:  config.AssetType(types.WebAddress),
-				Identifier: "/path",
-			},
-			want:       "",
-			wantNilErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := targetAddr(tt.target)
-
-			if (err == nil) != tt.wantNilErr {
-				t.Errorf("unexpected error: %v", err)
-			}
-
-			if got != tt.want {
-				t.Errorf("unexpected host: got: %q, want: %q", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestParseGitURL(t *testing.T) {
-	tests := []struct {
-		name     string
-		url      string
-		wantHost string
-	}{
-		{
-			name:     "url",
-			url:      "https://example.com:443/path/to/repo.git/",
-			wantHost: "example.com:443",
-		},
-		{
-			name:     "scp long",
-			url:      "user@example.com:/~user/path/to/repo.git/",
-			wantHost: "example.com",
-		},
-		{
-			name:     "scp short",
-			url:      "example.com:/",
-			wantHost: "example.com",
-		},
-		{
-			name:     "local path",
-			url:      "/path/to/repo.git/",
-			wantHost: "",
-		},
-		{
-			name:     "scp with colon",
-			url:      "foo:bar",
-			wantHost: "foo",
-		},
-		{
-			name:     "local path with colon",
-			url:      "./foo:bar",
-			wantHost: "",
-		},
-		{
-			name:     "slash",
-			url:      "/",
-			wantHost: "",
-		},
-		{
-			name:     "colon",
-			url:      ":",
-			wantHost: "",
-		},
-		{
-			name:     "colon slash",
-			url:      ":/",
-			wantHost: "",
-		},
-		{
-			name:     "slash colon",
-			url:      "/:",
-			wantHost: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			u, err := parseGitURL(tt.url)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			if u.Host != tt.wantHost {
-				t.Errorf("unexpected host: got: %q, want: %q)", u.Host, tt.wantHost)
-			}
-		})
 	}
 }
 
