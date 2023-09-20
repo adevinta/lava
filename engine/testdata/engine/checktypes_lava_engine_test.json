@@ -1,0 +1,10 @@
+{
+    "checktypes": [
+        {
+            "name": "lava-engine-test",
+            "description": "Lava engine test",
+            "image": "lava-engine-test:latest",
+            "assets": ["WebAddress"]
+        }
+    ]
+}

@@ -1,0 +1,12 @@
+[
+    {
+        "name": "vulcan-drupal",
+        "description": "Checks for some vulnerable versions of Drupal.",
+        "image": "vulcansec/vulcan-drupal:edge",
+        "timeout": 0,
+        "required_vars": null,
+        "assets": [
+            "Hostname"
+        ]
+    }
+]

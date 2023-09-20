@@ -1,0 +1,13 @@
+{
+    "check_id": "0c233832-9bef-4635-9957-836c78190c2c",
+    "checktype_name": "vulcansec/vulcan-retirejs",
+    "checktype_version": "edge",
+    "status": "FINISHED",
+    "target": "http://example.com/",
+    "options": "{}",
+    "tag": "",
+    "vulnerabilities": null,
+    "error": "",
+    "start_time": "2023-09-07 16:35:30",
+    "end_time": "2023-09-07 16:35:31"
+}

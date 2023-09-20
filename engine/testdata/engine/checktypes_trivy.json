@@ -1,0 +1,17 @@
+{
+    "checktypes": [
+        {
+            "name": "vulcan-trivy",
+            "description": "Check based on aquasec/trivy",
+            "image": "vulcansec/vulcan-trivy:edge",
+            "assets": ["DockerImage"],
+            "options": {
+                "image_checks": {
+                    "vuln": true,
+                    "secret": true,
+                    "config": true
+                }
+            }
+        }
+    ]
+}

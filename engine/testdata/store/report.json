@@ -1,0 +1,257 @@
+{
+    "check_id": "7dde8ffc-059e-4ad6-8efb-208c83b55a5d",
+    "checktype_name": "vulcansec/vulcan-nuclei",
+    "checktype_version": "edge",
+    "status": "FINISHED",
+    "target": "http://example.com/",
+    "options": "{\"tag_exclusion_list\":[\"intrusive\",\"dos\",\"fuzz\"]}",
+    "tag": "",
+    "vulnerabilities": [
+        {
+            "id": "",
+            "summary": "Nginx version detect",
+            "score": 0,
+            "affected_resource": "http://example.com/",
+            "affected_resource_string": "",
+            "fingerprint": "eaec180c337a30e6dded5d96ee5d8b0c3b49426094b3efb880b823ea9474df8f",
+            "description": "Some nginx servers have the version on the response header. Useful when you need to find specific CVEs on your targets.",
+            "details": "Run the following command to get the findings from your computer:\n\n\tdocker run -it --rm projectdiscovery/nuclei -u http://example.com/ -t http/technologies/nginx/nginx-version.yaml",
+            "labels": [
+                "nuclei",
+                "issue"
+            ],
+            "recommendations": [
+                "The check does not provide specific recommendations for this issue.",
+                "Take a look to reference links (if any) for further details about the finding."
+            ],
+            "resources": [
+                {
+                    "Name": "Finding",
+                    "Header": [
+                        "Template",
+                        "MatcherName",
+                        "Matched"
+                    ],
+                    "Rows": [
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "",
+                            "Template": "nginx-version"
+                        }
+                    ]
+                },
+                {
+                    "Name": "Results",
+                    "Header": [
+                        "References"
+                    ],
+                    "Rows": [
+                        {
+                            "References": "nginx/1.25.2"
+                        }
+                    ]
+                }
+            ],
+            "vulnerabilities": null
+        },
+        {
+            "id": "",
+            "summary": "Nginx Default Test Page",
+            "score": 0,
+            "affected_resource": "http://example.com/",
+            "affected_resource_string": "",
+            "fingerprint": "2c919d0280509c75e5aa4b9e10ed82275f41fbc78dd7cda1b383053237207386",
+            "details": "Run the following command to get the findings from your computer:\n\n\tdocker run -it --rm projectdiscovery/nuclei -u http://example.com/ -t http/technologies/nginx/default-nginx-page.yaml",
+            "labels": [
+                "nuclei",
+                "issue"
+            ],
+            "recommendations": [
+                "The check does not provide specific recommendations for this issue.",
+                "Take a look to reference links (if any) for further details about the finding."
+            ],
+            "resources": [
+                {
+                    "Name": "Finding",
+                    "Header": [
+                        "Template",
+                        "MatcherName",
+                        "Matched"
+                    ],
+                    "Rows": [
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "",
+                            "Template": "default-nginx-page"
+                        }
+                    ]
+                }
+            ],
+            "vulnerabilities": null
+        },
+        {
+            "id": "",
+            "summary": "HTTP Missing Security Headers",
+            "score": 0,
+            "affected_resource": "http://example.com/",
+            "affected_resource_string": "",
+            "fingerprint": "ad32844db95b74cc1fb92d22d66f8db396c88a91d6cb026e0121791e7ebae872",
+            "description": "This template searches for missing HTTP security headers. The impact of these missing headers can vary.\n",
+            "details": "Run the following command to get the findings from your computer:\n\n\tdocker run -it --rm projectdiscovery/nuclei -u http://example.com/ -t http/misconfiguration/http-missing-security-headers.yaml",
+            "labels": [
+                "nuclei",
+                "issue"
+            ],
+            "recommendations": [
+                "The check does not provide specific recommendations for this issue.",
+                "Take a look to reference links (if any) for further details about the finding."
+            ],
+            "resources": [
+                {
+                    "Name": "Finding",
+                    "Header": [
+                        "Template",
+                        "MatcherName",
+                        "Matched"
+                    ],
+                    "Rows": [
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "content-security-policy",
+                            "Template": "http-missing-security-headers"
+                        },
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "permissions-policy",
+                            "Template": "http-missing-security-headers"
+                        },
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "x-permitted-cross-domain-policies",
+                            "Template": "http-missing-security-headers"
+                        },
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "referrer-policy",
+                            "Template": "http-missing-security-headers"
+                        },
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "cross-origin-opener-policy",
+                            "Template": "http-missing-security-headers"
+                        },
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "cross-origin-resource-policy",
+                            "Template": "http-missing-security-headers"
+                        },
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "strict-transport-security",
+                            "Template": "http-missing-security-headers"
+                        },
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "x-frame-options",
+                            "Template": "http-missing-security-headers"
+                        },
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "x-content-type-options",
+                            "Template": "http-missing-security-headers"
+                        },
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "clear-site-data",
+                            "Template": "http-missing-security-headers"
+                        },
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "cross-origin-embedder-policy",
+                            "Template": "http-missing-security-headers"
+                        }
+                    ]
+                }
+            ],
+            "vulnerabilities": null
+        },
+        {
+            "id": "",
+            "summary": "Wappalyzer Technology Detection",
+            "score": 0,
+            "affected_resource": "http://example.com/",
+            "affected_resource_string": "",
+            "fingerprint": "c7cd3d0f1f8c419fe708961261c44ca628cafd8b1b09ea5972875cd355f001aa",
+            "details": "Run the following command to get the findings from your computer:\n\n\tdocker run -it --rm projectdiscovery/nuclei -u http://example.com/ -t http/technologies/tech-detect.yaml",
+            "labels": [
+                "nuclei",
+                "issue"
+            ],
+            "recommendations": [
+                "The check does not provide specific recommendations for this issue.",
+                "Take a look to reference links (if any) for further details about the finding."
+            ],
+            "resources": [
+                {
+                    "Name": "Finding",
+                    "Header": [
+                        "Template",
+                        "MatcherName",
+                        "Matched"
+                    ],
+                    "Rows": [
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "nginx",
+                            "Template": "tech-detect"
+                        }
+                    ]
+                }
+            ],
+            "vulnerabilities": null
+        },
+        {
+            "id": "",
+            "summary": "WAF Detection",
+            "score": 0,
+            "affected_resource": "http://example.com/",
+            "affected_resource_string": "",
+            "fingerprint": "2411ef7ccc7b413c4e9c5f362365c17a32fc173b7a0ad8a83de6c9123f21a3b7",
+            "cwe_id": 200,
+            "description": "A web application firewall was detected.",
+            "details": "Run the following command to get the findings from your computer:\n\n\tdocker run -it --rm projectdiscovery/nuclei -u http://example.com/ -t http/technologies/waf-detect.yaml",
+            "labels": [
+                "nuclei",
+                "issue"
+            ],
+            "recommendations": [
+                "The check does not provide specific recommendations for this issue.",
+                "Take a look to reference links (if any) for further details about the finding."
+            ],
+            "references": [
+                "https://github.com/ekultek/whatwaf"
+            ],
+            "resources": [
+                {
+                    "Name": "Finding",
+                    "Header": [
+                        "Template",
+                        "MatcherName",
+                        "Matched"
+                    ],
+                    "Rows": [
+                        {
+                            "Matched": "http://example.com/",
+                            "MatcherName": "nginxgeneric",
+                            "Template": "waf-detect"
+                        }
+                    ]
+                }
+            ],
+            "vulnerabilities": null
+        }
+    ],
+    "error": "",
+    "start_time": "2023-09-07 16:35:31",
+    "end_time": "2023-09-07 16:36:46"
+}

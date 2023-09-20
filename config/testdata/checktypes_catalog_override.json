@@ -1,0 +1,14 @@
+{
+    "checktypes": [
+        {
+            "name": "vulcan-drupal",
+            "description": "Checks for some vulnerable versions of Drupal (overridden).",
+            "image": "vulcansec/vulcan-drupal:overridden",
+            "timeout": 0,
+            "required_vars": null,
+            "assets": [
+                "Hostname"
+            ]
+        }
+    ]
+}

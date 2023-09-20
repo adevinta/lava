@@ -1,0 +1,7 @@
+# Copyright 2023 Adevinta
+
+lava: v1.0.0
+targets:
+  - identifier: example.com
+report:
+  format: json

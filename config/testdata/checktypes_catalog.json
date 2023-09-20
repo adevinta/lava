@@ -1,0 +1,16 @@
+{
+    "checktypes": [
+        {
+            "name": "vulcan-drupal",
+            "description": "Checks for some vulnerable versions of Drupal.",
+            "image": "vulcansec/vulcan-drupal:edge",
+            "timeout": 0,
+            "required_vars": [
+                "REQUIRED_VAR_1"
+            ],
+            "assets": [
+                "Hostname"
+            ]
+        }
+    ]
+}
