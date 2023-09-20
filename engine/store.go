@@ -5,6 +5,7 @@ package engine
 import (
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -49,4 +50,16 @@ func (rs *reportStore) UploadCheckData(checkID, kind string, startedAt time.Time
 		return "", fmt.Errorf("unknown data kind: %v", kind)
 	}
 	return "", nil
+}
+
+// Summary returns a human friendly summary of all reports.
+func (rs *reportStore) Summary() string {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	var b strings.Builder
+	for _, r := range rs.reports {
+		fmt.Fprintf(&b, "checktype: %v, target: %v, start: %v, status: %v\n", r.ChecktypeName, r.Target, r.StartTime, r.Status)
+	}
+	return b.String()
 }

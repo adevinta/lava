@@ -83,6 +83,9 @@ func Run(checktypesURLs []string, targets []config.Target, cfg config.AgentConfi
 	return runAgent(jl, cfg)
 }
 
+// summaryInterval is the time between summary logs.
+const summaryInterval = 15 * time.Second
+
 // runAgent creates a Vulcan agent using the specified config and uses
 // it to run the provided jobs.
 func runAgent(jl jobList, cfg config.AgentConfig) (Report, error) {
@@ -109,13 +112,25 @@ func runAgent(jl jobList, cfg config.AgentConfig) (Report, error) {
 
 	reports := &reportStore{}
 
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			case <-time.After(summaryInterval):
+				slog.Info("status update", "summary", reports.Summary())
+			}
+		}
+	}()
+
 	exitCode := agent.RunWithQueues(agentConfig, reports, backend, stateQueue, jobsQueue, alogger)
 	if exitCode != 0 {
 		return nil, fmt.Errorf("run agent: exit code %v", exitCode)
 	}
 
-	// TODO(rm): show progress every few seconds during the scan
-	// to prevent CI/CD issues due to inactivity.
+	done <- true
+
 	return reports.reports, nil
 }
 
