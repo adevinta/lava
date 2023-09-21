@@ -106,7 +106,7 @@ func TestRun_docker_image(t *testing.T) {
 			},
 		}
 		agentConfig = config.AgentConfig{
-			PullPolicy: agentconfig.PullPolicyIfNotPresent,
+			PullPolicy: agentconfig.PullPolicyAlways,
 		}
 	)
 
@@ -140,7 +140,7 @@ func TestRun_git_repository(t *testing.T) {
 	var (
 		checktypesURLs = []string{"testdata/engine/checktypes_trivy.json"}
 		agentConfig    = config.AgentConfig{
-			PullPolicy: agentconfig.PullPolicyIfNotPresent,
+			PullPolicy: agentconfig.PullPolicyAlways,
 		}
 	)
 
