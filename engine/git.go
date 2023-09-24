@@ -22,16 +22,16 @@ import (
 // the provided targets using the specified Git server. The
 // corresponding targets are updated with the address of the Git
 // server.
-func updateAndServeLocalGitRepos(gs *gitserver.Server, targets []config.Target) error {
+func updateAndServeLocalGitRepos(gs *gitserver.Server, targets []config.Target) (err error) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return fmt.Errorf("GitServer listener: %w", err)
 	}
-
-	// Call Serve just after creating the listener. So if the
-	// following loop returns error, the listener will be closed
-	// along with the Git Server.
-	go gs.Serve(ln) //nolint:errcheck
+	defer func() {
+		if err != nil {
+			ln.Close()
+		}
+	}()
 
 	for i, t := range targets {
 		if t.AssetType != config.AssetType(types.GitRepository) {
@@ -53,6 +53,8 @@ func updateAndServeLocalGitRepos(gs *gitserver.Server, targets []config.Target) 
 		}
 		targets[i].Identifier = fmt.Sprintf("http://%v/%v", ln.Addr(), repo)
 	}
+
+	go gs.Serve(ln) //nolint:errcheck
 
 	return nil
 }
