@@ -37,7 +37,7 @@ func (rs *reportStore) UploadCheckData(checkID, kind string, startedAt time.Time
 
 	switch kind {
 	case "reports":
-		logger.Debug("received reports from check", "content", content)
+		logger.Debug("received reports from check", "content", fmt.Sprintf("%#q", content))
 
 		var r report.Report
 		if err := r.UnmarshalJSONTimeAsString(content); err != nil {
@@ -45,7 +45,7 @@ func (rs *reportStore) UploadCheckData(checkID, kind string, startedAt time.Time
 		}
 		rs.reports[checkID] = r
 	case "logs":
-		logger.Debug("received logs from check", "content", content)
+		logger.Debug("received logs from check", "content", fmt.Sprintf("%#q", content))
 	default:
 		return "", fmt.Errorf("unknown data kind: %v", kind)
 	}
@@ -59,7 +59,7 @@ func (rs *reportStore) Summary() string {
 
 	var b strings.Builder
 	for _, r := range rs.reports {
-		fmt.Fprintf(&b, "checktype: %v, target: %v, start: %v, status: %v\n", r.ChecktypeName, r.Target, r.StartTime, r.Status)
+		fmt.Fprintf(&b, "checktype=%v target=%v start=%v status=%v\n", r.ChecktypeName, r.Target, r.StartTime, r.Status)
 	}
-	return b.String()
+	return strings.TrimSuffix(b.String(), "\n")
 }
