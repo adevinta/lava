@@ -232,6 +232,8 @@ github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHW
 github.com/jmespath/go-jmespath/internal/testify v1.5.1 h1:shLQSRRSCCPj3f2gpwzGwWFoC7ycTf1rcQZHOlsJ6N8=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=
 github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX5e0EB2j4=
+github.com/jroimartin/clilog v0.1.1 h1:V/pAhLUCLR0ccQTWkRq1zCVqJjwj/YreVAJ2QsntsdQ=
+github.com/jroimartin/clilog v0.1.1/go.mod h1:ArefLtV3/IjCdl/sJS61pBnzWPDOL6r9uw2argb3N1M=
 github.com/jroimartin/proxy v1.2.4 h1:pMYpq6jFsMvYox5+vstq1rtLOO5DDIHlwZNiCWiU+VM=
 github.com/jroimartin/proxy v1.2.4/go.mod h1:5KDH4h8Qu+aohcHqsO9dFdMe8YD0ryrZ8UqVnOoxJXU=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
