@@ -46,10 +46,28 @@ func TestTargetAddr(t *testing.T) {
 			wantNilErr: true,
 		},
 		{
-			name: "WebAddress",
+			name: "WebAddress port",
+			target: config.Target{
+				AssetType:  config.AssetType(types.WebAddress),
+				Identifier: "https://example.com:1234/path",
+			},
+			want:       "example.com:1234",
+			wantNilErr: true,
+		},
+		{
+			name: "WebAddress scheme",
 			target: config.Target{
 				AssetType:  config.AssetType(types.WebAddress),
 				Identifier: "https://example.com/path",
+			},
+			want:       "example.com:443",
+			wantNilErr: true,
+		},
+		{
+			name: "WebAddress unknown scheme",
+			target: config.Target{
+				AssetType:  config.AssetType(types.WebAddress),
+				Identifier: "unknown://example.com/path",
 			},
 			want:       "example.com",
 			wantNilErr: true,
@@ -69,14 +87,32 @@ func TestTargetAddr(t *testing.T) {
 				AssetType:  config.AssetType(types.GitRepository),
 				Identifier: "git@github.com:adevinta/lava.git",
 			},
-			want:       "github.com",
+			want:       "github.com:22",
 			wantNilErr: true,
 		},
 		{
-			name: "GitRepository URL",
+			name: "GitRepository https",
 			target: config.Target{
 				AssetType:  config.AssetType(types.GitRepository),
-				Identifier: "https://example.com:443/path/to/repo.git/",
+				Identifier: "https://example.com/path/to/repo.git/",
+			},
+			want:       "example.com:443",
+			wantNilErr: true,
+		},
+		{
+			name: "GitRepository git",
+			target: config.Target{
+				AssetType:  config.AssetType(types.GitRepository),
+				Identifier: "git://example.com/~user/path/to/repo.git/",
+			},
+			want:       "example.com:9418",
+			wantNilErr: true,
+		},
+		{
+			name: "GitRepository git port",
+			target: config.Target{
+				AssetType:  config.AssetType(types.GitRepository),
+				Identifier: "git://example.com:443/~user/path/to/repo.git/",
 			},
 			want:       "example.com:443",
 			wantNilErr: true,
