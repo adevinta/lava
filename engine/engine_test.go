@@ -20,6 +20,7 @@ import (
 	types "github.com/adevinta/vulcan-types"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/archive"
+	"github.com/jroimartin/clilog"
 
 	"github.com/adevinta/lava/config"
 	"github.com/adevinta/lava/dockerutil"
@@ -34,7 +35,7 @@ func TestMain(m *testing.M) {
 		level = slog.LevelDebug
 	}
 
-	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})
+	h := clilog.NewCLIHandler(os.Stderr, &clilog.HandlerOptions{Level: level})
 	slog.SetDefault(slog.New(h))
 
 	os.Exit(m.Run())
