@@ -4,6 +4,7 @@ package engine
 
 import (
 	"os"
+	"regexp"
 	"testing"
 	"time"
 
@@ -77,5 +78,71 @@ func TestReportStoreUploadCheckData(t *testing.T) {
 
 	if diff := cmp.Diff(want, store.reports); diff != "" {
 		t.Errorf("reports mismatch (-want +got):\n%v", diff)
+	}
+}
+
+func TestReportStoreSummary(t *testing.T) {
+	updates := []struct {
+		report  report.Report
+		regexps []*regexp.Regexp
+	}{
+		{
+			report: report.Report{
+				CheckData: report.CheckData{
+					Target:        "https://example.com/",
+					CheckID:       "check1",
+					Status:        "RUNNING",
+					ChecktypeName: "vulcan-semgrep",
+				},
+			},
+			regexps: []*regexp.Regexp{
+				regexp.MustCompile(`vulcan-semgrep.*https://example.com.*RUNNING`),
+			},
+		},
+		{
+			report: report.Report{
+				CheckData: report.CheckData{
+					Target:        "https://example.org/",
+					CheckID:       "check2",
+					Status:        "RUNNING",
+					ChecktypeName: "vulcan-trivy",
+				},
+			},
+			regexps: []*regexp.Regexp{
+				regexp.MustCompile(`vulcan-semgrep.*https://example.com.*RUNNING`),
+				regexp.MustCompile(`vulcan-trivy.*https://example.org.*RUNNING`),
+			},
+		},
+		{
+			report: report.Report{
+				CheckData: report.CheckData{
+					Target:        "https://example.com/",
+					CheckID:       "check1",
+					Status:        "FINISHED",
+					ChecktypeName: "vulcan-semgrep",
+				},
+			},
+			regexps: []*regexp.Regexp{
+				regexp.MustCompile(`vulcan-semgrep.*https://example.com.*FINISHED`),
+				regexp.MustCompile(`vulcan-trivy.*https://example.org.*RUNNING`),
+			},
+		},
+	}
+
+	var rs reportStore
+	for _, update := range updates {
+		content, err := update.report.MarshalJSONTimeAsString()
+		if err != nil {
+			t.Fatalf("unexpected marshal error: %v", err)
+		}
+		if _, err := rs.UploadCheckData(update.report.CheckID, "reports", time.Now(), content); err != nil {
+			t.Fatalf("unexpected upload error: %v", err)
+		}
+
+		for _, re := range update.regexps {
+			if got := rs.Summary(); !re.MatchString(got) {
+				t.Errorf("unmatched regexp %q:\n%v", re, got)
+			}
+		}
 	}
 }

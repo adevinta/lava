@@ -31,3 +31,5 @@ issues:
     - linters:
         - revive
       text: 'unused-parameter: parameter ''.*'' seems to be unused'
+run:
+  timeout: 5m

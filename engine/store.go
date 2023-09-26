@@ -4,6 +4,8 @@ package engine
 
 import (
 	"fmt"
+	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,21 +29,37 @@ func (rs *reportStore) UploadCheckData(checkID, kind string, startedAt time.Time
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
+	logger := slog.With("checkID", checkID)
+
 	if rs.reports == nil {
 		rs.reports = make(map[string]report.Report)
 	}
 
 	switch kind {
 	case "reports":
+		logger.Debug("received reports from check", "content", content)
+
 		var r report.Report
 		if err := r.UnmarshalJSONTimeAsString(content); err != nil {
 			return "", fmt.Errorf("decode content: %w", err)
 		}
 		rs.reports[checkID] = r
 	case "logs":
-		// Ignore.
+		logger.Debug("received logs from check", "content", content)
 	default:
 		return "", fmt.Errorf("unknown data kind: %v", kind)
 	}
 	return "", nil
+}
+
+// Summary returns a human friendly summary of all reports.
+func (rs *reportStore) Summary() string {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	var b strings.Builder
+	for _, r := range rs.reports {
+		fmt.Fprintf(&b, "checktype: %v, target: %v, start: %v, status: %v\n", r.ChecktypeName, r.Target, r.StartTime, r.Status)
+	}
+	return b.String()
 }
