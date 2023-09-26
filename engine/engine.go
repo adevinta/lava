@@ -120,7 +120,9 @@ func runAgent(jl jobList, cfg config.AgentConfig) (Report, error) {
 			case <-done:
 				return
 			case <-time.After(summaryInterval):
-				slog.Info("status update", "summary", reports.Summary())
+				for _, s := range strings.Split(reports.Summary(), "\n") {
+					slog.Info(s)
+				}
 			}
 		}
 	}()
