@@ -21,6 +21,7 @@ import (
 	"github.com/adevinta/vulcan-agent/queue"
 	"github.com/adevinta/vulcan-agent/queue/chanqueue"
 	report "github.com/adevinta/vulcan-report"
+	types "github.com/adevinta/vulcan-types"
 	"github.com/jroimartin/proxy"
 
 	"github.com/adevinta/lava/config"
@@ -198,19 +199,26 @@ func beforeRun(params backend.RunParams, rc *docker.RunConfig) error {
 
 	// Allow all checks to scan local assets.
 	rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_ALLOW_PRIVATE_IPS", "true")
-	rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_SKIP_REACHABILITY", "true")
 
-	// Remote Docker daemons are not supported because, among
-	// other things, it would require passing credentials to the
-	// checks.
-	dockerHost, err := daemonHost()
-	if err != nil {
-		return fmt.Errorf("get Docker client: %w", err)
-	}
-	if strings.HasPrefix(dockerHost, "unix://") {
-		rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "DOCKER_HOST", dockerHost)
-		dockerVol := strings.TrimPrefix(dockerHost, "unix://")
-		rc.HostConfig.Binds = append(rc.HostConfig.Binds, dockerVol+":"+dockerVol)
+	if params.AssetType == string(types.DockerImage) {
+		// Due to how reachability is defined by the Vulcan
+		// check SDK, local Docker images would be identified
+		// as unreachable. So, we disable reachability checks
+		// for this type of assets.
+		rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_SKIP_REACHABILITY", "true")
+
+		// Tools like trivy require access to the Docker
+		// daemon to scan local Docker images. So, we share
+		// the Docker socket with them.
+		dockerHost, err := daemonHost()
+		if err != nil {
+			return fmt.Errorf("get Docker client: %w", err)
+		}
+
+		// Remote Docker daemons are not supported.
+		if dockerVol, found := strings.CutPrefix(dockerHost, "unix://"); found {
+			rc.HostConfig.Binds = append(rc.HostConfig.Binds, dockerVol+":/var/run/docker.sock")
+		}
 	}
 
 	return nil
