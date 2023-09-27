@@ -16,6 +16,10 @@ import (
 // of the retrieved catalog is not valid.
 var ErrMalformedCatalog = errors.New("malformed catalog")
 
+// ErrMissingCatalog is returned by [NewChecktypeCatalog] when no
+// catalog URLs are provided.
+var ErrMissingCatalog = errors.New("missing catalog URLs")
+
 // ChecktypeCatalog represents a collection of Vulcan checktypes.
 type ChecktypeCatalog map[string]Checktype
 
@@ -24,6 +28,9 @@ type ChecktypeCatalog map[string]Checktype
 // indexed by name. If a checktype is duplicated it is overridden with
 // the last one.
 func NewChecktypeCatalog(urls []string) (ChecktypeCatalog, error) {
+	if len(urls) == 0 {
+		return nil, ErrMissingCatalog
+	}
 	checktypes := make(ChecktypeCatalog)
 	for _, url := range urls {
 		data, err := urlutil.Get(url)
