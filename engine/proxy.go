@@ -5,8 +5,10 @@ package engine
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/url"
+	"strconv"
 	"sync"
 	"syscall"
 
@@ -95,7 +97,8 @@ func proxyStreams(targets []config.Target) ([]proxy.Stream, error) {
 	for addr := range addrs {
 		host, port, err := net.SplitHostPort(addr)
 		if err != nil {
-			return nil, fmt.Errorf("split host port: %w", err)
+			slog.Warn("could not split host port", "err", err)
+			continue
 		}
 		if !isLoopback(host) {
 			continue
@@ -120,12 +123,12 @@ func proxyStreams(targets []config.Target) ([]proxy.Stream, error) {
 // is returned straightaway.
 //
 // If the target is a [types.WebAddress], the identifier is parsed as
-// URL. If it is a valid URL, the corresponding host is returned.
-// Otherwise, the function returns error.
+// URL. If it is a valid URL, the corresponding host[:port] is
+// returned. Otherwise, the function returns error.
 //
 // If the target is a [types.GitRepository], the identifier is parsed
-// as a Git URL. If it is a valid Git URL, the corresponding host is
-// returned. Otherwise, the function returns error.
+// as a Git URL. If it is a valid Git URL, the corresponding
+// host[:port] is returned. Otherwise, the function returns error.
 //
 // [git-fetch documentation] points out that remote Git URLs may use
 // any of the following syntaxes:
@@ -152,7 +155,7 @@ func targetAddr(target config.Target) (string, error) {
 		if u.Host == "" {
 			return "", fmt.Errorf("empty URL host: %v", u)
 		}
-		return u.Host, nil
+		return guessHostPort(u), nil
 	case types.GitRepository:
 		u, err := parseGitURL(target.Identifier)
 		if err != nil {
@@ -161,10 +164,27 @@ func targetAddr(target config.Target) (string, error) {
 		if u.Host == "" {
 			return "", fmt.Errorf("empty Git URL host: %v", u)
 		}
-		return u.Host, nil
+		return guessHostPort(u), nil
 	}
 
 	return "", errors.New("invalid asset type")
+}
+
+// guessHostPort tries to guess the port corresponding to the provided
+// URL and returns host:port. If the URL specifies a port, it is used.
+// Otherwise, if the URL specifies a scheme, the default port for that
+// scheme is used. Finally, if it is not possible to guess a port,
+// only the host is returned.
+func guessHostPort(u *url.URL) string {
+	if u.Port() != "" {
+		return u.Host
+	}
+
+	host := u.Hostname()
+	if port, err := net.LookupPort("tcp", u.Scheme); err == nil {
+		return net.JoinHostPort(host, strconv.Itoa(port))
+	}
+	return host
 }
 
 // updateLocalTarget extracts the host from the provided target and

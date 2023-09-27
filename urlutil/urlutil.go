@@ -26,8 +26,8 @@ var (
 // if the URL is not valid or if it is not possible to get the
 // contents.
 //
-// It supports the following schemas: http, https. If the provided URL
-// does not specify a schema, it is considered a file path. In the
+// It supports the following schemes: http, https. If the provided URL
+// does not specify a scheme, it is considered a file path. In the
 // case of http and https, the contents are retrieved issuing an HTTP
 // GET request.
 func Get(rawURL string) ([]byte, error) {
