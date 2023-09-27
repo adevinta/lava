@@ -15,7 +15,7 @@ import (
 	types "github.com/adevinta/vulcan-types"
 	"github.com/jroimartin/proxy"
 
-	"github.com/adevinta/lava/config"
+	"github.com/adevinta/lava/internal/config"
 )
 
 // updateAndProxyLocalTargets detects targets listening on a loopback

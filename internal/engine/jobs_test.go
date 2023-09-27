@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
-	"github.com/adevinta/lava/config"
+	"github.com/adevinta/lava/internal/config"
 )
 
 func TestGenerateChecks(t *testing.T) {

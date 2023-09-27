@@ -14,8 +14,8 @@ import (
 
 	types "github.com/adevinta/vulcan-types"
 
-	"github.com/adevinta/lava/config"
-	"github.com/adevinta/lava/gitserver"
+	"github.com/adevinta/lava/internal/config"
+	"github.com/adevinta/lava/internal/gitserver"
 )
 
 // updateAndServeLocalGitRepos serves the local Git repositories in
