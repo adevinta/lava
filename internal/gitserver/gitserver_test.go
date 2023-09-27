@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/adevinta/lava/gitserver/gittest"
+	"github.com/adevinta/lava/internal/gitserver/gittest"
 )
 
 func TestServer_AddRepository(t *testing.T) {

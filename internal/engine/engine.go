@@ -24,9 +24,9 @@ import (
 	types "github.com/adevinta/vulcan-types"
 	"github.com/jroimartin/proxy"
 
-	"github.com/adevinta/lava/config"
-	"github.com/adevinta/lava/dockerutil"
-	"github.com/adevinta/lava/gitserver"
+	"github.com/adevinta/lava/internal/config"
+	"github.com/adevinta/lava/internal/dockerutil"
+	"github.com/adevinta/lava/internal/gitserver"
 )
 
 // dockerInternalHost is the host used by the containers to access the

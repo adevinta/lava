@@ -22,9 +22,9 @@ import (
 	"github.com/docker/docker/pkg/archive"
 	"github.com/jroimartin/clilog"
 
-	"github.com/adevinta/lava/config"
-	"github.com/adevinta/lava/dockerutil"
-	"github.com/adevinta/lava/gitserver/gittest"
+	"github.com/adevinta/lava/internal/config"
+	"github.com/adevinta/lava/internal/dockerutil"
+	"github.com/adevinta/lava/internal/gitserver/gittest"
 )
 
 func TestMain(m *testing.M) {

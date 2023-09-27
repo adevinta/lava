@@ -10,8 +10,8 @@ import (
 	"os"
 
 	"github.com/adevinta/lava/cmd/lava/internal/base"
-	"github.com/adevinta/lava/config"
-	"github.com/adevinta/lava/engine"
+	"github.com/adevinta/lava/internal/config"
+	"github.com/adevinta/lava/internal/engine"
 )
 
 // CmdRun represents the run command.

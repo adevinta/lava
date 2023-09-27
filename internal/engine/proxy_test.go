@@ -8,7 +8,7 @@ import (
 
 	types "github.com/adevinta/vulcan-types"
 
-	"github.com/adevinta/lava/config"
+	"github.com/adevinta/lava/internal/config"
 )
 
 func TestTargetAddr(t *testing.T) {
