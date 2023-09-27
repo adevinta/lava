@@ -187,6 +187,7 @@ const (
 	SeverityInfo     Severity = -3
 )
 
+// severityNames maps each severity name with its level.
 var severityNames = map[string]Severity{
 	"critical": SeverityCritical,
 	"high":     SeverityHigh,
@@ -213,6 +214,26 @@ func (s *Severity) UnmarshalYAML(value *yaml.Node) error {
 	}
 	*s = severity
 	return nil
+}
+
+// IsValid checks if a severity is valid.
+func (s *Severity) IsValid() bool {
+	return *s >= SeverityInfo && *s <= SeverityCritical
+}
+
+// String returns value of a severity.
+func (s *Severity) String() string {
+	for k, v := range severityNames {
+		if v == *s {
+			return k
+		}
+	}
+	return ""
+}
+
+// MarshalText encode a [Severity] as a text.
+func (s *Severity) MarshalText() (text []byte, err error) {
+	return []byte(s.String()), nil
 }
 
 // OutputFormat is the format of the generated report.
