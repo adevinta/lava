@@ -32,7 +32,7 @@ import (
 
 // dockerInternalHost is the host used by the containers to access the
 // services exposed by the Docker host.
-const dockerInternalHost = "host.docker.internal"
+const dockerInternalHost = "host.lava.internal"
 
 // Report is a collection of reports returned by Vulcan checks and
 // indexed by check ID.
