@@ -1,20 +1,66 @@
 // Copyright 2023 Adevinta
 
-package config
+package checktype
 
 import (
 	"errors"
 	"os"
 	"testing"
 
+	types "github.com/adevinta/vulcan-types"
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestNewChecktypeCatalog(t *testing.T) {
+func TestChecktype_Accepts(t *testing.T) {
+	tests := []struct {
+		name      string
+		assetType types.AssetType
+		checktype Checktype
+		want      bool
+	}{
+		{
+			name:      "accepted asset type",
+			assetType: types.Hostname,
+			checktype: Checktype{
+				Name:        "vulcan-drupal",
+				Description: "Checks for some vulnerable versions of Drupal.",
+				Image:       "vulcansec/vulcan-drupal:edge",
+				Assets: []string{
+					"Hostname",
+				},
+			},
+			want: true,
+		},
+		{
+			name:      "not accepted asset type",
+			assetType: types.DomainName,
+			checktype: Checktype{
+				Name:        "vulcan-drupal",
+				Description: "Checks for some vulnerable versions of Drupal.",
+				Image:       "vulcansec/vulcan-drupal:edge",
+				Assets: []string{
+					"Hostname",
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.checktype.Accepts(tt.assetType)
+			if got != tt.want {
+				t.Errorf("unexpected return value: want: %v, got: %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewCatalog(t *testing.T) {
 	tests := []struct {
 		name    string
 		urls    []string
-		want    ChecktypeCatalog
+		want    Catalog
 		wantErr error
 	}{
 		{
@@ -22,7 +68,7 @@ func TestNewChecktypeCatalog(t *testing.T) {
 			urls: []string{
 				"testdata/checktypes_catalog.json",
 			},
-			want: ChecktypeCatalog{
+			want: Catalog{
 				"vulcan-drupal": {
 					Name:        "vulcan-drupal",
 					Description: "Checks for some vulnerable versions of Drupal.",
@@ -43,7 +89,7 @@ func TestNewChecktypeCatalog(t *testing.T) {
 				"testdata/checktypes_catalog.json",
 				"testdata/checktypes_catalog_override.json",
 			},
-			want: ChecktypeCatalog{
+			want: Catalog{
 				"vulcan-drupal": {
 					Name:        "vulcan-drupal",
 					Description: "Checks for some vulnerable versions of Drupal (overridden).",
@@ -81,7 +127,7 @@ func TestNewChecktypeCatalog(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewChecktypeCatalog(tt.urls)
+			got, err := NewCatalog(tt.urls)
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("unexpected error: want: %v, got: %v", tt.wantErr, err)
@@ -89,51 +135,6 @@ func TestNewChecktypeCatalog(t *testing.T) {
 
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("checktypes mismatch (-want +got):\n%v", diff)
-			}
-		})
-	}
-}
-
-func TestChecktypeAccepts(t *testing.T) {
-	tests := []struct {
-		name      string
-		assetType AssetType
-		checktype Checktype
-		want      bool
-	}{
-		{
-			name:      "accepted asset type",
-			assetType: AssetType("Hostname"),
-			checktype: Checktype{
-				Name:        "vulcan-drupal",
-				Description: "Checks for some vulnerable versions of Drupal (overridden).",
-				Image:       "vulcansec/vulcan-drupal:overridden",
-				Assets: []string{
-					"Hostname",
-				},
-			},
-			want: true,
-		},
-		{
-			name:      "not accepted asset type",
-			assetType: AssetType("DomainName"),
-			checktype: Checktype{
-				Name:        "vulcan-drupal",
-				Description: "Checks for some vulnerable versions of Drupal (overridden).",
-				Image:       "vulcansec/vulcan-drupal:overridden",
-				Assets: []string{
-					"Hostname",
-				},
-			},
-			want: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := tt.checktype.Accepts(tt.assetType)
-			if got != tt.want {
-				t.Errorf("unexpected return value: want: %v, got: %v", got, tt.want)
 			}
 		})
 	}

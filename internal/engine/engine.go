@@ -24,6 +24,7 @@ import (
 	types "github.com/adevinta/vulcan-types"
 	"github.com/jroimartin/proxy"
 
+	"github.com/adevinta/lava/internal/checktype"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/dockerutil"
 	"github.com/adevinta/lava/internal/gitserver"
@@ -67,12 +68,12 @@ func Run(checktypesURLs []string, targets []config.Target, cfg config.AgentConfi
 		return nil, fmt.Errorf("proxy local services: %w", err)
 	}
 
-	checktypes, err := config.NewChecktypeCatalog(checktypesURLs)
+	checktypes, err := checktype.NewCatalog(checktypesURLs)
 	if err != nil {
 		return nil, fmt.Errorf("get checkype catalog: %w", err)
 	}
 
-	jl, err := newJobList(checktypes, targets)
+	jl, err := generateJobs(checktypes, targets)
 	if err != nil {
 		return nil, fmt.Errorf("create job list: %w", err)
 	}
@@ -89,7 +90,7 @@ const summaryInterval = 15 * time.Second
 
 // runAgent creates a Vulcan agent using the specified config and uses
 // it to run the provided jobs.
-func runAgent(jl jobList, cfg config.AgentConfig) (Report, error) {
+func runAgent(jobs []jobrunner.Job, cfg config.AgentConfig) (Report, error) {
 	alogger := newAgentLogger(slog.Default())
 
 	agentConfig, err := newAgentConfig(cfg)
@@ -107,7 +108,7 @@ func runAgent(jl jobList, cfg config.AgentConfig) (Report, error) {
 	stateQueue.StartReading(context.Background())
 
 	jobsQueue := chanqueue.New(nil)
-	if err := sendJobs(jl, jobsQueue); err != nil {
+	if err := sendJobs(jobs, jobsQueue); err != nil {
 		return nil, fmt.Errorf("send jobs: %w", err)
 	}
 

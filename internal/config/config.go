@@ -101,6 +101,9 @@ func (c *Config) validate() error {
 		if target.Identifier == "" {
 			return ErrNoTargetIdentifier
 		}
+		if !target.AssetType.IsValid() {
+			return fmt.Errorf("%w: %v", ErrInvalidAssetType, target.AssetType)
+		}
 	}
 	return nil
 }
@@ -147,7 +150,7 @@ type Target struct {
 	Identifier string `yaml:"identifier"`
 
 	// AssetType is the asset type of the target.
-	AssetType AssetType `yaml:"assetType"`
+	AssetType types.AssetType `yaml:"assetType"`
 
 	// Options is a list of specific options for the target.
 	Options map[string]any `yaml:"options"`
@@ -190,9 +193,7 @@ func parseSeverity(severity string) (Severity, error) {
 	if val, ok := severityNames[severity]; ok {
 		return val, nil
 	}
-
-	var zero Severity
-	return zero, fmt.Errorf("%w: %v", ErrInvalidSeverity, severity)
+	return Severity(0), fmt.Errorf("%w: %v", ErrInvalidSeverity, severity)
 }
 
 // UnmarshalYAML decodes a Severity yaml node containing a string into
@@ -224,9 +225,7 @@ func parseOutputFormat(format string) (OutputFormat, error) {
 	if val, ok := outputFormatNames[strings.ToLower(format)]; ok {
 		return val, nil
 	}
-
-	var zero OutputFormat
-	return zero, fmt.Errorf("%w: %v", ErrInvalidOutputFormat, format)
+	return OutputFormat(0), fmt.Errorf("%w: %v", ErrInvalidOutputFormat, format)
 }
 
 // UnmarshalYAML decodes an OutputFormat yaml node containing a string
@@ -259,19 +258,4 @@ type Exclusion struct {
 
 	// Description describes the exclusion.
 	Description string `yaml:"description"`
-}
-
-// AssetType represents the type of an asset.
-type AssetType types.AssetType
-
-// UnmarshalYAML decodes an AssetType yaml node containing a string
-// into an [AssetType] value. It returns error if the provided string
-// does not match any known asset type.
-func (t *AssetType) UnmarshalYAML(value *yaml.Node) error {
-	at, err := types.Parse(value.Value)
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrInvalidAssetType, value.Value)
-	}
-	*t = AssetType(at)
-	return nil
 }

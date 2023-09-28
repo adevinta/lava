@@ -60,7 +60,7 @@ func TestRun(t *testing.T) {
 		targets        = []config.Target{
 			{
 				Identifier: srv.URL,
-				AssetType:  config.AssetType(types.WebAddress),
+				AssetType:  types.WebAddress,
 			},
 		}
 		agentConfig = config.AgentConfig{
@@ -103,7 +103,7 @@ func TestRun_docker_image(t *testing.T) {
 		targets        = []config.Target{
 			{
 				Identifier: "python:3.4-alpine",
-				AssetType:  config.AssetType(types.DockerImage),
+				AssetType:  types.DockerImage,
 			},
 		}
 		agentConfig = config.AgentConfig{
@@ -162,7 +162,7 @@ func TestRun_git_repository(t *testing.T) {
 			name: "dir",
 			target: config.Target{
 				Identifier: tmpPath,
-				AssetType:  config.AssetType(types.GitRepository),
+				AssetType:  types.GitRepository,
 			},
 			wantErr:    false,
 			wantStatus: "FINISHED",
@@ -172,7 +172,7 @@ func TestRun_git_repository(t *testing.T) {
 			name: "file",
 			target: config.Target{
 				Identifier: filepath.Join(tmpPath, "Dockerfile"),
-				AssetType:  config.AssetType(types.GitRepository),
+				AssetType:  types.GitRepository,
 			},
 			wantErr: true,
 		},
@@ -180,7 +180,7 @@ func TestRun_git_repository(t *testing.T) {
 			name: "not exist",
 			target: config.Target{
 				Identifier: filepath.Join(tmpPath, "notexist"),
-				AssetType:  config.AssetType(types.GitRepository),
+				AssetType:  types.GitRepository,
 			},
 			wantErr:    false,
 			wantStatus: "INCONCLUSIVE",

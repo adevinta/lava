@@ -21,7 +21,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "IPv4",
 			target: config.Target{
-				AssetType:  config.AssetType(types.IP),
+				AssetType:  types.IP,
 				Identifier: "127.0.0.1",
 			},
 			want:       "127.0.0.1",
@@ -30,7 +30,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "IPv6",
 			target: config.Target{
-				AssetType:  config.AssetType(types.IP),
+				AssetType:  types.IP,
 				Identifier: "::1",
 			},
 			want:       "::1",
@@ -39,7 +39,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "Hostname",
 			target: config.Target{
-				AssetType:  config.AssetType(types.Hostname),
+				AssetType:  types.Hostname,
 				Identifier: "example.com",
 			},
 			want:       "example.com",
@@ -48,7 +48,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "WebAddress port",
 			target: config.Target{
-				AssetType:  config.AssetType(types.WebAddress),
+				AssetType:  types.WebAddress,
 				Identifier: "https://example.com:1234/path",
 			},
 			want:       "example.com:1234",
@@ -57,7 +57,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "WebAddress scheme",
 			target: config.Target{
-				AssetType:  config.AssetType(types.WebAddress),
+				AssetType:  types.WebAddress,
 				Identifier: "https://example.com/path",
 			},
 			want:       "example.com:443",
@@ -66,7 +66,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "WebAddress unknown scheme",
 			target: config.Target{
-				AssetType:  config.AssetType(types.WebAddress),
+				AssetType:  types.WebAddress,
 				Identifier: "unknown://example.com/path",
 			},
 			want:       "example.com",
@@ -75,7 +75,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "invalid WebAddress",
 			target: config.Target{
-				AssetType:  config.AssetType(types.WebAddress),
+				AssetType:  types.WebAddress,
 				Identifier: "https://example.com:invalidport/path",
 			},
 			want:       "",
@@ -84,7 +84,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "GitRepository scp-like syntax",
 			target: config.Target{
-				AssetType:  config.AssetType(types.GitRepository),
+				AssetType:  types.GitRepository,
 				Identifier: "git@github.com:adevinta/lava.git",
 			},
 			want:       "github.com:22",
@@ -93,7 +93,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "GitRepository https",
 			target: config.Target{
-				AssetType:  config.AssetType(types.GitRepository),
+				AssetType:  types.GitRepository,
 				Identifier: "https://example.com/path/to/repo.git/",
 			},
 			want:       "example.com:443",
@@ -102,7 +102,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "GitRepository git",
 			target: config.Target{
-				AssetType:  config.AssetType(types.GitRepository),
+				AssetType:  types.GitRepository,
 				Identifier: "git://example.com/~user/path/to/repo.git/",
 			},
 			want:       "example.com:9418",
@@ -111,7 +111,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "GitRepository git port",
 			target: config.Target{
-				AssetType:  config.AssetType(types.GitRepository),
+				AssetType:  types.GitRepository,
 				Identifier: "git://example.com:443/~user/path/to/repo.git/",
 			},
 			want:       "example.com:443",
@@ -120,7 +120,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "invalid GitRepository URL",
 			target: config.Target{
-				AssetType:  config.AssetType(types.GitRepository),
+				AssetType:  types.GitRepository,
 				Identifier: "https://example.com:invalidport/path/to/repo.git/",
 			},
 			want:       "",
@@ -129,7 +129,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "invalid asset type",
 			target: config.Target{
-				AssetType:  config.AssetType(types.IPRange),
+				AssetType:  types.IPRange,
 				Identifier: "127.0.0.1/8",
 			},
 			want:       "",
@@ -138,7 +138,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "GitRepository with empty host",
 			target: config.Target{
-				AssetType:  config.AssetType(types.GitRepository),
+				AssetType:  types.GitRepository,
 				Identifier: "/path",
 			},
 			want:       "",
@@ -147,7 +147,7 @@ func TestTargetAddr(t *testing.T) {
 		{
 			name: "WebAddress with empty host",
 			target: config.Target{
-				AssetType:  config.AssetType(types.WebAddress),
+				AssetType:  types.WebAddress,
 				Identifier: "/path",
 			},
 			want:       "",
