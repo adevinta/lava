@@ -121,7 +121,12 @@ func runAgent(jobs []jobrunner.Job, cfg config.AgentConfig) (Report, error) {
 			case <-done:
 				return
 			case <-time.After(summaryInterval):
-				for _, s := range strings.Split(reports.Summary(), "\n") {
+				sums := reports.Summary()
+				if len(sums) == 0 {
+					slog.Info("waiting for updates")
+					break
+				}
+				for _, s := range sums {
 					slog.Info(s)
 				}
 			}

@@ -5,7 +5,6 @@ package engine
 import (
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync"
 	"time"
 
@@ -52,14 +51,15 @@ func (rs *reportStore) UploadCheckData(checkID, kind string, startedAt time.Time
 	return "", nil
 }
 
-// Summary returns a human friendly summary of all reports.
-func (rs *reportStore) Summary() string {
+// Summary returns a human-readable summary per report.
+func (rs *reportStore) Summary() []string {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
-	var b strings.Builder
+	var sums []string
 	for _, r := range rs.reports {
-		fmt.Fprintf(&b, "checktype=%v target=%v start=%v status=%v\n", r.ChecktypeName, r.Target, r.StartTime, r.Status)
+		s := fmt.Sprintf("checktype=%v target=%v start=%v status=%v", r.ChecktypeName, r.Target, r.StartTime, r.Status)
+		sums = append(sums, s)
 	}
-	return strings.TrimSuffix(b.String(), "\n")
+	return sums
 }
