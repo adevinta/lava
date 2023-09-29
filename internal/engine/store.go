@@ -5,6 +5,7 @@ package engine
 import (
 	"fmt"
 	"log/slog"
+	"maps"
 	"sync"
 	"time"
 
@@ -62,4 +63,12 @@ func (rs *reportStore) Summary() []string {
 		sums = append(sums, s)
 	}
 	return sums
+}
+
+// Reports returns the stored reports.
+func (rs *reportStore) Reports() map[string]report.Report {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	return maps.Clone(rs.reports)
 }

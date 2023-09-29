@@ -147,7 +147,7 @@ func TestAgentLogger(t *testing.T) {
 			got := strings.TrimSuffix(buf.String(), "\n")
 			want := strings.ReplaceAll(tt.want, "$SOURCE", source)
 			if got != want {
-				t.Errorf("unexpected output: got: %q, want: %q", got, want)
+				t.Errorf("unexpected output: got: %#q, want: %#q", got, want)
 			}
 		})
 	}

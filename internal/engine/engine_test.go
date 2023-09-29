@@ -4,6 +4,7 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	agentconfig "github.com/adevinta/vulcan-agent/config"
@@ -73,6 +75,8 @@ func TestRun(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	checkReportTarget(t, engineReport, dockerInternalHost)
+
 	var checkReports []report.Report
 	for _, v := range engineReport {
 		checkReports = append(checkReports, v)
@@ -83,8 +87,13 @@ func TestRun(t *testing.T) {
 	}
 
 	gotReport := checkReports[0]
+
 	if gotReport.Status != "FINISHED" {
-		t.Fatalf("unexpected status: %v", gotReport.Status)
+		t.Errorf("unexpected status: %v", gotReport.Status)
+	}
+
+	if gotReport.Target != srv.URL {
+		t.Errorf("unexpected target: got: %v, want: %v", gotReport.Target, srv.URL)
 	}
 
 	if len(gotReport.Vulnerabilities) != 1 {
@@ -92,8 +101,9 @@ func TestRun(t *testing.T) {
 	}
 
 	gotDetails := gotReport.Vulnerabilities[0].Details
+
 	if gotDetails != wantDetails {
-		t.Fatalf("unexpected summary: got: %q, want: %q", gotDetails, wantDetails)
+		t.Errorf("unexpected details: got: %#q, want: %#q", gotDetails, wantDetails)
 	}
 }
 
@@ -116,6 +126,8 @@ func TestRun_docker_image(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	checkReportTarget(t, engineReport, dockerInternalHost)
+
 	var checkReports []report.Report
 	for _, v := range engineReport {
 		checkReports = append(checkReports, v)
@@ -126,12 +138,13 @@ func TestRun_docker_image(t *testing.T) {
 	}
 
 	gotReport := checkReports[0]
+
 	if gotReport.Status != "FINISHED" {
-		t.Fatalf("unexpected status: %v", gotReport.Status)
+		t.Errorf("unexpected status: %v", gotReport.Status)
 	}
 
 	if len(gotReport.Vulnerabilities) == 0 {
-		t.Fatalf("no vulnerabilities found")
+		t.Errorf("no vulnerabilities found")
 	}
 
 	t.Logf("found %v vulnerabilities", len(gotReport.Vulnerabilities))
@@ -154,7 +167,6 @@ func TestRun_git_repository(t *testing.T) {
 	tests := []struct {
 		name       string
 		target     config.Target
-		wantErr    bool
 		wantStatus string
 		wantVulns  bool
 	}{
@@ -164,7 +176,6 @@ func TestRun_git_repository(t *testing.T) {
 				Identifier: tmpPath,
 				AssetType:  types.GitRepository,
 			},
-			wantErr:    false,
 			wantStatus: "FINISHED",
 			wantVulns:  true,
 		},
@@ -174,7 +185,8 @@ func TestRun_git_repository(t *testing.T) {
 				Identifier: filepath.Join(tmpPath, "Dockerfile"),
 				AssetType:  types.GitRepository,
 			},
-			wantErr: true,
+			wantStatus: "INCONCLUSIVE",
+			wantVulns:  false,
 		},
 		{
 			name: "not exist",
@@ -182,8 +194,8 @@ func TestRun_git_repository(t *testing.T) {
 				Identifier: filepath.Join(tmpPath, "notexist"),
 				AssetType:  types.GitRepository,
 			},
-			wantErr:    false,
 			wantStatus: "INCONCLUSIVE",
+			wantVulns:  false,
 		},
 	}
 
@@ -191,11 +203,10 @@ func TestRun_git_repository(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			engineReport, err := Run(checktypesURLs, []config.Target{tt.target}, agentConfig)
 			if err != nil {
-				if !tt.wantErr {
-					t.Fatalf("unexpected error: %v", err)
-				}
-				return
+				t.Fatalf("unexpected error: %v", err)
 			}
+
+			checkReportTarget(t, engineReport, dockerInternalHost)
 
 			var checkReports []report.Report
 			for _, v := range engineReport {
@@ -207,12 +218,13 @@ func TestRun_git_repository(t *testing.T) {
 			}
 
 			gotReport := checkReports[0]
+
 			if gotReport.Status != tt.wantStatus {
-				t.Fatalf("unexpected status: %v", gotReport.Status)
+				t.Errorf("unexpected status: %v", gotReport.Status)
 			}
 
 			if (len(gotReport.Vulnerabilities) > 0) != tt.wantVulns {
-				t.Fatalf("unexpected number of vulnerabilities: %v", len(gotReport.Vulnerabilities))
+				t.Errorf("unexpected number of vulnerabilities: %v", len(gotReport.Vulnerabilities))
 			}
 
 			t.Logf("found %v vulnerabilities", len(gotReport.Vulnerabilities))
@@ -265,4 +277,18 @@ func dockerBuild(path, tag string) error {
 	}
 
 	return nil
+}
+
+// checkReportTarget encodes report as JSON and looks for substr in
+// the output. If substr is not found, checkReportTarget calls
+// t.Errorf.
+func checkReportTarget(t *testing.T, report Report, substr string) {
+	doc, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal error: %v", err)
+	}
+
+	if strings.Contains(string(doc), substr) {
+		t.Errorf("report contains %q:\n%s", dockerInternalHost, doc)
+	}
 }

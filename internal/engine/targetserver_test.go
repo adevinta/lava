@@ -11,7 +11,7 @@ import (
 	"github.com/adevinta/lava/internal/config"
 )
 
-func TestTargetAddr(t *testing.T) {
+func TestGetTargetAddr(t *testing.T) {
 	tests := []struct {
 		name       string
 		target     config.Target
@@ -157,25 +157,25 @@ func TestTargetAddr(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := targetAddr(tt.target)
+			got, err := getTargetAddr(tt.target)
 
 			if (err == nil) != tt.wantNilErr {
 				t.Errorf("unexpected error: %v", err)
 			}
 
 			if got != tt.want {
-				t.Errorf("unexpected host: got: %q, want: %q", got, tt.want)
+				t.Errorf("unexpected host: got: %v, want: %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestUpdateLocalTarget(t *testing.T) {
+func TestMkIntIdentifier(t *testing.T) {
 	tests := []struct {
-		name           string
-		target         config.Target
-		wantIdentifier string
-		wantNilErr     bool
+		name       string
+		target     config.Target
+		want       string
+		wantNilErr bool
 	}{
 		{
 			name: "local IP",
@@ -183,8 +183,8 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "127.0.0.1",
 				AssetType:  "IP",
 			},
-			wantIdentifier: dockerInternalHost,
-			wantNilErr:     true,
+			want:       dockerInternalHost,
+			wantNilErr: true,
 		},
 		{
 			name: "remote IP",
@@ -192,8 +192,8 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "192.168.1.1",
 				AssetType:  "IP",
 			},
-			wantIdentifier: "192.168.1.1",
-			wantNilErr:     true,
+			want:       dockerInternalHost,
+			wantNilErr: true,
 		},
 		{
 			name: "local Hostname",
@@ -201,8 +201,8 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "localhost",
 				AssetType:  "Hostname",
 			},
-			wantIdentifier: dockerInternalHost,
-			wantNilErr:     true,
+			want:       dockerInternalHost,
+			wantNilErr: true,
 		},
 		{
 			name: "remote Hostname",
@@ -210,8 +210,8 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "example.com",
 				AssetType:  "Hostname",
 			},
-			wantIdentifier: "example.com",
-			wantNilErr:     true,
+			want:       dockerInternalHost,
+			wantNilErr: true,
 		},
 		{
 			name: "local WebAddress",
@@ -219,8 +219,8 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "http://127.0.0.1:12345/path",
 				AssetType:  "WebAddress",
 			},
-			wantIdentifier: fmt.Sprintf("http://%v:12345/path", dockerInternalHost),
-			wantNilErr:     true,
+			want:       fmt.Sprintf("http://%v:12345/path", dockerInternalHost),
+			wantNilErr: true,
 		},
 		{
 			name: "remote WebAddress",
@@ -228,8 +228,8 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "http://192.168.1.1/path",
 				AssetType:  "WebAddress",
 			},
-			wantIdentifier: "http://192.168.1.1/path",
-			wantNilErr:     true,
+			want:       fmt.Sprintf("http://%v/path", dockerInternalHost),
+			wantNilErr: true,
 		},
 		{
 			name: "local GitRepository",
@@ -237,8 +237,8 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "ssh://git@localhost:12345/path/to/repo.git",
 				AssetType:  "GitRepository",
 			},
-			wantIdentifier: fmt.Sprintf("ssh://git@%v:12345/path/to/repo.git", dockerInternalHost),
-			wantNilErr:     true,
+			want:       fmt.Sprintf("ssh://git@%v:12345/path/to/repo.git", dockerInternalHost),
+			wantNilErr: true,
 		},
 		{
 			name: "remote GitRepository",
@@ -246,8 +246,8 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "git@example.com:/path/to/repo.git",
 				AssetType:  "GitRepository",
 			},
-			wantIdentifier: "ssh://git@example.com/path/to/repo.git",
-			wantNilErr:     true,
+			want:       fmt.Sprintf("ssh://git@%v/path/to/repo.git", dockerInternalHost),
+			wantNilErr: true,
 		},
 		{
 			name: "multiple host occurrences",
@@ -255,8 +255,8 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "localhost://localhost:12345/path",
 				AssetType:  "WebAddress",
 			},
-			wantIdentifier: fmt.Sprintf("localhost://%v:12345/path", dockerInternalHost),
-			wantNilErr:     true,
+			want:       fmt.Sprintf("localhost://%v:12345/path", dockerInternalHost),
+			wantNilErr: true,
 		},
 		{
 			name: "DockerImage",
@@ -264,8 +264,8 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "alpine:3.18",
 				AssetType:  "DockerImage",
 			},
-			wantIdentifier: "alpine:3.18",
-			wantNilErr:     true,
+			want:       "",
+			wantNilErr: false,
 		},
 		{
 			name: "invalid GitRepository",
@@ -273,8 +273,8 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "ssh://git@localhost:invalidport/path/to/repo.git",
 				AssetType:  "GitRepository",
 			},
-			wantIdentifier: "ssh://git@localhost:invalidport/path/to/repo.git",
-			wantNilErr:     false,
+			want:       "",
+			wantNilErr: false,
 		},
 		{
 			name: "invalid WebAddress",
@@ -282,23 +282,93 @@ func TestUpdateLocalTarget(t *testing.T) {
 				Identifier: "http://127.0.0.1:invalidport/path",
 				AssetType:  "WebAddress",
 			},
-			wantIdentifier: "http://127.0.0.1:invalidport/path",
-			wantNilErr:     false,
+			want:       "",
+			wantNilErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			target := tt.target
-
-			err := updateLocalTarget(&target)
+			got, err := mkIntIdentifier(tt.target)
 
 			if (err == nil) != tt.wantNilErr {
 				t.Errorf("unexpected error: %v", err)
 			}
 
-			if target.Identifier != tt.wantIdentifier {
-				t.Errorf("unexpected target: got: %q, want: %q", target.Identifier, tt.wantIdentifier)
+			if got != tt.want {
+				t.Errorf("unexpected target: got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseGitURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		url      string
+		wantHost string
+	}{
+		{
+			name:     "url",
+			url:      "https://example.com:443/path/to/repo.git/",
+			wantHost: "example.com:443",
+		},
+		{
+			name:     "scp long",
+			url:      "user@example.com:/~user/path/to/repo.git/",
+			wantHost: "example.com",
+		},
+		{
+			name:     "scp short",
+			url:      "example.com:/",
+			wantHost: "example.com",
+		},
+		{
+			name:     "local path",
+			url:      "/path/to/repo.git/",
+			wantHost: "",
+		},
+		{
+			name:     "scp with colon",
+			url:      "foo:bar",
+			wantHost: "foo",
+		},
+		{
+			name:     "local path with colon",
+			url:      "./foo:bar",
+			wantHost: "",
+		},
+		{
+			name:     "slash",
+			url:      "/",
+			wantHost: "",
+		},
+		{
+			name:     "colon",
+			url:      ":",
+			wantHost: "",
+		},
+		{
+			name:     "colon slash",
+			url:      ":/",
+			wantHost: "",
+		},
+		{
+			name:     "slash colon",
+			url:      "/:",
+			wantHost: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u, err := parseGitURL(tt.url)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if u.Host != tt.wantHost {
+				t.Errorf("unexpected host: got: %v, want: %v)", u.Host, tt.wantHost)
 			}
 		})
 	}

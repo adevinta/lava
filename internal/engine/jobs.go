@@ -8,8 +8,10 @@ import (
 	"maps"
 	"reflect"
 	"slices"
+	"time"
 
 	"github.com/adevinta/vulcan-agent/jobrunner"
+	"github.com/adevinta/vulcan-agent/queue"
 	types "github.com/adevinta/vulcan-types"
 	"github.com/google/uuid"
 
@@ -145,4 +147,19 @@ func contains[S ~[]E, E any](s S, v E) bool {
 	return slices.ContainsFunc(s, func(e E) bool {
 		return reflect.DeepEqual(e, v)
 	})
+}
+
+// sendJobs feeds the provided queue with jobs.
+func sendJobs(jobs []jobrunner.Job, qw queue.Writer) error {
+	for _, job := range jobs {
+		job.StartTime = time.Now()
+		bytes, err := json.Marshal(job)
+		if err != nil {
+			return fmt.Errorf("marshal json: %w", err)
+		}
+		if err := qw.Write(string(bytes)); err != nil {
+			return fmt.Errorf("queue write: %w", err)
+		}
+	}
+	return nil
 }
