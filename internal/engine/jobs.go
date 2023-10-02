@@ -13,24 +13,17 @@ import (
 	types "github.com/adevinta/vulcan-types"
 	"github.com/google/uuid"
 
+	"github.com/adevinta/lava/internal/checktype"
 	"github.com/adevinta/lava/internal/config"
 )
 
-// jobList represents a list of jobs.
-type jobList []jobrunner.Job
-
-// newJobList generates a list of jobs from a checktype catalog and a
-// list of targets.
-func newJobList(checktypes config.ChecktypeCatalog, targets []config.Target) (jobList, error) {
+// generateJobs generates the jobs to be sent to the agent.
+func generateJobs(checktypes checktype.Catalog, targets []config.Target) ([]jobrunner.Job, error) {
 	checks, err := generateChecks(checktypes, targets)
 	if err != nil {
 		return nil, fmt.Errorf("generate checks: %w", err)
 	}
-	return generateJobs(checks)
-}
 
-// generateJobs generates the jobs to be sent to the agent.
-func generateJobs(checks []check) (jobList, error) {
 	var jobs []jobrunner.Job
 	for _, check := range checks {
 		// Convert the options to a marshalled json string.
@@ -74,7 +67,7 @@ func generateJobs(checks []check) (jobList, error) {
 // check represents an instance of a checktype.
 type check struct {
 	id        string
-	checktype config.Checktype
+	checktype checktype.Checktype
 	target    config.Target
 	options   map[string]interface{}
 }
@@ -82,7 +75,7 @@ type check struct {
 // generateChecks generates a list of checks combining a map of
 // checktypes and a list of targets. It returns an error if any of the
 // targets has an invalid asset type.
-func generateChecks(checktypes config.ChecktypeCatalog, targets []config.Target) ([]check, error) {
+func generateChecks(checktypes checktype.Catalog, targets []config.Target) ([]check, error) {
 	ts, err := resolveTargets(targets)
 	if err != nil {
 		return nil, fmt.Errorf("resolve targets: %w", err)
@@ -135,7 +128,7 @@ func resolveTargets(targets []config.Target) ([]config.Target, error) {
 		for _, at := range ats {
 			t := config.Target{
 				Identifier: target.Identifier,
-				AssetType:  config.AssetType(at),
+				AssetType:  at,
 				Options:    target.Options,
 			}
 			if !contains(ts, t) {

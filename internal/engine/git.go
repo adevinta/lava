@@ -34,7 +34,7 @@ func updateAndServeLocalGitRepos(gs *gitserver.Server, targets []config.Target) 
 	}()
 
 	for i, t := range targets {
-		if t.AssetType != config.AssetType(types.GitRepository) {
+		if t.AssetType != types.GitRepository {
 			continue
 		}
 		info, err := os.Stat(t.Identifier)

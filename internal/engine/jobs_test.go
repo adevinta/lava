@@ -10,20 +10,21 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
+	"github.com/adevinta/lava/internal/checktype"
 	"github.com/adevinta/lava/internal/config"
 )
 
 func TestGenerateChecks(t *testing.T) {
 	tests := []struct {
 		name       string
-		checktypes config.ChecktypeCatalog
+		checktypes checktype.Catalog
 		targets    []config.Target
 		want       []check
 		wantNilErr bool
 	}{
 		{
 			name: "one checktype and one target",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -41,7 +42,7 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			want: []check{
 				{
-					checktype: config.Checktype{
+					checktype: checktype.Checktype{
 						Name:        "checktype1",
 						Description: "checktype1 description",
 						Image:       "namespace/repository:tag",
@@ -60,7 +61,7 @@ func TestGenerateChecks(t *testing.T) {
 		},
 		{
 			name: "target overrides checktype options",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -86,7 +87,7 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			want: []check{
 				{
-					checktype: config.Checktype{
+					checktype: checktype.Checktype{
 						Name:        "checktype1",
 						Description: "checktype1 description",
 						Image:       "namespace/repository:tag",
@@ -117,7 +118,7 @@ func TestGenerateChecks(t *testing.T) {
 		},
 		{
 			name: "two checktypes and one target",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -143,7 +144,7 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			want: []check{
 				{
-					checktype: config.Checktype{
+					checktype: checktype.Checktype{
 						Name:        "checktype1",
 						Description: "checktype1 description",
 						Image:       "namespace/repository:tag",
@@ -158,7 +159,7 @@ func TestGenerateChecks(t *testing.T) {
 					options: map[string]any{},
 				},
 				{
-					checktype: config.Checktype{
+					checktype: checktype.Checktype{
 						Name:        "checktype2",
 						Description: "checktype2 description",
 						Image:       "namespace2/repository2:tag",
@@ -177,7 +178,7 @@ func TestGenerateChecks(t *testing.T) {
 		},
 		{
 			name: "incompatible target",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -198,7 +199,7 @@ func TestGenerateChecks(t *testing.T) {
 		},
 		{
 			name: "invalid target",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -230,7 +231,7 @@ func TestGenerateChecks(t *testing.T) {
 		},
 		{
 			name: "no targets",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -246,7 +247,7 @@ func TestGenerateChecks(t *testing.T) {
 		},
 		{
 			name: "target without asset type",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -263,7 +264,7 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			want: []check{
 				{
-					checktype: config.Checktype{
+					checktype: checktype.Checktype{
 						Name:        "checktype1",
 						Description: "checktype1 description",
 						Image:       "namespace/repository:tag",
@@ -282,7 +283,7 @@ func TestGenerateChecks(t *testing.T) {
 		},
 		{
 			name: "one checktype with two asset types and one target",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -301,7 +302,7 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			want: []check{
 				{
-					checktype: config.Checktype{
+					checktype: checktype.Checktype{
 						Name:        "checktype1",
 						Description: "checktype1 description",
 						Image:       "namespace/repository:tag",
@@ -321,7 +322,7 @@ func TestGenerateChecks(t *testing.T) {
 		},
 		{
 			name: "one checktype with two asset types and one target with two asset types",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -340,7 +341,7 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			want: []check{
 				{
-					checktype: config.Checktype{
+					checktype: checktype.Checktype{
 						Name:        "checktype1",
 						Description: "checktype1 description",
 						Image:       "namespace/repository:tag",
@@ -356,7 +357,7 @@ func TestGenerateChecks(t *testing.T) {
 					options: map[string]any{},
 				},
 				{
-					checktype: config.Checktype{
+					checktype: checktype.Checktype{
 						Name:        "checktype1",
 						Description: "checktype1 description",
 						Image:       "namespace/repository:tag",
@@ -376,7 +377,7 @@ func TestGenerateChecks(t *testing.T) {
 		},
 		{
 			name: "one target with two asset types",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -394,7 +395,7 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			want: []check{
 				{
-					checktype: config.Checktype{
+					checktype: checktype.Checktype{
 						Name:        "checktype1",
 						Description: "checktype1 description",
 						Image:       "namespace/repository:tag",
@@ -413,7 +414,7 @@ func TestGenerateChecks(t *testing.T) {
 		},
 		{
 			name: "duplicated targets",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -435,7 +436,7 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			want: []check{
 				{
-					checktype: config.Checktype{
+					checktype: checktype.Checktype{
 						Name:        "checktype1",
 						Description: "checktype1 description",
 						Image:       "namespace/repository:tag",
@@ -475,79 +476,14 @@ func TestGenerateChecks(t *testing.T) {
 func TestGenerateJobs(t *testing.T) {
 	tests := []struct {
 		name       string
-		checks     []check
-		want       jobList
-		wantNilErr bool
-	}{
-		{
-			name: "one check",
-			checks: []check{
-				{
-					id: "randomID",
-					checktype: config.Checktype{
-						Name:        "checktype1",
-						Description: "checktype1 description",
-						Image:       "namespace/repository:tag",
-						Assets: []string{
-							"DomainName",
-						},
-					},
-					target: config.Target{
-						Identifier: "example.com",
-						AssetType:  "DomainName",
-					},
-					options: map[string]any{},
-				},
-			},
-			want: []jobrunner.Job{
-				{
-					CheckID:   "randomID",
-					Image:     "namespace/repository:tag",
-					Target:    "example.com",
-					AssetType: "DomainName",
-					Options:   "{}",
-				},
-			},
-			wantNilErr: true,
-		},
-		{
-			name:       "checks nil",
-			checks:     nil,
-			want:       nil,
-			wantNilErr: true,
-		},
-		{
-			name:       "checks empty",
-			checks:     []check{},
-			want:       nil,
-			wantNilErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := generateJobs(tt.checks)
-			if (err == nil) != tt.wantNilErr {
-				t.Fatalf("unexpected error value: %v", err)
-			}
-			if diff := cmp.Diff(tt.want, got); diff != "" {
-				t.Errorf("jobs mismatch (-want +got):\n%v", diff)
-			}
-		})
-	}
-}
-
-func TestNewJobList(t *testing.T) {
-	tests := []struct {
-		name       string
-		checktypes config.ChecktypeCatalog
+		checktypes checktype.Catalog
 		targets    []config.Target
-		want       jobList
+		want       []jobrunner.Job
 		wantNilErr bool
 	}{
 		{
 			name: "one checktype and one target",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -563,7 +499,7 @@ func TestNewJobList(t *testing.T) {
 					AssetType:  "DomainName",
 				},
 			},
-			want: jobList{
+			want: []jobrunner.Job{
 				{
 					Image:     "namespace/repository:tag",
 					Target:    "example.com",
@@ -575,7 +511,7 @@ func TestNewJobList(t *testing.T) {
 		},
 		{
 			name: "two checktypes and one target",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -599,7 +535,7 @@ func TestNewJobList(t *testing.T) {
 					AssetType:  "DomainName",
 				},
 			},
-			want: jobList{
+			want: []jobrunner.Job{
 				{
 					Image:     "namespace/repository:tag",
 					Target:    "example.com",
@@ -617,7 +553,7 @@ func TestNewJobList(t *testing.T) {
 		},
 		{
 			name: "one checktype and one target with valid required vars",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -637,7 +573,7 @@ func TestNewJobList(t *testing.T) {
 					AssetType:  "DomainName",
 				},
 			},
-			want: jobList{
+			want: []jobrunner.Job{
 				{
 					Image:     "namespace/repository:tag",
 					Target:    "example.com",
@@ -653,7 +589,7 @@ func TestNewJobList(t *testing.T) {
 		},
 		{
 			name: "one checktype and one target with invalid required vars",
-			checktypes: config.ChecktypeCatalog{
+			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
 					Description: "checktype1 description",
@@ -680,7 +616,7 @@ func TestNewJobList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := newJobList(tt.checktypes, tt.targets)
+			got, err := generateJobs(tt.checktypes, tt.targets)
 			if (err == nil) != tt.wantNilErr {
 				t.Fatalf("unexpected error value: %v", err)
 			}
