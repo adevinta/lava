@@ -13,7 +13,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
 	github.com/jroimartin/clilog v0.1.1
-	github.com/jroimartin/proxy v0.3.0
+	github.com/jroimartin/proxy v0.3.1
 	golang.org/x/mod v0.12.0
 	gopkg.in/yaml.v3 v3.0.1
 )
