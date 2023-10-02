@@ -157,12 +157,17 @@ func (srv *targetServer) handle(target config.Target) (targetMap, error) {
 loop:
 	for {
 		select {
-		case err := <-errc:
+		case err, ok := <-errc:
+			// No listeners.
+			if !ok {
+				break loop
+			}
+
 			// If there is a service already listening on
 			// that address, then assume that it is the
 			// target service and ignore the error.
 			if errors.Is(err, syscall.EADDRINUSE) {
-				continue
+				break loop
 			}
 
 			// An unexpected error happened in one of the
