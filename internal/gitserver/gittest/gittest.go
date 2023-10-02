@@ -34,7 +34,7 @@ func CloneTemp(path string) (tmpPath string, err error) {
 	cmd := exec.Command("git", "clone", path, tmpPath)
 	cmd.Stderr = buf
 	if err = cmd.Run(); err != nil {
-		return "", fmt.Errorf("git clone %v: %w: %q", path, err, buf)
+		return "", fmt.Errorf("git clone %v: %w: %#q", path, err, buf)
 	}
 
 	return tmpPath, nil

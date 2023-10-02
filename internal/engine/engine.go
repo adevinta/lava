@@ -6,7 +6,6 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -22,17 +21,15 @@ import (
 	"github.com/adevinta/vulcan-agent/queue/chanqueue"
 	report "github.com/adevinta/vulcan-report"
 	types "github.com/adevinta/vulcan-types"
-	"github.com/jroimartin/proxy"
 
 	"github.com/adevinta/lava/internal/checktype"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/dockerutil"
-	"github.com/adevinta/lava/internal/gitserver"
 )
 
 // dockerInternalHost is the host used by the containers to access the
 // services exposed by the Docker host.
-const dockerInternalHost = "host.docker.internal"
+const dockerInternalHost = "host.lava.internal"
 
 // Report is a collection of reports returned by Vulcan checks and
 // indexed by check ID.
@@ -43,30 +40,11 @@ type Report map[string]report.Report
 // are run by a Vulcan agent, which is configured using the specified
 // configuration.
 func Run(checktypesURLs []string, targets []config.Target, cfg config.AgentConfig) (Report, error) {
-	gs, err := gitserver.New()
+	srv, err := newTargetServer()
 	if err != nil {
-		return nil, fmt.Errorf("new GitServer: %w", err)
+		return nil, fmt.Errorf("new server: %w", err)
 	}
-	defer gs.Close()
-
-	// updateAndServeLocalGitRepos must be called before calling
-	// updateAndProxyLocalTargets.
-	//
-	// updateAndServeLocalGitRepos updates the targets
-	// corresponding to local Git repositories (local directories)
-	// with the address of the Git server. This Git server listens
-	// on a loopback device that must be proxied later by
-	// updateAndProxyLocalTargets.
-	if err := updateAndServeLocalGitRepos(gs, targets); err != nil {
-		return nil, fmt.Errorf("serve local Git repositories: %w", err)
-	}
-
-	pg := &proxy.Group{}
-	defer pg.Close()
-
-	if err := updateAndProxyLocalTargets(pg, targets); err != nil {
-		return nil, fmt.Errorf("proxy local services: %w", err)
-	}
+	defer srv.Close()
 
 	checktypes, err := checktype.NewCatalog(checktypesURLs)
 	if err != nil {
@@ -82,7 +60,7 @@ func Run(checktypesURLs []string, targets []config.Target, cfg config.AgentConfi
 		return nil, nil
 	}
 
-	return runAgent(jl, cfg)
+	return runAgent(jl, srv, cfg)
 }
 
 // summaryInterval is the time between summary logs.
@@ -90,7 +68,7 @@ const summaryInterval = 15 * time.Second
 
 // runAgent creates a Vulcan agent using the specified config and uses
 // it to run the provided jobs.
-func runAgent(jobs []jobrunner.Job, cfg config.AgentConfig) (Report, error) {
+func runAgent(jobs []jobrunner.Job, srv *targetServer, cfg config.AgentConfig) (Report, error) {
 	alogger := newAgentLogger(slog.Default())
 
 	agentConfig, err := newAgentConfig(cfg)
@@ -98,7 +76,11 @@ func runAgent(jobs []jobrunner.Job, cfg config.AgentConfig) (Report, error) {
 		return nil, fmt.Errorf("get agent config: %w", err)
 	}
 
-	backend, err := docker.NewBackend(alogger, agentConfig, beforeRun)
+	br := func(params backend.RunParams, rc *docker.RunConfig) error {
+		return beforeRun(params, rc, srv)
+	}
+
+	backend, err := docker.NewBackend(alogger, agentConfig, br)
 	if err != nil {
 		return nil, fmt.Errorf("new Docker backend: %w", err)
 	}
@@ -112,7 +94,7 @@ func runAgent(jobs []jobrunner.Job, cfg config.AgentConfig) (Report, error) {
 		return nil, fmt.Errorf("send jobs: %w", err)
 	}
 
-	reports := &reportStore{}
+	rs := &reportStore{}
 
 	done := make(chan bool)
 	go func() {
@@ -121,21 +103,131 @@ func runAgent(jobs []jobrunner.Job, cfg config.AgentConfig) (Report, error) {
 			case <-done:
 				return
 			case <-time.After(summaryInterval):
-				for _, s := range strings.Split(reports.Summary(), "\n") {
+				sums := rs.Summary()
+				if len(sums) == 0 {
+					slog.Info("waiting for updates")
+					break
+				}
+				for _, s := range sums {
 					slog.Info(s)
 				}
 			}
 		}
 	}()
 
-	exitCode := agent.RunWithQueues(agentConfig, reports, backend, stateQueue, jobsQueue, alogger)
+	exitCode := agent.RunWithQueues(agentConfig, rs, backend, stateQueue, jobsQueue, alogger)
 	if exitCode != 0 {
 		return nil, fmt.Errorf("run agent: exit code %v", exitCode)
 	}
 
 	done <- true
 
-	return reports.reports, nil
+	report, err := mkReport(rs, srv)
+	if err != nil {
+		return nil, fmt.Errorf("restore targets: %w", err)
+	}
+
+	return report, nil
+}
+
+// mkReport generates a report from the information stored in the
+// provided [reportStore]. It uses the provided [targetServer] to
+// replace the targets sent to the checks with the original targets.
+func mkReport(rs *reportStore, srv *targetServer) (Report, error) {
+	rep := make(Report)
+	for checkID, r := range rs.Reports() {
+		tm, ok := srv.TargetMap(checkID)
+		if !ok {
+			rep[checkID] = r
+			continue
+		}
+
+		tmAddrs := tm.Addrs()
+
+		slog.Info("applying target map", "check", checkID, "map", tm, "tmAddr", tmAddrs)
+
+		r.Target = tm.Old
+
+		var vulns []report.Vulnerability
+		for _, vuln := range r.Vulnerabilities {
+			vuln = vulnReplaceAll(vuln, tm.New, tm.Old)
+			vuln = vulnReplaceAll(vuln, tmAddrs.New, tmAddrs.Old)
+			vulns = append(vulns, vuln)
+		}
+		r.Vulnerabilities = vulns
+
+		rep[checkID] = r
+	}
+	return rep, nil
+}
+
+// vulnReplaceAll returns a copy of the vulnerability vuln with all
+// non-overlapping instances of old replaced by new.
+func vulnReplaceAll(vuln report.Vulnerability, old, new string) report.Vulnerability {
+	vuln.Summary = strings.ReplaceAll(vuln.Summary, old, new)
+	vuln.AffectedResource = strings.ReplaceAll(vuln.AffectedResource, old, new)
+	vuln.AffectedResourceString = strings.ReplaceAll(vuln.AffectedResourceString, old, new)
+	vuln.Description = strings.ReplaceAll(vuln.Description, old, new)
+	vuln.Details = strings.ReplaceAll(vuln.Details, old, new)
+	vuln.ImpactDetails = strings.ReplaceAll(vuln.ImpactDetails, old, new)
+
+	var labels []string
+	for _, label := range vuln.Labels {
+		labels = append(labels, strings.ReplaceAll(label, old, new))
+	}
+	vuln.Labels = labels
+
+	var recs []string
+	for _, rec := range vuln.Recommendations {
+		recs = append(recs, strings.ReplaceAll(rec, old, new))
+	}
+	vuln.Recommendations = recs
+
+	var refs []string
+	for _, ref := range vuln.References {
+		refs = append(refs, strings.ReplaceAll(ref, old, new))
+	}
+	vuln.References = refs
+
+	var rscs []report.ResourcesGroup
+	for _, rsc := range vuln.Resources {
+		rscs = append(rscs, rscReplaceAll(rsc, old, new))
+	}
+	vuln.Resources = rscs
+
+	var vulns []report.Vulnerability
+	for _, vuln := range vuln.Vulnerabilities {
+		vulns = append(vulns, vulnReplaceAll(vuln, old, new))
+	}
+	vuln.Vulnerabilities = vulns
+
+	return vuln
+}
+
+// rscReplaceAll returns a copy of the resource group rsc with all
+// non-overlapping instances of old replaced by new.
+func rscReplaceAll(rsc report.ResourcesGroup, old, new string) report.ResourcesGroup {
+	rsc.Name = strings.ReplaceAll(rsc.Name, old, new)
+
+	var hdrs []string
+	for _, hdr := range rsc.Header {
+		hdrs = append(hdrs, strings.ReplaceAll(hdr, old, new))
+	}
+	rsc.Header = hdrs
+
+	var rows []map[string]string
+	for _, r := range rsc.Rows {
+		row := make(map[string]string)
+		for k, v := range r {
+			k = strings.ReplaceAll(k, old, new)
+			v = strings.ReplaceAll(v, old, new)
+			row[k] = v
+		}
+		rows = append(rows, row)
+	}
+	rsc.Rows = rows
+
+	return rsc
 }
 
 // newAgentConfig creates a new [agentconfig.Config] based on the
@@ -151,7 +243,7 @@ func newAgentConfig(cfg config.AgentConfig) (agentconfig.Config, error) {
 		parallel = 1
 	}
 
-	ln, err := net.Listen("tcp", listenHost+":0")
+	ln, err := net.Listen("tcp", net.JoinHostPort(listenHost, "0"))
 	if err != nil {
 		return agentconfig.Config{}, fmt.Errorf("listen: %w", err)
 	}
@@ -196,7 +288,7 @@ func newAgentConfig(cfg config.AgentConfig) (agentconfig.Config, error) {
 
 // beforeRun is called by the agent before creating each check
 // container.
-func beforeRun(params backend.RunParams, rc *docker.RunConfig) error {
+func beforeRun(params backend.RunParams, rc *docker.RunConfig, srv *targetServer) error {
 	// Register a host pointing to the host gateway.
 	rc.HostConfig.ExtraHosts = []string{dockerInternalHost + ":host-gateway"}
 
@@ -224,21 +316,19 @@ func beforeRun(params backend.RunParams, rc *docker.RunConfig) error {
 		}
 	}
 
-	return nil
-}
-
-// sendJobs feeds the provided queue with jobs.
-func sendJobs(jobs []jobrunner.Job, qw queue.Writer) error {
-	for _, job := range jobs {
-		job.StartTime = time.Now()
-		bytes, err := json.Marshal(job)
-		if err != nil {
-			return fmt.Errorf("marshal json: %w", err)
-		}
-		if err := qw.Write(string(bytes)); err != nil {
-			return fmt.Errorf("queue write: %w", err)
-		}
+	// Proxy local targets and serve Git repositories.
+	target := config.Target{
+		Identifier: params.Target,
+		AssetType:  types.AssetType(params.AssetType),
 	}
+	if tm, err := srv.Handle(params.CheckID, target); err == nil {
+		if !tm.IsZero() {
+			rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_CHECK_TARGET", tm.New)
+		}
+	} else {
+		slog.Warn("could not handle target", "target", target, "err", err)
+	}
+
 	return nil
 }
 
@@ -268,22 +358,6 @@ func bridgeHost() (string, error) {
 	}
 
 	return host, nil
-}
-
-// isLoopback returns true if host resolves to an IP assigned to a
-// loopback device.
-func isLoopback(host string) bool {
-	ips, err := net.LookupIP(host)
-	if err != nil {
-		return false
-	}
-
-	for _, ip := range ips {
-		if ip.IsLoopback() {
-			return true
-		}
-	}
-	return false
 }
 
 // setenv sets the value of the variable named by the key in the

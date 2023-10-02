@@ -4,12 +4,12 @@ package engine
 
 import (
 	"os"
-	"regexp"
 	"testing"
 	"time"
 
 	report "github.com/adevinta/vulcan-report"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestReportStoreUploadCheckData(t *testing.T) {
@@ -83,8 +83,8 @@ func TestReportStoreUploadCheckData(t *testing.T) {
 
 func TestReportStoreSummary(t *testing.T) {
 	updates := []struct {
-		report  report.Report
-		regexps []*regexp.Regexp
+		report report.Report
+		want   []string
 	}{
 		{
 			report: report.Report{
@@ -95,8 +95,8 @@ func TestReportStoreSummary(t *testing.T) {
 					ChecktypeName: "vulcan-semgrep",
 				},
 			},
-			regexps: []*regexp.Regexp{
-				regexp.MustCompile(`vulcan-semgrep.*https://example.com.*RUNNING`),
+			want: []string{
+				`checktype=vulcan-semgrep target=https://example.com/ start=0001-01-01 00:00:00 +0000 UTC status=RUNNING`,
 			},
 		},
 		{
@@ -108,9 +108,9 @@ func TestReportStoreSummary(t *testing.T) {
 					ChecktypeName: "vulcan-trivy",
 				},
 			},
-			regexps: []*regexp.Regexp{
-				regexp.MustCompile(`vulcan-semgrep.*https://example.com.*RUNNING`),
-				regexp.MustCompile(`vulcan-trivy.*https://example.org.*RUNNING`),
+			want: []string{
+				`checktype=vulcan-semgrep target=https://example.com/ start=0001-01-01 00:00:00 +0000 UTC status=RUNNING`,
+				`checktype=vulcan-trivy target=https://example.org/ start=0001-01-01 00:00:00 +0000 UTC status=RUNNING`,
 			},
 		},
 		{
@@ -122,9 +122,9 @@ func TestReportStoreSummary(t *testing.T) {
 					ChecktypeName: "vulcan-semgrep",
 				},
 			},
-			regexps: []*regexp.Regexp{
-				regexp.MustCompile(`vulcan-semgrep.*https://example.com.*FINISHED`),
-				regexp.MustCompile(`vulcan-trivy.*https://example.org.*RUNNING`),
+			want: []string{
+				`checktype=vulcan-semgrep target=https://example.com/ start=0001-01-01 00:00:00 +0000 UTC status=FINISHED`,
+				`checktype=vulcan-trivy target=https://example.org/ start=0001-01-01 00:00:00 +0000 UTC status=RUNNING`,
 			},
 		},
 	}
@@ -139,10 +139,11 @@ func TestReportStoreSummary(t *testing.T) {
 			t.Fatalf("unexpected upload error: %v", err)
 		}
 
-		for _, re := range update.regexps {
-			if got := rs.Summary(); !re.MatchString(got) {
-				t.Errorf("unmatched regexp %q:\n%v", re, got)
-			}
+		got := rs.Summary()
+
+		opt := cmpopts.SortSlices(func(a, b string) bool { return a < b })
+		if diff := cmp.Diff(update.want, got, opt); diff != "" {
+			t.Errorf("summaries mismatch (-want +got):\n%v", diff)
 		}
 	}
 }
