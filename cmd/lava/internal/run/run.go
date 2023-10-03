@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/adevinta/lava/cmd/lava/internal/base"
 	"github.com/adevinta/lava/internal/config"
@@ -16,31 +17,36 @@ import (
 
 // CmdRun represents the run command.
 var CmdRun = &base.Command{
-	UsageLine: "run [file.yaml]",
+	UsageLine: "run [-c config.yaml]",
 	Short:     "run scan",
 	Long: `
-Run a scan using the specified config file. If no config file is
-provided, Lava defaults to a file named lava.yaml in the current
-directory.
+Run a scan using the provided config file.
+
+By default, "lava run" looks for a configuration file with the name
+"lava.yaml" in the current directory. The -c flag allows to specify a
+custom configuration file.
 	`,
-	Run: run,
+}
+
+var cfgfile = CmdRun.Flag.String("c", "lava.yaml", "config file")
+
+func init() {
+	CmdRun.Run = run // Break initialization cycle.
 }
 
 // run is the entry point of the run command.
 func run(args []string) error {
-	var cfgfile string
-	switch len(args) {
-	case 0:
-		cfgfile = "lava.yaml"
-	case 1:
-		cfgfile = args[0]
-	default:
+	if len(args) > 0 {
 		return errors.New("too many arguments")
 	}
 
-	cfg, err := config.ParseFile(cfgfile)
+	cfg, err := config.ParseFile(*cfgfile)
 	if err != nil {
 		return fmt.Errorf("parse config file: %w", err)
+	}
+
+	if err := os.Chdir(filepath.Dir(*cfgfile)); err != nil {
+		return fmt.Errorf("change directory: %w", err)
 	}
 
 	base.LogLevel.Set(cfg.LogLevel)
