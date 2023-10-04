@@ -1,9 +1,9 @@
 #!/bin/bash
 # Copyright 2023 Adevinta
 
-# generate_certs.sh generates a set of server and client certificates
-# to use in Docker tests. These certificates have an expiration of 100
-# years.
+# generate_certs.bash generates a set of server and client
+# certificates to use in Docker tests. These certificates have an
+# expiration of 100 years.
 
 set -e -u
 
