@@ -1,3 +1,5 @@
+# Copyright 2023 Adevinta
+
 name: Main
 on: [push, pull_request]
 permissions:
@@ -8,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
@@ -20,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
