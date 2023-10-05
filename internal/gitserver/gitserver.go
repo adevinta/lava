@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -67,9 +68,31 @@ func (srv *Server) AddRepository(repoPath string) (string, error) {
 
 	srv.repos[repoPath] = repoName
 
-	cmd := exec.Command("git", "clone", "--bare", repoPath, dstPath)
+	// --mirror implies --bare. Compared to --bare, --mirror not
+	// only maps local branches of the source to local branches of
+	// the target, it maps all refs (including remote-tracking
+	// branches, notes etc.) and sets up a refspec configuration
+	// such that all these refs are overwritten by a git remote
+	// update in the target repository.
+	buf := &bytes.Buffer{}
+	cmd := exec.Command("git", "clone", "--mirror", repoPath, dstPath)
+	cmd.Stderr = buf
 	if err = cmd.Run(); err != nil {
-		return "", fmt.Errorf("unable to clone the repo %v: %w", repoPath, err)
+		return "", fmt.Errorf("git clone %v: %w: %#q", repoPath, err, buf)
+	}
+
+	// Create a branch at HEAD. So, if HEAD is detached, the Git
+	// client is able to guess the reference where HEAD is
+	// pointing to.
+	//
+	// Reference: https://github.com/go-git/go-git/blob/f92cb0d49088af996433ebb106b9fc7c2adb8875/plumbing/protocol/packp/advrefs.go#L94-L104
+	buf.Reset()
+	branch := fmt.Sprintf("lava-%v", rand.Int63())
+	cmd = exec.Command("git", "branch", branch)
+	cmd.Dir = dstPath
+	cmd.Stderr = buf
+	if err = cmd.Run(); err != nil {
+		return "", fmt.Errorf("git update-ref %v: %w: %#q", repoPath, err, buf)
 	}
 
 	return repoName, nil
