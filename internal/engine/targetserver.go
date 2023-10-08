@@ -152,12 +152,17 @@ func (srv *targetServer) handle(target config.Target) (targetMap, error) {
 		return targetMap{}, errors.New("not a loopback address")
 	}
 
-	evc, errc := srv.pg.ListenAndServe(stream)
+	batch := srv.pg.ListenAndServe(stream)
+	defer func() {
+		// Discard remaining events and errors. So
+		// *proxy.Group.Close can free resources.
+		go batch.Flush()
+	}()
 
 loop:
 	for {
 		select {
-		case err, ok := <-errc:
+		case err, ok := <-batch.Errors():
 			// No listeners.
 			if !ok {
 				break loop
@@ -173,7 +178,7 @@ loop:
 			// An unexpected error happened in one of the
 			// proxies.
 			return targetMap{}, fmt.Errorf("proxy group: %w", err)
-		case ev := <-evc:
+		case ev := <-batch.Events():
 			if ev.Kind == proxy.KindBeforeAccept {
 				// The proxy is listening.
 				break loop
