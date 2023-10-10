@@ -30,6 +30,10 @@ var (
 	// an identifier.
 	ErrNoTargetIdentifier = errors.New("no target identifier")
 
+	// ErrNoTargetAssetType means that the target does not have an
+	// asset type.
+	ErrNoTargetAssetType = errors.New("no target asset type")
+
 	// ErrInvalidAssetType means that the asset type is invalid.
 	ErrInvalidAssetType = errors.New("invalid asset type")
 
@@ -100,6 +104,9 @@ func (c *Config) validate() error {
 	for _, target := range c.Targets {
 		if target.Identifier == "" {
 			return ErrNoTargetIdentifier
+		}
+		if target.AssetType == "" {
+			return ErrNoTargetAssetType
 		}
 		if !target.AssetType.IsValid() {
 			return fmt.Errorf("%w: %v", ErrInvalidAssetType, target.AssetType)

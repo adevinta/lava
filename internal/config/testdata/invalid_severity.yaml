@@ -1,6 +1,7 @@
 lava: v1.0.0
 targets:
   - identifier: example.com
+    assetType: DomainName
 report:
   severity: invalid
 
