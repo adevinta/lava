@@ -204,18 +204,6 @@ func parseSeverity(severity string) (Severity, error) {
 	return Severity(0), fmt.Errorf("%w: %v", ErrInvalidSeverity, severity)
 }
 
-// UnmarshalYAML decodes a Severity yaml node containing a string into
-// a [Severity] value. It returns error if the provided string does
-// not match any known severity.
-func (s *Severity) UnmarshalYAML(value *yaml.Node) error {
-	severity, err := parseSeverity(value.Value)
-	if err != nil {
-		return err
-	}
-	*s = severity
-	return nil
-}
-
 // IsValid checks if a severity is valid.
 func (s *Severity) IsValid() bool {
 	return *s >= SeverityInfo && *s <= SeverityCritical
@@ -233,7 +221,22 @@ func (s *Severity) String() string {
 
 // MarshalText encode a [Severity] as a text.
 func (s *Severity) MarshalText() (text []byte, err error) {
+	if !s.IsValid() {
+		return nil, ErrInvalidSeverity
+	}
 	return []byte(s.String()), nil
+}
+
+// UnmarshalText decodes a Severity text into a
+// [Severity] value. It returns error if the provided
+// string does not match any known severity.
+func (s *Severity) UnmarshalText(text []byte) error {
+	severity, err := parseSeverity(string(text))
+	if err != nil {
+		return err
+	}
+	*s = severity
+	return nil
 }
 
 // OutputFormat is the format of the generated report.

@@ -186,3 +186,60 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+func TestSeverity_MarshalText(t *testing.T) {
+	tests := []struct {
+		name     string
+		severity Severity
+		want     string
+		wantErr  error
+	}{
+		{
+			name:     "critical",
+			severity: SeverityCritical,
+			want:     "critical",
+			wantErr:  nil,
+		},
+		{
+			name:     "high",
+			severity: SeverityHigh,
+			want:     "high",
+			wantErr:  nil,
+		},
+		{
+			name:     "medium",
+			severity: SeverityMedium,
+			want:     "medium",
+			wantErr:  nil,
+		},
+		{
+			name:     "low",
+			severity: SeverityLow,
+			want:     "low",
+			wantErr:  nil,
+		},
+		{
+			name:     "info",
+			severity: SeverityInfo,
+			want:     "info",
+			wantErr:  nil,
+		},
+		{
+			name:     "invalid",
+			severity: 7,
+			want:     "",
+			wantErr:  ErrInvalidSeverity,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.severity.MarshalText()
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("unexpected error: want: %v, got: %v", tt.wantErr, err)
+			}
+			if string(got) != tt.want {
+				t.Errorf("unexpected severity string: want: %v, got: %v", tt.want, got)
+			}
+		})
+	}
+}
