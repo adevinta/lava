@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	agentconfig "github.com/adevinta/vulcan-agent/config"
+	types "github.com/adevinta/vulcan-types"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -21,6 +22,19 @@ func TestParse(t *testing.T) {
 		wantErr       error
 		wantErrRegexp *regexp.Regexp
 	}{
+		{
+			name: "valid",
+			file: "testdata/valid.yaml",
+			want: Config{
+				LavaVersion: "v1.0.0",
+				Targets: []Target{
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+				},
+			},
+		},
 		{
 			name:    "empty",
 			file:    "testdata/empty.yaml",
@@ -46,16 +60,10 @@ func TestParse(t *testing.T) {
 			wantErr: ErrNoTargetIdentifier,
 		},
 		{
-			name: "target identifier",
-			file: "testdata/target_identifier.yaml",
-			want: Config{
-				LavaVersion: "v1.0.0",
-				Targets: []Target{
-					{
-						Identifier: "example.com",
-					},
-				},
-			},
+			name:    "no target asset type",
+			file:    "testdata/no_target_asset_type.yaml",
+			want:    Config{},
+			wantErr: ErrNoTargetAssetType,
 		},
 		{
 			name: "critical severity",
@@ -68,6 +76,7 @@ func TestParse(t *testing.T) {
 				Targets: []Target{
 					{
 						Identifier: "example.com",
+						AssetType:  types.DomainName,
 					},
 				},
 			},
@@ -89,6 +98,7 @@ func TestParse(t *testing.T) {
 				Targets: []Target{
 					{
 						Identifier: "example.com",
+						AssetType:  types.DomainName,
 					},
 				},
 			},
@@ -98,19 +108,6 @@ func TestParse(t *testing.T) {
 			file:          "testdata/invalid_pull_policy.yaml",
 			want:          Config{},
 			wantErrRegexp: regexp.MustCompile(`value .* is not a valid PullPolicy value`),
-		},
-		{
-			name: "target asset type",
-			file: "testdata/target_asset_type.yaml",
-			want: Config{
-				LavaVersion: "v1.0.0",
-				Targets: []Target{
-					{
-						Identifier: "example.com",
-						AssetType:  "DomainName",
-					},
-				},
-			},
 		},
 		{
 			name:    "invalid target asset type",
@@ -126,6 +123,7 @@ func TestParse(t *testing.T) {
 				Targets: []Target{
 					{
 						Identifier: "example.com",
+						AssetType:  types.DomainName,
 					},
 				},
 				ReportConfig: ReportConfig{
@@ -147,6 +145,7 @@ func TestParse(t *testing.T) {
 				Targets: []Target{
 					{
 						Identifier: "example.com",
+						AssetType:  types.DomainName,
 					},
 				},
 				LogLevel: slog.LevelDebug,
