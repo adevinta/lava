@@ -61,10 +61,13 @@ func run(args []string) error {
 		return fmt.Errorf("new writer: %w", err)
 	}
 	defer rw.Close()
+
 	exitCode, err := rw.Write(er)
 	if err != nil {
 		return fmt.Errorf("render report: %w", err)
 	}
+
 	os.Exit(int(exitCode))
+
 	return nil
 }

@@ -273,10 +273,12 @@ func (f *OutputFormat) UnmarshalYAML(value *yaml.Node) error {
 
 // Exclusion represents the criteria to exclude a given finding.
 type Exclusion struct {
-	// Target is the name of the affected target.
+	// Target is a regular expression that matches the name of the
+	// affected target.
 	Target string `yaml:"target"`
 
-	// Resource is the name of the affected resource.
+	// Resource is a regular expression that matches the name of
+	// the affected resource.
 	Resource string `yaml:"resource"`
 
 	// Fingerprint defines the context in where the vulnerability
@@ -284,7 +286,8 @@ type Exclusion struct {
 	// affected target, the asset type and the checktype options.
 	Fingerprint string `yaml:"fingerprint"`
 
-	// Summary is a short description of the exclusion.
+	// Summary is a regular expression that matches the summary of
+	// the vulnerability.
 	Summary string `yaml:"summary"`
 
 	// Description describes the exclusion.
