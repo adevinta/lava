@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/adevinta/vulcan-agent/jobrunner"
+	types "github.com/adevinta/vulcan-types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
@@ -37,7 +38,7 @@ func TestGenerateChecks(t *testing.T) {
 			targets: []config.Target{
 				{
 					Identifier: "example.com",
-					AssetType:  "DomainName",
+					AssetType:  types.DomainName,
 				},
 			},
 			want: []check{
@@ -52,7 +53,7 @@ func TestGenerateChecks(t *testing.T) {
 					},
 					target: config.Target{
 						Identifier: "example.com",
-						AssetType:  "DomainName",
+						AssetType:  types.DomainName,
 					},
 					options: map[string]any{},
 				},
@@ -79,7 +80,7 @@ func TestGenerateChecks(t *testing.T) {
 			targets: []config.Target{
 				{
 					Identifier: "example.com",
-					AssetType:  "DomainName",
+					AssetType:  types.DomainName,
 					Options: map[string]interface{}{
 						"option2": "target value 2",
 					},
@@ -102,7 +103,7 @@ func TestGenerateChecks(t *testing.T) {
 					},
 					target: config.Target{
 						Identifier: "example.com",
-						AssetType:  "DomainName",
+						AssetType:  types.DomainName,
 						Options: map[string]interface{}{
 							"option2": "target value 2",
 						},
@@ -139,7 +140,7 @@ func TestGenerateChecks(t *testing.T) {
 			targets: []config.Target{
 				{
 					Identifier: "example.com",
-					AssetType:  "DomainName",
+					AssetType:  types.DomainName,
 				},
 			},
 			want: []check{
@@ -154,7 +155,7 @@ func TestGenerateChecks(t *testing.T) {
 					},
 					target: config.Target{
 						Identifier: "example.com",
-						AssetType:  "DomainName",
+						AssetType:  types.DomainName,
 					},
 					options: map[string]any{},
 				},
@@ -169,7 +170,7 @@ func TestGenerateChecks(t *testing.T) {
 					},
 					target: config.Target{
 						Identifier: "example.com",
-						AssetType:  "DomainName",
+						AssetType:  types.DomainName,
 					},
 					options: map[string]any{},
 				},
@@ -191,14 +192,14 @@ func TestGenerateChecks(t *testing.T) {
 			targets: []config.Target{
 				{
 					Identifier: "example.com",
-					AssetType:  "GitRepository",
+					AssetType:  types.GitRepository,
 				},
 			},
 			want:       nil,
 			wantNilErr: true,
 		},
 		{
-			name: "invalid target",
+			name: "invalid target asset type",
 			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
@@ -211,11 +212,12 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			targets: []config.Target{
 				{
-					Identifier: "not.a.hostname",
+					Identifier: "example.com",
+					AssetType:  "InvalidAssetType",
 				},
 			},
 			want:       nil,
-			wantNilErr: true,
+			wantNilErr: false,
 		},
 		{
 			name:       "no checktypes",
@@ -223,7 +225,7 @@ func TestGenerateChecks(t *testing.T) {
 			targets: []config.Target{
 				{
 					Identifier: "example.com",
-					AssetType:  "GitRepository",
+					AssetType:  types.GitRepository,
 				},
 			},
 			want:       nil,
@@ -262,24 +264,8 @@ func TestGenerateChecks(t *testing.T) {
 					Identifier: "example.com",
 				},
 			},
-			want: []check{
-				{
-					checktype: checktype.Checktype{
-						Name:        "checktype1",
-						Description: "checktype1 description",
-						Image:       "namespace/repository:tag",
-						Assets: []string{
-							"DomainName",
-						},
-					},
-					target: config.Target{
-						Identifier: "example.com",
-						AssetType:  "DomainName",
-					},
-					options: map[string]any{},
-				},
-			},
-			wantNilErr: true,
+			want:       nil,
+			wantNilErr: false,
 		},
 		{
 			name: "one checktype with two asset types and one target",
@@ -296,8 +282,8 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			targets: []config.Target{
 				{
-					// This identifier is detected as Hostname.
 					Identifier: "www.example.com",
+					AssetType:  types.Hostname,
 				},
 			},
 			want: []check{
@@ -313,7 +299,7 @@ func TestGenerateChecks(t *testing.T) {
 					},
 					target: config.Target{
 						Identifier: "www.example.com",
-						AssetType:  "Hostname",
+						AssetType:  types.Hostname,
 					},
 					options: map[string]any{},
 				},
@@ -321,7 +307,7 @@ func TestGenerateChecks(t *testing.T) {
 			wantNilErr: true,
 		},
 		{
-			name: "one checktype with two asset types and one target with two asset types",
+			name: "one checktype with two asset types and one target identifier with two asset types",
 			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
@@ -335,8 +321,12 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			targets: []config.Target{
 				{
-					// This identifier is detected as Hostname and DomainName.
 					Identifier: "example.com",
+					AssetType:  types.DomainName,
+				},
+				{
+					Identifier: "example.com",
+					AssetType:  types.Hostname,
 				},
 			},
 			want: []check{
@@ -352,7 +342,7 @@ func TestGenerateChecks(t *testing.T) {
 					},
 					target: config.Target{
 						Identifier: "example.com",
-						AssetType:  "Hostname",
+						AssetType:  types.Hostname,
 					},
 					options: map[string]any{},
 				},
@@ -368,7 +358,7 @@ func TestGenerateChecks(t *testing.T) {
 					},
 					target: config.Target{
 						Identifier: "example.com",
-						AssetType:  "DomainName",
+						AssetType:  types.DomainName,
 					},
 					options: map[string]any{},
 				},
@@ -376,7 +366,7 @@ func TestGenerateChecks(t *testing.T) {
 			wantNilErr: true,
 		},
 		{
-			name: "one target with two asset types",
+			name: "one target identifier with two asset types",
 			checktypes: checktype.Catalog{
 				"checktype1": {
 					Name:        "checktype1",
@@ -389,8 +379,12 @@ func TestGenerateChecks(t *testing.T) {
 			},
 			targets: []config.Target{
 				{
-					// This identifier is detected as Hostname and WebAddress.
 					Identifier: "https://www.example.com",
+					AssetType:  types.Hostname,
+				},
+				{
+					Identifier: "https://www.example.com",
+					AssetType:  types.WebAddress,
 				},
 			},
 			want: []check{
@@ -405,7 +399,7 @@ func TestGenerateChecks(t *testing.T) {
 					},
 					target: config.Target{
 						Identifier: "https://www.example.com",
-						AssetType:  "Hostname",
+						AssetType:  types.Hostname,
 					},
 					options: map[string]any{},
 				},
@@ -427,11 +421,11 @@ func TestGenerateChecks(t *testing.T) {
 			targets: []config.Target{
 				{
 					Identifier: "example.com",
-					AssetType:  "DomainName",
+					AssetType:  types.DomainName,
 				},
 				{
 					Identifier: "example.com",
-					AssetType:  "DomainName",
+					AssetType:  types.DomainName,
 				},
 			},
 			want: []check{
@@ -446,7 +440,7 @@ func TestGenerateChecks(t *testing.T) {
 					},
 					target: config.Target{
 						Identifier: "example.com",
-						AssetType:  "DomainName",
+						AssetType:  types.DomainName,
 					},
 					options: map[string]any{},
 				},
@@ -496,7 +490,7 @@ func TestGenerateJobs(t *testing.T) {
 			targets: []config.Target{
 				{
 					Identifier: "example.com",
-					AssetType:  "DomainName",
+					AssetType:  types.DomainName,
 				},
 			},
 			want: []jobrunner.Job{
@@ -532,7 +526,7 @@ func TestGenerateJobs(t *testing.T) {
 			targets: []config.Target{
 				{
 					Identifier: "example.com",
-					AssetType:  "DomainName",
+					AssetType:  types.DomainName,
 				},
 			},
 			want: []jobrunner.Job{
@@ -570,7 +564,7 @@ func TestGenerateJobs(t *testing.T) {
 			targets: []config.Target{
 				{
 					Identifier: "example.com",
-					AssetType:  "DomainName",
+					AssetType:  types.DomainName,
 				},
 			},
 			want: []jobrunner.Job{
@@ -606,7 +600,7 @@ func TestGenerateJobs(t *testing.T) {
 			targets: []config.Target{
 				{
 					Identifier: "example.com",
-					AssetType:  "DomainName",
+					AssetType:  types.DomainName,
 				},
 			},
 			want:       nil,

@@ -12,7 +12,6 @@ import (
 
 	"github.com/adevinta/vulcan-agent/jobrunner"
 	"github.com/adevinta/vulcan-agent/queue"
-	types "github.com/adevinta/vulcan-types"
 	"github.com/google/uuid"
 
 	"github.com/adevinta/lava/internal/checktype"
@@ -76,15 +75,14 @@ type check struct {
 
 // generateChecks generates a list of checks combining a map of
 // checktypes and a list of targets. It returns an error if any of the
-// targets has an invalid asset type.
+// targets has an empty or invalid asset type.
 func generateChecks(checktypes checktype.Catalog, targets []config.Target) ([]check, error) {
-	ts, err := resolveTargets(targets)
-	if err != nil {
-		return nil, fmt.Errorf("resolve targets: %w", err)
-	}
-
 	var checks []check
-	for _, t := range ts {
+	for _, t := range dedup(targets) {
+		if t.AssetType == "" || !t.AssetType.IsValid() {
+			return nil, fmt.Errorf("invalid target asset type: %v", t.AssetType)
+		}
+
 		for _, c := range checktypes {
 			if !c.Accepts(t.AssetType) {
 				continue
@@ -107,38 +105,15 @@ func generateChecks(checktypes checktype.Catalog, targets []config.Target) ([]ch
 	return checks, nil
 }
 
-// resolveTargets returns a list of targets built using the target
-// list passed as argument. The returned list contains all the targets
-// with the asset type resolved and without duplicates. It returns an
-// error if any of the identifiers has an invalid asset type.
-func resolveTargets(targets []config.Target) ([]config.Target, error) {
-	var ts []config.Target
+// dedup returns a deduplicated slice.
+func dedup[S ~[]E, E any](targets S) S {
+	var ts S
 	for _, target := range targets {
-		if target.AssetType != "" {
-			// The target has an asset type.
-			if !contains(ts, target) {
-				ts = append(ts, target)
-			}
-			continue
-		}
-
-		ats, err := types.DetectAssetTypes(target.Identifier)
-		if err != nil {
-			return nil, fmt.Errorf("resolve targets: %w", err)
-		}
-
-		for _, at := range ats {
-			t := config.Target{
-				Identifier: target.Identifier,
-				AssetType:  at,
-				Options:    target.Options,
-			}
-			if !contains(ts, t) {
-				ts = append(ts, t)
-			}
+		if !contains(ts, target) {
+			ts = append(ts, target)
 		}
 	}
-	return ts, nil
+	return ts
 }
 
 // contains reports whether v is present in s. It uses
