@@ -4,7 +4,6 @@
 package run
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"github.com/adevinta/lava/cmd/lava/internal/base"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/engine"
+	"github.com/adevinta/lava/internal/report"
 )
 
 // CmdRun represents the run command.
@@ -51,17 +51,20 @@ func run(args []string) error {
 
 	base.LogLevel.Set(cfg.LogLevel)
 
-	report, err := engine.Run(cfg.ChecktypesURLs, cfg.Targets, cfg.AgentConfig)
+	er, err := engine.Run(cfg.ChecktypesURLs, cfg.Targets, cfg.AgentConfig)
 	if err != nil {
 		return fmt.Errorf("run: %w", err)
 	}
 
-	// TODO(rm): show report and exit with the proper exit code.
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(report); err != nil {
-		return fmt.Errorf("encode report: %w", err)
+	rw, err := report.NewWriter(cfg.ReportConfig)
+	if err != nil {
+		return fmt.Errorf("new writer: %w", err)
 	}
-
+	defer rw.Close()
+	exitCode, err := rw.Write(er)
+	if err != nil {
+		return fmt.Errorf("render report: %w", err)
+	}
+	os.Exit(int(exitCode))
 	return nil
 }
