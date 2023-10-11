@@ -417,6 +417,24 @@ func TestWriter_isExcluded(t *testing.T) {
 			wantNilErr: true,
 		},
 		{
+			name: "exclude by affected resource string",
+			vulnerability: vreport.Vulnerability{
+				Summary:                "Vulnerability Summary 1",
+				Score:                  6.7,
+				AffectedResourceString: "Resource String 1",
+			},
+			target: ".",
+			rConfig: config.ReportConfig{
+				Exclusions: []config.Exclusion{
+					{
+						Resource: "Resource String 1",
+					},
+				},
+			},
+			want:       true,
+			wantNilErr: true,
+		},
+		{
 			name: "exclude by target",
 			vulnerability: vreport.Vulnerability{
 				Summary: "Vulnerability Summary 1",
@@ -434,7 +452,7 @@ func TestWriter_isExcluded(t *testing.T) {
 			wantNilErr: true,
 		},
 		{
-			name: "match all exclusion criteria",
+			name: "match all exclusion criteria (resource)",
 			vulnerability: vreport.Vulnerability{
 				Summary:          "Vulnerability Summary 1",
 				Score:            6.7,
@@ -456,20 +474,66 @@ func TestWriter_isExcluded(t *testing.T) {
 			wantNilErr: true,
 		},
 		{
-			name: "fail an exclusion criteria",
+			name: "match all exclusion criteria (resource string)",
 			vulnerability: vreport.Vulnerability{
-				Summary:          "Vulnerability Summary 1",
-				Score:            6.7,
-				AffectedResource: "Resource 1",
-				Fingerprint:      "12345",
+				Summary:                "Vulnerability Summary 1",
+				Score:                  6.7,
+				AffectedResourceString: "Resource String 1",
+				Fingerprint:            "12345",
 			},
 			target: ".",
 			rConfig: config.ReportConfig{
 				Exclusions: []config.Exclusion{
 					{
 						Summary:     "Summary 1",
-						Resource:    "Resource 1",
-						Fingerprint: "abcdefg",
+						Resource:    "Resource String 1",
+						Fingerprint: "12345",
+						Target:      ".",
+					},
+				},
+			},
+			want:       true,
+			wantNilErr: true,
+		},
+		{
+			name: "match all exclusion criteria (resource and resource string)",
+			vulnerability: vreport.Vulnerability{
+				Summary:                "Vulnerability Summary 1",
+				Score:                  6.7,
+				AffectedResource:       "Resource 1",
+				AffectedResourceString: "Resource String 1",
+				Fingerprint:            "12345",
+			},
+			target: ".",
+			rConfig: config.ReportConfig{
+				Exclusions: []config.Exclusion{
+					{
+						Summary:     "Summary 1",
+						Resource:    "Resource",
+						Fingerprint: "12345",
+						Target:      ".",
+					},
+				},
+			},
+			want:       true,
+			wantNilErr: true,
+		},
+		{
+			name: "fail an exclusion criteria",
+			vulnerability: vreport.Vulnerability{
+				Summary:                "Vulnerability Summary 1",
+				Score:                  6.7,
+				AffectedResource:       "Resource 1",
+				AffectedResourceString: "Resource String 1",
+				Fingerprint:            "12345",
+			},
+			target: ".",
+			rConfig: config.ReportConfig{
+				Exclusions: []config.Exclusion{
+					{
+						Summary:     "Summary 1",
+						Resource:    "not found",
+						Fingerprint: "12345",
 						Target:      ".",
 					},
 				},
