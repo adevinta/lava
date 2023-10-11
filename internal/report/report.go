@@ -140,11 +140,15 @@ func (writer Writer) isExcluded(v report.Vulnerability, target string) (bool, er
 		}
 
 		if excl.Resource != "" {
-			matched, err := regexp.MatchString(excl.Resource, v.AffectedResource)
+			matchedResource, err := regexp.MatchString(excl.Resource, v.AffectedResource)
 			if err != nil {
 				return false, fmt.Errorf("match string: %w", err)
 			}
-			if !matched {
+			matchedResourceString, err := regexp.MatchString(excl.Resource, v.AffectedResourceString)
+			if err != nil {
+				return false, fmt.Errorf("match string: %w", err)
+			}
+			if !matchedResource && !matchedResourceString {
 				continue
 			}
 		}
