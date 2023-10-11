@@ -5,4 +5,5 @@ RUN go build
 
 FROM alpine:3.18
 COPY --from=build /go/src/lava-engine-test/lava-engine-test /
+USER nobody
 CMD ["/lava-engine-test"]
