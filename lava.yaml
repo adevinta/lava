@@ -1,0 +1,16 @@
+# Copyright 2023 Adevinta
+
+lava: v0.0.0
+checktypesURLs:
+  - checktypes.json
+targets:
+  - identifier: .
+    assetType: GitRepository
+agent:
+  parallel: 4
+report:
+  severity: high
+  exclusions:
+    - description: Ignore test certificates.
+      summary: 'Secret Leaked in Git Repository'
+      resource: '/internal/dockerutil/testdata/certs/'

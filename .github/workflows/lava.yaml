@@ -1,0 +1,18 @@
+# Copyright 2023 Adevinta
+
+name: Lava
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  lava:
+    name: Lava
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run Lava Action
+        uses: adevinta/lava-action@main
+        with:
+          version: latest
+          config: lava.yaml

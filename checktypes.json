@@ -1,0 +1,151 @@
+{
+    "checktypes": [
+        {
+            "name": "vulcan-gitleaks",
+            "description": "Detect hardcoded secrets using Gitleaks",
+            "image": "vulcansec/vulcan-gitleaks:edge",
+            "timeout": 600,
+            "options": {
+                "branch": "",
+                "depth": 1,
+                "excludedRules": []
+            },
+            "required_vars": [
+                "GITHUB_ENTERPRISE_ENDPOINT",
+                "GITHUB_ENTERPRISE_TOKEN"
+            ],
+            "assets": [
+                "GitRepository"
+            ]
+        },
+
+        {
+            "name": "vulcan-trivy",
+            "description": "Find vulnerabilities, misconfigurations and secrets using Trivy",
+            "image": "vulcansec/vulcan-trivy:edge",
+            "timeout": 600,
+            "required_vars": [
+                "REGISTRY_DOMAIN",
+                "REGISTRY_USERNAME",
+                "REGISTRY_PASSWORD",
+                "GITHUB_ENTERPRISE_ENDPOINT",
+                "GITHUB_ENTERPRISE_TOKEN"
+            ],
+            "assets": [
+                "DockerImage",
+                "GitRepository"
+            ],
+            "options": {
+                "depth": 1,
+                "branch": "",
+                "git_checks": {
+                    "vuln": true,
+                    "secret": true,
+                    "config": true
+                },
+                "image_checks": {
+                    "vuln": true,
+                    "secret": true,
+                    "config": true
+                },
+                "force_update_db": false,
+                "offline_scan": false,
+                "ignore_unfixed": false,
+                "severities": "",
+                "disable_custom_secret_config": false,
+                "scan_image_metadata": true
+            }
+        },
+
+        {
+            "name": "vulcan-semgrep",
+            "description": "Scan code for potential security issues using Semgrep",
+            "image": "vulcansec/vulcan-semgrep:edge",
+            "timeout": 600,
+            "options": {
+                "branch": "",
+                "depth": 1,
+                "exclude": [],
+                "exclude_rule": [],
+                "ruleset": [
+                    "p/r2c-security-audit"
+                ],
+                "timeout": 540
+            },
+            "required_vars": [
+                "GITHUB_ENTERPRISE_ENDPOINT",
+                "GITHUB_ENTERPRISE_TOKEN"
+            ],
+            "assets": [
+                "GitRepository"
+            ]
+        },
+
+        {
+            "name": "vulcan-retirejs",
+            "description": "Detect the use of JS-library versions with known vulnerabilities using Retire.js",
+            "image": "vulcansec/vulcan-retirejs:edge",
+            "timeout": 600,
+            "required_vars": null,
+            "assets": [
+                "Hostname",
+                "WebAddress"
+            ]
+        },
+
+        {
+            "name": "vulcan-zap",
+            "description": "Run an OWASP ZAP vulnerability scan",
+            "image": "vulcansec/vulcan-zap:edge",
+            "timeout": 600,
+            "options": {
+                "depth": 2,
+                "active": true,
+                "username": "",
+                "password": "",
+                "min_score": 0,
+                "disabled_scanners": [
+                    "10062",
+                    "10003",
+                    "10108"
+                ],
+                "ignored_fingerprint_scanners": [
+                    "40018"
+                ],
+                "max_spider_duration": 0,
+                "max_scan_duration": 9,
+                "max_rule_duration": 0,
+                "openapi_url": "",
+                "openapi_host": ""
+            },
+            "required_vars": null,
+            "assets": [
+                "WebAddress"
+            ]
+        },
+
+        {
+            "name": "vulcan-nuclei",
+            "description": "Run a Nuclei vulnerability scan",
+            "image": "vulcansec/vulcan-nuclei:edge",
+            "timeout": 600,
+            "options": {
+                "update_templates": false,
+                "severities": [],
+                "template_inclusion_list": [],
+                "template_exclusion_list": [],
+                "tag_inclusion_list": [],
+                "tag_exclusion_list": [
+                    "intrusive",
+                    "dos",
+                    "fuzz"
+                ]
+            },
+            "required_vars": null,
+            "assets": [
+                "WebAddress",
+                "Hostname"
+            ]
+        }
+    ]
+}
