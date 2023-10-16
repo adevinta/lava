@@ -166,7 +166,7 @@ func (writer Writer) filterVulns(vulns []vulnerability) []vulnerability {
 		return cmp.Compare(b.Severity, a.Severity)
 	})
 
-	var fvulns []vulnerability
+	fvulns := make([]vulnerability, 0)
 	for _, v := range vulns {
 		if v.Severity < writer.minSeverity {
 			break
