@@ -5,14 +5,38 @@ package report
 import (
 	"fmt"
 	"io"
+	"maps"
 	"strings"
 	"text/template"
+
+	"github.com/fatih/color"
 
 	"github.com/adevinta/lava/internal/config"
 )
 
 // userPrinter represents a user-friendly report printer.
 type userPrinter struct{}
+
+// returnColorFunc returns a function that colors a text.
+func returnColorFunc(colorAttribute color.Attribute) func(format string, a ...interface{}) string {
+	return func(format string, a ...interface{}) string {
+		attr := color.New(colorAttribute)
+		if len(a) == 0 {
+			return attr.Sprint(format)
+		}
+		return attr.Sprintf(format, a...)
+	}
+}
+
+// colorFuncs stores common function to colorize texts.
+var colorFuncs = template.FuncMap{
+	"magenta": returnColorFunc(color.FgMagenta),
+	"red":     returnColorFunc(color.FgRed),
+	"yellow":  returnColorFunc(color.FgYellow),
+	"cyan":    returnColorFunc(color.FgCyan),
+	"white":   returnColorFunc(color.FgWhite),
+	"bold":    returnColorFunc(color.Bold),
+}
 
 // Print renders the scan results in user-friendly format.
 func (prn userPrinter) Print(w io.Writer, vulns []vulnerability, sum summary) error {
@@ -59,20 +83,35 @@ func printSummary(writer io.Writer, sum summary) error {
 		SevCounts []severityCount
 		Total     int
 		Excluded  int
+		Colors    map[string]string
 	}{
 		SevCounts: sevCounts,
 		Total:     total,
 		Excluded:  sum.excluded,
 	}
 
+	funcMap := template.FuncMap{
+		"upper": strings.ToUpper,
+	}
+	maps.Copy(funcMap, colorFuncs)
 	sumT := template.New("summary")
-	sumT, err := sumT.Parse(`
+	sumT, err := sumT.Funcs(funcMap).Parse(`
 Summary of the last scan:
 {{if not .Total}}
-No vulnerabilities found during the Lava scan.{{end -}}
+No vulnerabilities found during the Lava scan.
 {{else}}
-{{range .SevCounts}}
-  {{- .Name}}: {{.Count}}
+{{range .SevCounts -}}
+{{if eq .Name "critical" -}}
+  {{.Name | upper | bold | magenta}}: {{.Count}}
+{{else if eq .Name "high" -}}
+  {{.Name | upper | bold | red}}: {{.Count}}
+{{else if eq .Name "medium" -}}
+  {{.Name | upper | bold | yellow}}: {{.Count}}
+{{else if eq .Name "low" -}}
+  {{.Name | upper | bold | cyan}}: {{.Count}}
+{{else -}}
+  {{.Name | upper | bold | white}}: {{.Count}}
+{{end -}}
 {{end}}
 Number of excluded vulnerabilities not included in the summary table: {{.Excluded}}
 {{end}}
