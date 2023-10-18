@@ -205,14 +205,14 @@ func parseSeverity(severity string) (Severity, error) {
 }
 
 // IsValid checks if a severity is valid.
-func (s *Severity) IsValid() bool {
-	return *s >= SeverityInfo && *s <= SeverityCritical
+func (s Severity) IsValid() bool {
+	return s >= SeverityInfo && s <= SeverityCritical
 }
 
 // String returns value of a severity.
-func (s *Severity) String() string {
+func (s Severity) String() string {
 	for k, v := range severityNames {
-		if v == *s {
+		if v == s {
 			return k
 		}
 	}
@@ -244,11 +244,13 @@ type OutputFormat int
 
 // Output formats available for the report.
 const (
-	OutputFormatJSON OutputFormat = 0
+	OutputFormatJSON         OutputFormat = 0
+	OutputFormatUserFriendly OutputFormat = 1
 )
 
 var outputFormatNames = map[string]OutputFormat{
-	"json": OutputFormatJSON,
+	"user-friendly": OutputFormatUserFriendly,
+	"json":          OutputFormatJSON,
 }
 
 // parseOutputFormat converts a string into an [OutputFormat] value.
