@@ -31,10 +31,10 @@ type Writer struct {
 func NewWriter(cfg config.ReportConfig) (Writer, error) {
 	var prn printer
 	switch cfg.Format {
+	case config.OutputFormatHuman:
+		prn = humanPrinter{}
 	case config.OutputFormatJSON:
 		prn = jsonPrinter{}
-	case config.OutputFormatUserFriendly:
-		prn = userPrinter{}
 	default:
 		return Writer{}, errors.New("unsupported output format")
 	}
@@ -198,10 +198,10 @@ func (writer Writer) calculateExitCode(sum summary) ExitCode {
 
 // vulnerability represents a vulnerability found by a check.
 type vulnerability struct {
-	report.Vulnerability `json:",omitempty"`
-	CheckData            report.CheckData `json:"check_data"`
-	Severity             config.Severity  `json:"severity,omitempty"`
-	excluded             bool
+	report.Vulnerability
+	CheckData report.CheckData `json:"check_data"`
+	Severity  config.Severity  `json:"severity"`
+	excluded  bool
 }
 
 // A printer renders a Vulcan report in a specific format.

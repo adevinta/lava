@@ -1,0 +1,69 @@
+{{if eq .Severity.String "critical" -}}
+{{"=====================================================" | bold | magenta}}
+{{.Severity.String | upper | bold | magenta}}
+{{"=====================================================" | bold | magenta}}
+{{else if eq .Severity.String "high" -}}
+{{"=====================================================" | bold | red}}
+{{.Severity.String | upper | bold | red}}
+{{"=====================================================" | bold | red}}
+{{else if eq .Severity.String "medium" -}}
+{{"=====================================================" | bold | yellow}}
+{{.Severity.String | upper | bold | yellow}}
+{{"=====================================================" | bold | yellow}}
+{{else if eq .Severity.String "low" -}}
+{{"=====================================================" | bold | cyan}}
+{{.Severity.String | upper | bold | cyan}}
+{{"=====================================================" | bold | cyan}}
+{{else -}}
+{{"=====================================================" | bold}}
+{{.Severity.String | upper | bold}}
+{{"=====================================================" | bold}}
+{{end -}}
+{{"TARGET:" | bold}}
+{{.CheckData.Target }}
+{{$affectedResource:= .AffectedResourceString -}}
+{{if not $affectedResource -}}
+{{$affectedResource = .AffectedResource -}}
+{{end -}}
+{{if $affectedResource}}
+{{"AFFECTED RESOURCE:" | bold}}
+{{$affectedResource}}
+{{end}}
+{{"SUMMARY:" | bold}}
+{{.Summary}}
+
+{{"DESCRIPTION:" | bold}}
+{{.Description}}
+
+{{if .Details -}}
+
+{{"DETAILS:" | bold}}
+{{.Details}}
+{{end -}}
+{{if .ImpactDetails}}
+{{"IMPACT:" | bold}}
+{{ .ImpactDetails}}
+{{- end}}
+{{if gt (len .Recommendations) 0}}
+{{"RECOMMENDATIONS:" | bold}}
+{{range .Recommendations -}}
+- {{.}}
+{{end -}}
+{{end -}}
+{{if gt (len .References) 0}}
+{{"REFERENCES:" | bold}}
+{{range .References -}}
+- {{.}}
+{{end -}}
+{{end -}}
+{{if gt (len .Resources) 0 -}}
+{{range $resource := .Resources}}
+{{.Name | bold}}:
+{{$headers := .Header -}}
+{{range $row := .Rows}}
+{{range $header := $headers -}}
+{{$header | bold}}: {{index $row $header}}
+{{end -}}
+{{end -}}
+{{end -}}
+{{end -}}
