@@ -128,59 +128,76 @@ Number of excluded vulnerabilities not included in the summary table: {{.Exclude
 // printVulnerability renders a vulnerability in a user-friendly wat.
 func printVulnerability(writer io.Writer, v vulnerability) error {
 	funcMap := template.FuncMap{
-		"ToUpper": strings.ToUpper,
-		"Join":    strings.Join,
+		"upper": strings.ToUpper,
 	}
-
+	maps.Copy(funcMap, colorFuncs)
 	vulnT := template.New("vulnerability")
 	vulnT, err := vulnT.Funcs(funcMap).Parse(`
-=====================================================
-{{.Severity.String | ToUpper}}
-=====================================================
-TARGET:
-  {{.CheckData.Target }}
+{{if eq .Severity.String "critical" -}}
+{{"=====================================================" | bold | magenta}}
+{{.Severity.String | upper | bold | magenta}}
+{{"=====================================================" | bold | magenta}}
+{{else if eq .Severity.String "high" -}}
+{{"=====================================================" | bold | red}}
+{{.Severity.String | upper | bold | red}}
+{{"=====================================================" | bold | red}}
+{{else if eq .Severity.String "medium" -}}
+{{"=====================================================" | bold | yellow}}
+{{.Severity.String | upper | bold | yellow}}
+{{"=====================================================" | bold | yellow}}
+{{else if eq .Severity.String "low" -}}
+{{"=====================================================" | bold | cyan}}
+{{.Severity.String | upper | bold | cyan}}
+{{"=====================================================" | bold | cyan}}
+{{else -}}
+{{"=====================================================" | bold | white}}
+{{.Severity.String | upper | bold | white}}
+{{"=====================================================" | bold | white}}
+{{end -}}
+{{"TARGET:" | bold}}
+{{.CheckData.Target }}
 {{$affectedResource:= .AffectedResourceString -}}
 {{if not $affectedResource -}}
 {{$affectedResource = .AffectedResource -}}
 {{end -}}
 {{if $affectedResource}}
-AFFECTED RESOURCE:
-  {{$affectedResource}}
+{{"AFFECTED RESOURCE:" | bold}}
+{{$affectedResource}}
 {{end}}
-SUMMARY:
-  {{.Summary}}
+{{"SUMMARY:" | bold}}
+{{.Summary}}
 
-DESCRIPTION:
-  {{.Description}}
+{{"DESCRIPTION:" | bold}}
+{{.Description}}
 
 {{if .Details -}}
 
-DETAILS:
-  {{.Details}}
+{{"DETAILS:" | bold}}
+{{.Details}}
 {{end -}}
 {{if .ImpactDetails}}
-IMPACT:
-  {{ .ImpactDetails}}
+{{"IMPACT:" | bold}}
+{{ .ImpactDetails}}
 {{- end}}
 {{if gt (len .Recommendations) 0}}
-RECOMMENDATIONS:
+{{"RECOMMENDATIONS:" | bold}}
 {{range .Recommendations -}}
-  - {{.}}
+- {{.}}
 {{end -}}
 {{end -}}
 {{if gt (len .References) 0}}
-REFERENCES:
+{{"REFERENCES:" | bold}}
 {{range .References -}}
-  - {{.}}
+- {{.}}
 {{end -}}
 {{end -}}
 {{if gt (len .Resources) 0 -}}
 {{range $resource := .Resources}}
-{{.Name}}:
+{{.Name | bold}}:
 {{$headers := .Header -}}
 {{range $row := .Rows}}
 {{range $header := $headers -}}
-  {{$header }}: {{index $row $header}}
+{{$header | bold}}: {{index $row $header}}
 {{end -}}
 {{end -}}
 {{end -}}
