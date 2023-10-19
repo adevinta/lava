@@ -244,13 +244,13 @@ type OutputFormat int
 
 // Output formats available for the report.
 const (
-	OutputFormatJSON         OutputFormat = 0
-	OutputFormatUserFriendly OutputFormat = 1
+	OutputFormatHuman OutputFormat = iota
+	OutputFormatJSON
 )
 
 var outputFormatNames = map[string]OutputFormat{
-	"user-friendly": OutputFormatUserFriendly,
-	"json":          OutputFormatJSON,
+	"human": OutputFormatHuman,
+	"json":  OutputFormatJSON,
 }
 
 // parseOutputFormat converts a string into an [OutputFormat] value.
