@@ -155,9 +155,9 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 				excluded: 3,
 			},
 			want: []string{
-				"Summary of the last scan:",
+				"SUMMARY",
 				"Number of excluded vulnerabilities not included in the summary table: 3",
-				"Vulnerabilities details:",
+				"VULNERABILITIES",
 				"Vulnerability Summary 1",
 			},
 		},
@@ -165,7 +165,7 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 			name:            "No vulnerabilities",
 			vulnerabilities: nil,
 			want: []string{
-				"No vulnerabilities found during the Lava scan.",
+				"No vulnerabilities found during the scan.",
 			},
 		},
 	}
