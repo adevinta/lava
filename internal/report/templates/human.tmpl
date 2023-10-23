@@ -1,0 +1,135 @@
+{{- /* report is the template used to render the full scan report. */ -}}
+{{- define "report" -}}
+{{"SUMMARY" | bold | underline}}
+{{if .Total}}
+{{template "summary" .}}
+{{else}}
+No vulnerabilities found during the scan.
+{{end}}
+{{- if .Vulns}}
+{{template "vulns" . -}}
+{{end -}}
+{{- end -}}
+
+
+{{- /* summary is the template used to render the scan summary. */ -}}
+{{- define "summary" -}}
+{{"CRITICAL" | bold | magenta}}: {{index .Stats "critical"}}
+{{"HIGH" | bold | red}}: {{index .Stats "high"}}
+{{"MEDIUM" | bold | yellow}}: {{index .Stats "medium"}}
+{{"LOW" | bold | cyan}}: {{index .Stats "low"}}
+{{"INFO" | bold}}: {{index .Stats "info"}}
+
+Number of excluded vulnerabilities not included in the summary table: {{.Excluded}}
+{{- end -}}
+
+
+{{- /* vulns is the template used to render all the vulnerability reports. */ -}}
+{{- define "vulns" -}}
+{{"VULNERABILITIES" | bold | underline}}
+{{range .Vulns}}
+{{template "vuln" . -}}
+{{end}}
+{{- end -}}
+
+
+{{- /* vuln is the template used to render one vulnerability report */ -}}
+{{- define "vuln" -}}
+{{template "vulnTitle" .}}
+
+{{"TARGET" | bold}}
+{{.CheckData.Target | trim}}
+{{""}}
+
+{{- $affectedResource:= .AffectedResourceString -}}
+{{- if not $affectedResource -}}
+  {{- $affectedResource = .AffectedResource -}}
+{{- end -}}
+{{- if $affectedResource}}
+{{"AFFECTED RESOURCE" | bold}}
+{{$affectedResource | trim}}
+{{end -}}
+
+{{- if .Description}}
+{{"DESCRIPTION" | bold}}
+{{.Description | trim}}
+{{end -}}
+
+{{- if .Details}}
+{{"DETAILS" | bold}}
+{{.Details | trim}}
+{{end -}}
+
+{{- if .ImpactDetails}}
+{{"IMPACT" | bold}}
+{{.ImpactDetails | trim}}
+{{end -}}
+
+{{- if .Recommendations}}
+{{template "vulnRecoms" .}}
+{{end -}}
+
+{{- if .References}}
+{{template "vulnRefs" .}}
+{{end -}}
+
+{{- if .Resources}}
+{{template "vulnRscs" .}}
+{{end -}}
+{{- end -}}
+
+
+{{- /* vulnTitle is the template used to render the title of a vulnerability. */ -}}
+{{- define "vulnTitle" -}}
+{{- if eq .Severity.String "critical" -}}
+  {{printf "=== %v (%v) ===" (trim .Summary) (upper .Severity.String) | bold | magenta}}
+{{- else if eq .Severity.String "high" -}}
+  {{printf "=== %v (%v) ===" (trim .Summary) (upper .Severity.String) | bold | red}}
+{{- else if eq .Severity.String "medium" -}}
+  {{printf "=== %v (%v) ===" (trim .Summary) (upper .Severity.String) | bold | yellow}}
+{{- else if eq .Severity.String "low" -}}
+  {{printf "=== %v (%v) ===" (trim .Summary) (upper .Severity.String) | bold | cyan}}
+{{- else -}}
+  {{printf "=== %v (%v) ===" (trim .Summary) (upper .Severity.String) | bold}}
+{{- end -}}
+{{- end -}}
+
+
+{{- /* vulnRecoms is the template used to render the recommendations to fix a vulnerability. */ -}}
+{{- define "vulnRecoms" -}}
+{{"RECOMMENDATIONS" | bold}}
+{{- range .Recommendations}}
+- {{. | trim -}}
+{{end}}
+{{- end -}}
+
+
+{{- /* vulnRefs is the template used to render a list of references with more details about the vulnerability. */ -}}
+{{- define "vulnRefs" -}}
+{{"REFERENCES" | bold}}
+{{- range .References}}
+- {{. | trim -}}
+{{end}}
+{{- end -}}
+
+
+{{- /* vulnRscs is the template used to render the list of affected resources. */ -}}
+{{- define "vulnRscs" -}}
+{{"RESOURCES" | bold}}
+{{- range $resource := .Resources}}
+{{template "vulnRsc" . -}}
+{{end}}
+{{- end -}}
+
+
+{{- /* vulnRsc is the template used to render the details of a single resource. */ -}}
+{{- define "vulnRsc" -}}
+{{- $rsc := . -}}
+- {{$rsc.Name | bold}}:
+{{- range $row := $rsc.Rows}}{{range $header := $rsc.Header}}
+  {{$header | trim | bold}}: {{index $row $header | trim -}}
+{{end}}{{end}}
+{{- end -}}
+
+
+{{- template "report" . -}}

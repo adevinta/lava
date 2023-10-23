@@ -17,89 +17,56 @@ import (
 // humanPrinter represents a human-readable report printer.
 type humanPrinter struct{}
 
-// colorFuncs stores common function to colorize texts.
-var commonFuncs = template.FuncMap{
-	"magenta": color.New(color.FgMagenta).SprintfFunc(),
-	"red":     color.New(color.FgRed).SprintfFunc(),
-	"yellow":  color.New(color.FgYellow).SprintfFunc(),
-	"cyan":    color.New(color.FgCyan).SprintfFunc(),
-	"bold":    color.New(color.Bold).SprintfFunc(),
-	"upper":   strings.ToUpper,
-}
+var (
+	//go:embed templates/human.tmpl
+	humanReport string
 
-// Print renders the scan results in human-readable format.
+	// humanTmplFuncs stores the functions called from the
+	// template used to render the human-readable report.
+	humanTmplFuncs = template.FuncMap{
+		"magenta":   color.New(color.FgMagenta).SprintfFunc(),
+		"red":       color.New(color.FgRed).SprintfFunc(),
+		"yellow":    color.New(color.FgYellow).SprintfFunc(),
+		"cyan":      color.New(color.FgCyan).SprintfFunc(),
+		"bold":      color.New(color.Bold).SprintfFunc(),
+		"underline": color.New(color.Underline).SprintfFunc(),
+		"upper":     strings.ToUpper,
+		"trim":      strings.TrimSpace,
+	}
+
+	// humanTmpl is the template used to render the human-readable
+	// report.
+	humanTmpl = template.Must(template.New("").Funcs(humanTmplFuncs).Parse(humanReport))
+)
+
+// Print renders the scan results in a human-readable format.
 func (prn humanPrinter) Print(w io.Writer, vulns []vulnerability, sum summary) error {
-	if err := printSummary(w, sum); err != nil {
-		return fmt.Errorf("print summary: %w", err)
-	}
-	if len(vulns) > 0 {
-		_, err := fmt.Fprint(w, "\nVulnerabilities details:\n")
-		if err != nil {
-			return fmt.Errorf("print vulnerability details: %w", err)
-		}
-	}
-	for _, v := range vulns {
-		if err := printVulnerability(w, v); err != nil {
-			return fmt.Errorf("print vulnerability: %w", err)
-		}
-	}
-	return nil
-}
-
-//go:embed templates/humansum.tmpl
-var humanSummary string
-
-// printSummary renders the summary table with the vulnerability stats.
-func printSummary(writer io.Writer, sum summary) error {
-	var total int
 	// count the total non-excluded vulnerabilities found.
+	var total int
 	for _, ss := range sum.count {
 		total += ss
 	}
 
-	type severityCount struct {
-		Name  string
-		Count int
-	}
-
-	var sevCounts []severityCount
-	for sev := config.SeverityCritical; sev >= config.SeverityInfo; sev-- {
-		sevCount := severityCount{
-			Name:  sev.String(),
-			Count: sum.count[sev],
-		}
-		sevCounts = append(sevCounts, sevCount)
+	stats := make(map[string]int)
+	for s := config.SeverityCritical; s >= config.SeverityInfo; s-- {
+		stats[s.String()] = sum.count[s]
 	}
 
 	data := struct {
-		SevCounts []severityCount
-		Total     int
-		Excluded  int
+		Stats    map[string]int
+		Total    int
+		Excluded int
+		Vulns    []vulnerability
 	}{
-		SevCounts: sevCounts,
-		Total:     total,
-		Excluded:  sum.excluded,
+		Stats:    stats,
+		Total:    total,
+		Excluded: sum.excluded,
+		Vulns:    vulns,
 	}
 
-	sumTmpl := template.New("summary")
-	sumTmpl = sumTmpl.Funcs(commonFuncs)
-	sumTmpl = template.Must(sumTmpl.Parse(humanSummary))
-	if err := sumTmpl.Execute(writer, data); err != nil {
+	if err := humanTmpl.Execute(w, data); err != nil {
 		return fmt.Errorf("execute template summary: %w", err)
 	}
-	return nil
-}
 
-//go:embed templates/humanvuln.tmpl
-var humanVuln string
-
-// printVulnerability renders a vulnerability in a human-readable format.
-func printVulnerability(writer io.Writer, v vulnerability) error {
-	vulnTmpl := template.New("vulnerability")
-	vulnTmpl = vulnTmpl.Funcs(commonFuncs)
-	vulnTmpl = template.Must(vulnTmpl.Parse(humanVuln))
-	if err := vulnTmpl.Execute(writer, v); err != nil {
-		return fmt.Errorf("execute template vulnerability: %w", err)
-	}
 	return nil
 }
