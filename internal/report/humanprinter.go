@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
-	"maps"
 	"strings"
 	"text/template"
 
@@ -19,12 +18,13 @@ import (
 type humanPrinter struct{}
 
 // colorFuncs stores common function to colorize texts.
-var colorFuncs = template.FuncMap{
+var commonFuncs = template.FuncMap{
 	"magenta": color.New(color.FgMagenta).SprintfFunc(),
 	"red":     color.New(color.FgRed).SprintfFunc(),
 	"yellow":  color.New(color.FgYellow).SprintfFunc(),
 	"cyan":    color.New(color.FgCyan).SprintfFunc(),
 	"bold":    color.New(color.Bold).SprintfFunc(),
+	"upper":   strings.ToUpper,
 }
 
 // Print renders the scan results in human-readable format.
@@ -81,12 +81,8 @@ func printSummary(writer io.Writer, sum summary) error {
 		Excluded:  sum.excluded,
 	}
 
-	funcMap := template.FuncMap{
-		"upper": strings.ToUpper,
-	}
-
 	sumTmpl := template.New("summary")
-	sumTmpl = sumTmpl.Funcs(funcMap).Funcs(colorFuncs)
+	sumTmpl = sumTmpl.Funcs(commonFuncs)
 	sumTmpl = template.Must(sumTmpl.Parse(humanSummary))
 	if err := sumTmpl.Execute(writer, data); err != nil {
 		return fmt.Errorf("execute template summary: %w", err)
@@ -99,12 +95,8 @@ var humanVuln string
 
 // printVulnerability renders a vulnerability in a human-readable format.
 func printVulnerability(writer io.Writer, v vulnerability) error {
-	funcMap := template.FuncMap{
-		"upper": strings.ToUpper,
-	}
-	maps.Copy(funcMap, colorFuncs)
 	vulnTmpl := template.New("vulnerability")
-	vulnTmpl = vulnTmpl.Funcs(funcMap).Funcs(colorFuncs)
+	vulnTmpl = vulnTmpl.Funcs(commonFuncs)
 	vulnTmpl = template.Must(vulnTmpl.Parse(humanVuln))
 	if err := vulnTmpl.Execute(writer, v); err != nil {
 		return fmt.Errorf("execute template vulnerability: %w", err)

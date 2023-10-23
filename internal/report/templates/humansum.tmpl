@@ -1,19 +1,19 @@
 Summary of the last scan:
 {{if not .Total}}
-No vulnerabilities found during the Lava scan.
+    No vulnerabilities found during the Lava scan.
 {{else}}
-{{range .SevCounts -}}
-{{if eq .Name "critical" -}}
-  {{.Name | upper | bold | magenta}}: {{.Count}}
-{{else if eq .Name "high" -}}
-  {{.Name | upper | bold | red}}: {{.Count}}
-{{else if eq .Name "medium" -}}
-  {{.Name | upper | bold | yellow}}: {{.Count}}
-{{else if eq .Name "low" -}}
-  {{.Name | upper | bold | cyan}}: {{.Count}}
-{{else -}}
-  {{.Name | upper | bold}}: {{.Count}}
-{{end -}}
-{{end}}
-Number of excluded vulnerabilities not included in the summary table: {{.Excluded}}
+    {{- range .SevCounts -}}
+        {{- if eq .Name "critical" -}}
+          {{.Name | upper | bold | magenta}}: {{.Count}}{{"\n"}}
+        {{- else if eq .Name "high" -}}
+          {{.Name | upper | bold | red}}: {{.Count}}{{"\n"}}
+        {{- else if eq .Name "medium" -}}
+          {{.Name | upper | bold | yellow}}: {{.Count}}{{"\n"}}
+        {{- else if eq .Name "low" -}}
+          {{- .Name | upper | bold | cyan}}: {{.Count}}{{"\n"}}
+        {{- else -}}
+          {{.Name | upper | bold}}: {{.Count}}{{"\n"}}
+        {{- end -}}
+    {{- end -}}
+    {{"\n"}}Number of excluded vulnerabilities not included in the summary table: {{.Excluded}}
 {{end}}

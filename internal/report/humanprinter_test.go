@@ -17,8 +17,7 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 		name            string
 		vulnerabilities []vulnerability
 		sum             summary
-		wantSum         []string
-		wantVuln        []string
+		want            []string
 	}{
 		{
 			name: "User Friendly Report",
@@ -155,11 +154,9 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 				},
 				excluded: 3,
 			},
-			wantSum: []string{
+			want: []string{
 				"Summary of the last scan:",
 				"Number of excluded vulnerabilities not included in the summary table: 3",
-			},
-			wantVuln: []string{
 				"Vulnerabilities details:",
 				"Vulnerability Summary 1",
 			},
@@ -167,30 +164,23 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 		{
 			name:            "No vulnerabilities",
 			vulnerabilities: nil,
-			wantSum: []string{
+			want: []string{
 				"No vulnerabilities found during the Lava scan.",
 			},
-			wantVuln: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			w := humanPrinter{}
-			err := w.Print(&buf, tt.vulnerabilities, tt.sum)
-			if err != nil {
+			if err := w.Print(&buf, tt.vulnerabilities, tt.sum); err != nil {
 				t.Errorf("unexpected error value: %v", err)
 			}
 			text := buf.String()
 
-			for _, sumLine := range tt.wantSum {
-				if !strings.Contains(text, sumLine) {
-					t.Errorf("text not found: %s", sumLine)
-				}
-			}
-			for _, vulnLine := range tt.wantVuln {
-				if !strings.Contains(text, vulnLine) {
-					t.Errorf("text not found: %s", vulnLine)
+			for _, wantLine := range tt.want {
+				if !strings.Contains(text, wantLine) {
+					t.Errorf("text not found: %s", wantLine)
 				}
 			}
 		})
