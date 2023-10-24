@@ -31,6 +31,8 @@ type Writer struct {
 func NewWriter(cfg config.ReportConfig) (Writer, error) {
 	var prn printer
 	switch cfg.Format {
+	case config.OutputFormatHuman:
+		prn = humanPrinter{}
 	case config.OutputFormatJSON:
 		prn = jsonPrinter{}
 	default:
