@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/fatih/color"
 
 	"github.com/adevinta/lava/cmd/lava/internal/base"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/engine"
+	"github.com/adevinta/lava/internal/metrics"
 	"github.com/adevinta/lava/internal/report"
 )
 
@@ -56,17 +58,21 @@ func run(args []string) error {
 		color.NoColor = false
 	}
 
+	executionTime := time.Now()
+	metrics.Collect("execution_time", executionTime)
+
 	cfg, err := config.ParseFile(*cfgfile)
 	if err != nil {
 		return fmt.Errorf("parse config file: %w", err)
 	}
 
-	if err := os.Chdir(filepath.Dir(*cfgfile)); err != nil {
+	if err = os.Chdir(filepath.Dir(*cfgfile)); err != nil {
 		return fmt.Errorf("change directory: %w", err)
 	}
+	metrics.Collect("lava_version", cfg.LavaVersion)
+	metrics.Collect("targets", cfg.Targets)
 
 	base.LogLevel.Set(cfg.LogLevel)
-
 	er, err := engine.Run(cfg.ChecktypesURLs, cfg.Targets, cfg.AgentConfig)
 	if err != nil {
 		return fmt.Errorf("run: %w", err)
@@ -83,6 +89,15 @@ func run(args []string) error {
 		return fmt.Errorf("render report: %w", err)
 	}
 
+	metrics.Collect("exit_code", exitCode)
+	duration := time.Since(executionTime)
+	metrics.Collect("duration", duration.String())
+
+	if cfg.ReportConfig.Metrics != "" {
+		if err = metrics.WriteFile(cfg.ReportConfig.Metrics); err != nil {
+			return fmt.Errorf("write metrics: %w", err)
+		}
+	}
 	os.Exit(int(exitCode))
 
 	return nil
