@@ -6,14 +6,18 @@ package run
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/fatih/color"
 
 	"github.com/adevinta/lava/cmd/lava/internal/base"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/engine"
+	"github.com/adevinta/lava/internal/metrics"
 	"github.com/adevinta/lava/internal/report"
 )
 
@@ -38,8 +42,9 @@ output is disabled in the following cases:
 }
 
 var (
-	cfgfile    = CmdRun.Flag.String("c", "lava.yaml", "config file")
-	forceColor = CmdRun.Flag.Bool("forcecolor", false, "force colorized output")
+	cfgfile     = CmdRun.Flag.String("c", "lava.yaml", "config file")
+	forceColor  = CmdRun.Flag.Bool("forcecolor", false, "force colorized output")
+	metricsFile = CmdRun.Flag.String("m", "", "metrics output file")
 )
 
 func init() {
@@ -56,17 +61,29 @@ func run(args []string) error {
 		color.NoColor = false
 	}
 
+	executionTime := time.Now()
+	metrics.Collect("execution_time", executionTime)
+
 	cfg, err := config.ParseFile(*cfgfile)
 	if err != nil {
 		return fmt.Errorf("parse config file: %w", err)
 	}
 
-	if err := os.Chdir(filepath.Dir(*cfgfile)); err != nil {
+	if err = os.Chdir(filepath.Dir(*cfgfile)); err != nil {
 		return fmt.Errorf("change directory: %w", err)
+	}
+	metrics.Collect("lava_version", cfg.LavaVersion)
+	metrics.Collect("targets", cfg.Targets)
+	if os.Getenv("GITHUB_SERVER_URL") != "" && os.Getenv("GITHUB_REPOSITORY") != "" {
+		ghRepo, err := url.JoinPath(os.Getenv("GITHUB_SERVER_URL"), os.Getenv("GITHUB_REPOSITORY"))
+		if err != nil {
+			slog.Warn("error collecting the GitHub repo URI")
+		} else {
+			metrics.Collect("repository_uri", ghRepo)
+		}
 	}
 
 	base.LogLevel.Set(cfg.LogLevel)
-
 	er, err := engine.Run(cfg.ChecktypesURLs, cfg.Targets, cfg.AgentConfig)
 	if err != nil {
 		return fmt.Errorf("run: %w", err)
@@ -83,6 +100,16 @@ func run(args []string) error {
 		return fmt.Errorf("render report: %w", err)
 	}
 
+	metrics.Collect("exit_code", exitCode)
+	finishTime := time.Now()
+	duration := finishTime.Sub(executionTime)
+	metrics.Collect("duration", duration.String())
+
+	if *metricsFile != "" {
+		if err = metrics.Write(*metricsFile); err != nil {
+			return fmt.Errorf("write metrics: %w", err)
+		}
+	}
 	os.Exit(int(exitCode))
 
 	return nil

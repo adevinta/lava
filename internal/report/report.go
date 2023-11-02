@@ -17,14 +17,16 @@ import (
 
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/engine"
+	"github.com/adevinta/lava/internal/metrics"
 )
 
 // Writer represents a Lava report writer.
 type Writer struct {
-	prn         printer
-	w           io.WriteCloser
-	minSeverity config.Severity
-	exclusions  []config.Exclusion
+	prn          printer
+	w            io.WriteCloser
+	minSeverity  config.Severity
+	exclusions   []config.Exclusion
+	printMetrics bool
 }
 
 // NewWriter creates a new instance of a report writer.
@@ -49,10 +51,11 @@ func NewWriter(cfg config.ReportConfig) (Writer, error) {
 	}
 
 	return Writer{
-		prn:         prn,
-		w:           w,
-		minSeverity: cfg.Severity,
-		exclusions:  cfg.Exclusions,
+		prn:          prn,
+		w:            w,
+		minSeverity:  cfg.Severity,
+		exclusions:   cfg.Exclusions,
+		printMetrics: cfg.Metrics,
 	}, nil
 }
 
@@ -65,7 +68,8 @@ func (writer Writer) Write(er engine.Report) (ExitCode, error) {
 	if err != nil {
 		return 0, fmt.Errorf("parse report: %w", err)
 	}
-	sum, err := mkSummary(vulns)
+
+	sum, err := writer.mkSummary(vulns)
 	if err != nil {
 		return 0, fmt.Errorf("calculate summary: %w", err)
 	}
@@ -96,7 +100,6 @@ func (writer Writer) parseReport(er engine.Report) ([]vulnerability, error) {
 	for _, r := range er {
 		for _, vuln := range r.ResultData.Vulnerabilities {
 			severity := scoreToSeverity(vuln.Score)
-
 			excluded, err := writer.isExcluded(vuln, r.Target)
 			if err != nil {
 				return nil, fmt.Errorf("vulnerability exlusion: %w", err)
@@ -196,6 +199,35 @@ func (writer Writer) calculateExitCode(sum summary) ExitCode {
 	return 0
 }
 
+// mkSummary counts the number vulnerabilities per severity and the
+// number of excluded vulnerabilities. The excluded vulnerabilities are
+// not considered in the count per severity.
+func (writer Writer) mkSummary(vulns []vulnerability) (summary, error) {
+	if len(vulns) == 0 {
+		metrics.Collect("vulnerabilities", make(map[string]int))
+		metrics.Collect("excluded", 0)
+		return summary{}, nil
+	}
+	sum := summary{
+		count: make(map[config.Severity]int),
+	}
+	countMetrics := make(map[string]int)
+	for _, vuln := range vulns {
+		if !vuln.Severity.IsValid() {
+			return summary{}, fmt.Errorf("invalid severity: %v", vuln.Severity)
+		}
+		if vuln.excluded {
+			sum.excluded++
+		} else {
+			sum.count[vuln.Severity]++
+			countMetrics[vuln.Severity.String()]++
+		}
+	}
+	metrics.Collect("vulnerabilities", countMetrics)
+	metrics.Collect("excluded", sum.excluded)
+	return sum, nil
+}
+
 // vulnerability represents a vulnerability found by a check.
 type vulnerability struct {
 	report.Vulnerability
@@ -233,30 +265,6 @@ func scoreToSeverity(score float32) config.Severity {
 type summary struct {
 	count    map[config.Severity]int
 	excluded int
-}
-
-// mkSummary counts the number vulnerabilities per severity and the
-// number of excluded vulnerabilities. The excluded vulnerabilities are
-// not considered in the count per severity.
-func mkSummary(vulns []vulnerability) (summary, error) {
-	if len(vulns) == 0 {
-		return summary{}, nil
-	}
-
-	sum := summary{
-		count: make(map[config.Severity]int),
-	}
-	for _, vuln := range vulns {
-		if !vuln.Severity.IsValid() {
-			return summary{}, fmt.Errorf("invalid severity: %v", vuln.Severity)
-		}
-		if vuln.excluded {
-			sum.excluded++
-		} else {
-			sum.count[vuln.Severity]++
-		}
-	}
-	return sum, nil
 }
 
 // ExitCode represents an exit code depending on the vulnerabilities found.

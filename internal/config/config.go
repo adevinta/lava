@@ -148,6 +148,9 @@ type ReportConfig struct {
 	// Exclusions is a list of findings that will be ignored. For
 	// instance, accepted risks, false positives, etc.
 	Exclusions []Exclusion `yaml:"exclusions"`
+
+	// Metrics decides is a metrics report is printed.
+	Metrics bool `yaml:"metrics"`
 }
 
 // Target represents the target of a scan.

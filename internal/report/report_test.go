@@ -681,7 +681,11 @@ func TestMkSummary(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := mkSummary(tt.vulnerabilities)
+			w, err := NewWriter(config.ReportConfig{})
+			if err != nil {
+				t.Fatalf("unable to create a report writer: %v", err)
+			}
+			got, err := w.mkSummary(tt.vulnerabilities)
 			if (err == nil) != tt.wantNilErr {
 				t.Errorf("unexpected error value: %v", err)
 			}
