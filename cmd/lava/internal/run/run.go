@@ -106,7 +106,7 @@ func run(args []string) error {
 	metrics.Collect("duration", duration.String())
 
 	if *metricsFile != "" {
-		if err = metrics.Write(*metricsFile); err != nil {
+		if err = metrics.WriteFile(*metricsFile); err != nil {
 			return fmt.Errorf("write metrics: %w", err)
 		}
 	}
