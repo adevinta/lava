@@ -17,6 +17,7 @@ import (
 
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/engine"
+	"github.com/adevinta/lava/internal/metrics"
 )
 
 // Writer represents a Lava report writer.
@@ -65,13 +66,16 @@ func (writer Writer) Write(er engine.Report) (ExitCode, error) {
 	if err != nil {
 		return 0, fmt.Errorf("parse report: %w", err)
 	}
+
 	sum, err := mkSummary(vulns)
 	if err != nil {
 		return 0, fmt.Errorf("calculate summary: %w", err)
 	}
+
+	metrics.Collect("excluded", sum.excluded)
+	metrics.Collect("vulnerabilities", sum.count)
 	exitCode := writer.calculateExitCode(sum)
 	fvulns := writer.filterVulns(vulns)
-
 	if err = writer.prn.Print(writer.w, fvulns, sum); err != nil {
 		return exitCode, fmt.Errorf("print report: %w", err)
 	}
@@ -96,7 +100,6 @@ func (writer Writer) parseReport(er engine.Report) ([]vulnerability, error) {
 	for _, r := range er {
 		for _, vuln := range r.ResultData.Vulnerabilities {
 			severity := scoreToSeverity(vuln.Score)
-
 			excluded, err := writer.isExcluded(vuln, r.Target)
 			if err != nil {
 				return nil, fmt.Errorf("vulnerability exlusion: %w", err)

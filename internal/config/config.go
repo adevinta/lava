@@ -148,6 +148,11 @@ type ReportConfig struct {
 	// Exclusions is a list of findings that will be ignored. For
 	// instance, accepted risks, false positives, etc.
 	Exclusions []Exclusion `yaml:"exclusions"`
+
+	// Metrics is the file where the metrics will be written.
+	// If Metrics is an empty string or not specified in the yaml file, then
+	// the metrics report is not saved.
+	Metrics string `yaml:"metrics"`
 }
 
 // Target represents the target of a scan.
@@ -220,7 +225,7 @@ func (s Severity) String() string {
 }
 
 // MarshalText encode a [Severity] as a text.
-func (s *Severity) MarshalText() (text []byte, err error) {
+func (s Severity) MarshalText() (text []byte, err error) {
 	if !s.IsValid() {
 		return nil, ErrInvalidSeverity
 	}
