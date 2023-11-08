@@ -1,7 +1,7 @@
 // Copyright 2023 Adevinta
 
-// Package run implements the run command.
-package run
+// Package scan implements the scan command.
+package scan
 
 import (
 	"errors"
@@ -19,15 +19,15 @@ import (
 	"github.com/adevinta/lava/internal/report"
 )
 
-// CmdRun represents the run command.
-var CmdRun = &base.Command{
-	UsageLine: "run [flags]",
+// CmdScan represents the scan command.
+var CmdScan = &base.Command{
+	UsageLine: "scan [flags]",
 	Short:     "run scan",
 	Long: `
 Run a scan using the provided config file.
 
 The -c flag allows to specify a configuration file. By default, "lava
-run" looks for a configuration file with the name "lava.yaml" in the
+scan" looks for a configuration file with the name "lava.yaml" in the
 current directory.
 
 The -forcecolor flag forces colorized output. By default, colorized
@@ -40,15 +40,15 @@ output is disabled in the following cases:
 }
 
 var (
-	cfgfile    = CmdRun.Flag.String("c", "lava.yaml", "config file")
-	forceColor = CmdRun.Flag.Bool("forcecolor", false, "force colorized output")
+	cfgfile    = CmdScan.Flag.String("c", "lava.yaml", "config file")
+	forceColor = CmdScan.Flag.Bool("forcecolor", false, "force colorized output")
 )
 
 func init() {
-	CmdRun.Run = run // Break initialization cycle.
+	CmdScan.Run = run // Break initialization cycle.
 }
 
-// run is the entry point of the run command.
+// run is the entry point of the scan command.
 func run(args []string) error {
 	if len(args) > 0 {
 		return errors.New("too many arguments")
@@ -75,7 +75,7 @@ func run(args []string) error {
 	base.LogLevel.Set(cfg.LogLevel)
 	er, err := engine.Run(cfg.ChecktypesURLs, cfg.Targets, cfg.AgentConfig)
 	if err != nil {
-		return fmt.Errorf("run: %w", err)
+		return fmt.Errorf("engine run: %w", err)
 	}
 
 	rw, err := report.NewWriter(cfg.ReportConfig)

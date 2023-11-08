@@ -14,12 +14,12 @@ import (
 	"github.com/adevinta/lava/cmd/lava/internal/base"
 	"github.com/adevinta/lava/cmd/lava/internal/help"
 	"github.com/adevinta/lava/cmd/lava/internal/initialize"
-	"github.com/adevinta/lava/cmd/lava/internal/run"
+	"github.com/adevinta/lava/cmd/lava/internal/scan"
 )
 
 func init() {
 	base.Commands = []*base.Command{
-		run.CmdRun,
+		scan.CmdScan,
 		initialize.CmdInit,
 	}
 }
