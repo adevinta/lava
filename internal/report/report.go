@@ -24,6 +24,7 @@ import (
 type Writer struct {
 	prn         printer
 	w           io.WriteCloser
+	isStdout    bool
 	minSeverity config.Severity
 	exclusions  []config.Exclusion
 }
@@ -41,17 +42,20 @@ func NewWriter(cfg config.ReportConfig) (Writer, error) {
 	}
 
 	w := os.Stdout
+	isStdout := true
 	if cfg.OutputFile != "" {
 		f, err := os.Create(cfg.OutputFile)
 		if err != nil {
 			return Writer{}, fmt.Errorf("create file: %w", err)
 		}
 		w = f
+		isStdout = false
 	}
 
 	return Writer{
 		prn:         prn,
 		w:           w,
+		isStdout:    isStdout,
 		minSeverity: cfg.Severity,
 		exclusions:  cfg.Exclusions,
 	}, nil
@@ -85,8 +89,10 @@ func (writer Writer) Write(er engine.Report) (ExitCode, error) {
 
 // Close closes the [Writer].
 func (writer Writer) Close() error {
-	if err := writer.w.Close(); err != nil {
-		return fmt.Errorf("close writer: %w", err)
+	if !writer.isStdout {
+		if err := writer.w.Close(); err != nil {
+			return fmt.Errorf("close writer: %w", err)
+		}
 	}
 	return nil
 }
