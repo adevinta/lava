@@ -48,6 +48,9 @@ func init() {
 	CmdScan.Run = run // Break initialization cycle.
 }
 
+// osExit is used by tests to capture the exit code.
+var osExit = os.Exit
+
 // run is the entry point of the scan command.
 func run(args []string) error {
 	if len(args) > 0 {
@@ -69,6 +72,7 @@ func run(args []string) error {
 	if err = os.Chdir(filepath.Dir(*cfgfile)); err != nil {
 		return fmt.Errorf("change directory: %w", err)
 	}
+
 	metrics.Collect("lava_version", cfg.LavaVersion)
 	metrics.Collect("targets", cfg.Targets)
 
@@ -98,7 +102,8 @@ func run(args []string) error {
 			return fmt.Errorf("write metrics: %w", err)
 		}
 	}
-	os.Exit(int(exitCode))
+
+	osExit(int(exitCode))
 
 	return nil
 }
