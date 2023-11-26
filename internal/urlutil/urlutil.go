@@ -16,7 +16,6 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content"
-	"oras.land/oras-go/v2/content/memory"
 	"oras.land/oras-go/v2/registry/remote"
 )
 
@@ -94,14 +93,12 @@ func getOCI(u *url.URL) ([]byte, error) {
 	}
 	src.PlainHTTP = ociPlainHTTP
 
-	dst := memory.New()
-
-	desc, err := oras.Copy(context.Background(), src, tag, dst, tag, oras.DefaultCopyOptions)
+	desc, err := oras.Resolve(context.Background(), src, tag, oras.DefaultResolveOptions)
 	if err != nil {
-		return nil, fmt.Errorf("artifact copy: %w", err)
+		return nil, fmt.Errorf("resolve: %w", err)
 	}
 
-	successors, err := content.Successors(context.Background(), dst, desc)
+	successors, err := content.Successors(context.Background(), src, desc)
 	if err != nil {
 		return nil, fmt.Errorf("artifact successors: %w", err)
 	}
@@ -114,7 +111,7 @@ func getOCI(u *url.URL) ([]byte, error) {
 			continue
 		}
 
-		data, err := content.FetchAll(context.Background(), dst, s)
+		data, err := content.FetchAll(context.Background(), src, s)
 		if err != nil {
 			return nil, fmt.Errorf("artifact fetch: %w", err)
 		}
