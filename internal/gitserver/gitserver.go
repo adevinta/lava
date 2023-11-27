@@ -8,6 +8,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"io/fs"
 	"math/rand"
 	"net"
 	"net/http"
@@ -29,6 +31,7 @@ type Server struct {
 
 	mu    sync.Mutex
 	repos map[string]string
+	paths map[string]string
 }
 
 // New creates a git server, but doesn't start it.
@@ -45,6 +48,7 @@ func New() (*Server, error) {
 	srv := &Server{
 		basePath: tmpPath,
 		repos:    make(map[string]string),
+		paths:    make(map[string]string),
 		httpsrv:  &http.Server{Handler: newSmartServer(tmpPath)},
 	}
 	return srv, nil
@@ -52,11 +56,11 @@ func New() (*Server, error) {
 
 // AddRepository adds a repository to the Git server. It returns the
 // name of the new served repository.
-func (srv *Server) AddRepository(repoPath string) (string, error) {
+func (srv *Server) AddRepository(path string) (string, error) {
 	srv.mu.Lock()
 	defer srv.mu.Unlock()
 
-	if repoName, ok := srv.repos[repoPath]; ok {
+	if repoName, ok := srv.repos[path]; ok {
 		return repoName, nil
 	}
 
@@ -64,9 +68,6 @@ func (srv *Server) AddRepository(repoPath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("make temp dir: %w", err)
 	}
-	repoName := filepath.Base(dstPath)
-
-	srv.repos[repoPath] = repoName
 
 	// --mirror implies --bare. Compared to --bare, --mirror not
 	// only maps local branches of the source to local branches of
@@ -74,11 +75,9 @@ func (srv *Server) AddRepository(repoPath string) (string, error) {
 	// branches, notes etc.) and sets up a refspec configuration
 	// such that all these refs are overwritten by a git remote
 	// update in the target repository.
-	buf := &bytes.Buffer{}
-	cmd := exec.Command("git", "clone", "--mirror", repoPath, dstPath)
-	cmd.Stderr = buf
+	cmd := exec.Command("git", "clone", "--mirror", path, dstPath)
 	if err = cmd.Run(); err != nil {
-		return "", fmt.Errorf("git clone %v: %w: %#q", repoPath, err, buf)
+		return "", fmt.Errorf("git clone: %w", err)
 	}
 
 	// Create a branch at HEAD. So, if HEAD is detached, the Git
@@ -86,16 +85,125 @@ func (srv *Server) AddRepository(repoPath string) (string, error) {
 	// pointing to.
 	//
 	// Reference: https://github.com/go-git/go-git/blob/f92cb0d49088af996433ebb106b9fc7c2adb8875/plumbing/protocol/packp/advrefs.go#L94-L104
-	buf.Reset()
 	branch := fmt.Sprintf("lava-%v", rand.Int63())
 	cmd = exec.Command("git", "branch", branch)
 	cmd.Dir = dstPath
-	cmd.Stderr = buf
 	if err = cmd.Run(); err != nil {
-		return "", fmt.Errorf("git update-ref %v: %w: %#q", repoPath, err, buf)
+		return "", fmt.Errorf("git branch: %w", err)
 	}
 
+	repoName := filepath.Base(dstPath)
+	srv.repos[path] = repoName
 	return repoName, nil
+}
+
+// AddPath adds a file path to the Git server. The path is served as a
+// Git repository with a single commit. It returns the name of the new
+// served repository.
+func (srv *Server) AddPath(path string) (string, error) {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+
+	if repoName, ok := srv.paths[path]; ok {
+		return repoName, nil
+	}
+
+	dstPath, err := os.MkdirTemp(srv.basePath, "*.git")
+	if err != nil {
+		return "", fmt.Errorf("make temp dir: %w", err)
+	}
+
+	if err := fscopy(dstPath, path); err != nil {
+		return "", fmt.Errorf("copy files: %w", err)
+	}
+
+	cmd := exec.Command("git", "init")
+	cmd.Dir = dstPath
+	if err = cmd.Run(); err != nil {
+		return "", fmt.Errorf("git init: %w", err)
+	}
+
+	cmd = exec.Command("git", "add", "-f", ".")
+	cmd.Dir = dstPath
+	if err = cmd.Run(); err != nil {
+		return "", fmt.Errorf("git add: %w", err)
+	}
+
+	cmd = exec.Command(
+		"git",
+		"-c", "user.name=lava",
+		"-c", "user.email=lava@lava.local",
+		"commit", "-m", "[auto] lava",
+	)
+	cmd.Dir = dstPath
+	if err = cmd.Run(); err != nil {
+		return "", fmt.Errorf("git commit: %w", err)
+	}
+
+	repoName := filepath.Base(dstPath)
+	srv.paths[path] = repoName
+	return repoName, nil
+}
+
+// fscopy copies src to dst recursively. It ignores all .git
+// directories.
+func fscopy(dst, src string) error {
+	err := filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return fmt.Errorf("rel: %w", err)
+		}
+
+		switch typ := d.Type(); {
+		case typ.IsDir():
+			if rel == "." {
+				// The source path is a directory. The
+				// destination directory already
+				// exists, so it is not necessary to
+				// create it.
+				return nil
+			}
+			if filepath.Base(rel) == ".git" {
+				// Ignore .git directory.
+				return filepath.SkipDir
+			}
+			if err := os.MkdirAll(filepath.Join(dst, rel), 0755); err != nil {
+				return fmt.Errorf("make dir: %w", err)
+			}
+		case typ.IsRegular():
+			if rel == "." {
+				// The source path is a file. The
+				// destination file is the name of the
+				// source file.
+				rel = filepath.Base(path)
+			}
+			fsrc, err := os.Open(path)
+			if err != nil {
+				return fmt.Errorf("open source file: %w", err)
+			}
+			defer fsrc.Close()
+			fdst, err := os.Create(filepath.Join(dst, rel))
+			if err != nil {
+				return fmt.Errorf("create destination file: %w", err)
+			}
+			defer fdst.Close()
+			if _, err := io.Copy(fdst, fsrc); err != nil {
+				return fmt.Errorf("copy file: %w", err)
+			}
+		default:
+			return fmt.Errorf("invalid file type: %v", path)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("walk dir: %w", err)
+	}
+	return nil
 }
 
 // ListenAndServe listens on the TCP network address addr and then
@@ -122,7 +230,6 @@ func (srv *Server) Serve(l net.Listener) error {
 	if fn := testHookServerServe; fn != nil {
 		fn(srv, l)
 	}
-
 	return srv.httpsrv.Serve(l)
 }
 
@@ -132,7 +239,6 @@ func (srv *Server) Close() error {
 	if err := srv.httpsrv.Shutdown(context.Background()); err != nil {
 		return fmt.Errorf("server shutdown: %w", err)
 	}
-
 	if err := os.RemoveAll(srv.basePath); err != nil {
 		return fmt.Errorf("remove temp dirs: %w", err)
 	}
