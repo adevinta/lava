@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
+	"github.com/adevinta/lava/internal/assettype"
 	"github.com/adevinta/lava/internal/checktype"
 	"github.com/adevinta/lava/internal/config"
 )
@@ -21,7 +22,6 @@ func TestGenerateChecks(t *testing.T) {
 		checktypes checktype.Catalog
 		targets    []config.Target
 		want       []check
-		wantNilErr bool
 	}{
 		{
 			name: "one checktype and one target",
@@ -58,7 +58,6 @@ func TestGenerateChecks(t *testing.T) {
 					options: map[string]any{},
 				},
 			},
-			wantNilErr: true,
 		},
 		{
 			name: "target overrides checktype options",
@@ -115,7 +114,6 @@ func TestGenerateChecks(t *testing.T) {
 					},
 				},
 			},
-			wantNilErr: true,
 		},
 		{
 			name: "two checktypes and one target",
@@ -175,7 +173,6 @@ func TestGenerateChecks(t *testing.T) {
 					options: map[string]any{},
 				},
 			},
-			wantNilErr: true,
 		},
 		{
 			name: "incompatible target",
@@ -195,8 +192,7 @@ func TestGenerateChecks(t *testing.T) {
 					AssetType:  types.GitRepository,
 				},
 			},
-			want:       nil,
-			wantNilErr: true,
+			want: nil,
 		},
 		{
 			name: "invalid target asset type",
@@ -216,8 +212,7 @@ func TestGenerateChecks(t *testing.T) {
 					AssetType:  "InvalidAssetType",
 				},
 			},
-			want:       nil,
-			wantNilErr: false,
+			want: nil,
 		},
 		{
 			name:       "no checktypes",
@@ -228,8 +223,7 @@ func TestGenerateChecks(t *testing.T) {
 					AssetType:  types.GitRepository,
 				},
 			},
-			want:       nil,
-			wantNilErr: true,
+			want: nil,
 		},
 		{
 			name: "no targets",
@@ -243,9 +237,8 @@ func TestGenerateChecks(t *testing.T) {
 					},
 				},
 			},
-			targets:    nil,
-			want:       nil,
-			wantNilErr: true,
+			targets: nil,
+			want:    nil,
 		},
 		{
 			name: "target without asset type",
@@ -264,8 +257,7 @@ func TestGenerateChecks(t *testing.T) {
 					Identifier: "example.com",
 				},
 			},
-			want:       nil,
-			wantNilErr: false,
+			want: nil,
 		},
 		{
 			name: "one checktype with two asset types and one target",
@@ -304,7 +296,6 @@ func TestGenerateChecks(t *testing.T) {
 					options: map[string]any{},
 				},
 			},
-			wantNilErr: true,
 		},
 		{
 			name: "one checktype with two asset types and one target identifier with two asset types",
@@ -363,7 +354,6 @@ func TestGenerateChecks(t *testing.T) {
 					options: map[string]any{},
 				},
 			},
-			wantNilErr: true,
 		},
 		{
 			name: "one target identifier with two asset types",
@@ -404,7 +394,6 @@ func TestGenerateChecks(t *testing.T) {
 					options: map[string]any{},
 				},
 			},
-			wantNilErr: true,
 		},
 		{
 			name: "duplicated targets",
@@ -445,16 +434,48 @@ func TestGenerateChecks(t *testing.T) {
 					options: map[string]any{},
 				},
 			},
-			wantNilErr: true,
+		},
+		{
+			name: "lava asset type",
+			checktypes: checktype.Catalog{
+				"checktype1": {
+					Name:        "checktype1",
+					Description: "checktype1 description",
+					Image:       "namespace/repository:tag",
+					Assets: []string{
+						"GitRepository",
+					},
+				},
+			},
+			targets: []config.Target{
+				{
+					Identifier: ".",
+					AssetType:  assettype.Path,
+				},
+			},
+			want: []check{
+				{
+					checktype: checktype.Checktype{
+						Name:        "checktype1",
+						Description: "checktype1 description",
+						Image:       "namespace/repository:tag",
+						Assets: []string{
+							"GitRepository",
+						},
+					},
+					target: config.Target{
+						Identifier: ".",
+						AssetType:  assettype.Path,
+					},
+					options: map[string]any{},
+				},
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := generateChecks(tt.checktypes, tt.targets)
-			if (err == nil) != tt.wantNilErr {
-				t.Fatalf("unexpected error value: %v", err)
-			}
+			got := generateChecks(tt.checktypes, tt.targets)
 			diffOpts := []cmp.Option{
 				cmp.AllowUnexported(check{}),
 				cmpopts.SortSlices(checkLess),

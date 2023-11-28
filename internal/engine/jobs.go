@@ -14,19 +14,15 @@ import (
 	"github.com/adevinta/vulcan-agent/queue"
 	"github.com/google/uuid"
 
+	"github.com/adevinta/lava/internal/assettype"
 	"github.com/adevinta/lava/internal/checktype"
 	"github.com/adevinta/lava/internal/config"
 )
 
 // generateJobs generates the jobs to be sent to the agent.
 func generateJobs(checktypes checktype.Catalog, targets []config.Target) ([]jobrunner.Job, error) {
-	checks, err := generateChecks(checktypes, targets)
-	if err != nil {
-		return nil, fmt.Errorf("generate checks: %w", err)
-	}
-
 	var jobs []jobrunner.Job
-	for _, check := range checks {
+	for _, check := range generateChecks(checktypes, targets) {
 		// Convert the options to a marshalled json string.
 		jsonOpts, err := json.Marshal(check.options)
 		if err != nil {
@@ -74,17 +70,13 @@ type check struct {
 }
 
 // generateChecks generates a list of checks combining a map of
-// checktypes and a list of targets. It returns an error if any of the
-// targets has an empty or invalid asset type.
-func generateChecks(checktypes checktype.Catalog, targets []config.Target) ([]check, error) {
+// checktypes and a list of targets.
+func generateChecks(checktypes checktype.Catalog, targets []config.Target) []check {
 	var checks []check
 	for _, t := range dedup(targets) {
-		if t.AssetType == "" || !t.AssetType.IsValid() {
-			return nil, fmt.Errorf("invalid target asset type: %v", t.AssetType)
-		}
-
 		for _, c := range checktypes {
-			if !c.Accepts(t.AssetType) {
+			at := assettype.ToVulcan(t.AssetType)
+			if !c.Accepts(at) {
 				continue
 			}
 
@@ -102,7 +94,7 @@ func generateChecks(checktypes checktype.Catalog, targets []config.Target) ([]ch
 			})
 		}
 	}
-	return checks, nil
+	return checks
 }
 
 // dedup returns a deduplicated slice.
