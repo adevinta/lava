@@ -19,7 +19,7 @@ func Help(args []string) {
 		return
 	}
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "usage: lava help command\n\nToo many arguments given.\n")
+		fmt.Fprintf(os.Stderr, "usage: lava help <topic>\n\nToo many arguments given.\n")
 		os.Exit(2)
 	}
 
@@ -32,7 +32,7 @@ func Help(args []string) {
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "Unknown command %q. Run 'lava help'.\n", arg)
+	fmt.Fprintf(os.Stderr, "Unknown help topic %q. Run 'lava help'.\n", arg)
 	os.Exit(2)
 }
 
@@ -55,16 +55,22 @@ const usageTemplate = `Lava runs Vulcan checks locally
 
 Usage:
 
-	lava command [arguments]
+	lava <command> [arguments]
 
 The commands are:
-{{range .}}
-	{{.Name | printf "%-11s"}} {{.Short}}{{end}}
+{{range .}}{{ if .Run}}
+	{{.Name | printf "%-11s"}} {{.Short}}{{end}}{{end}}
 
-Use "lava help [command]" for more information about a command.
+Use 'lava help <command>' for more information about a command.
+
+Additional help topics:
+{{range .}}{{if not .Run}}
+	{{.Name | printf "%-11s"}} {{.Short}}{{end}}{{end}}
+
+Use 'lava help <topic>' for more information about that topic.
 `
 
-const helpTemplate = `usage: lava {{.UsageLine}}
+const helpTemplate = `{{if .Run}}usage: lava {{.UsageLine}}
 
-{{.Long | trim}}
+{{end}}{{.Long | trim}}
 `

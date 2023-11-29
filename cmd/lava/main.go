@@ -21,6 +21,8 @@ func init() {
 	base.Commands = []*base.Command{
 		scan.CmdScan,
 		initialize.CmdInit,
+
+		help.HelpConfigfile,
 	}
 }
 
@@ -43,6 +45,9 @@ func main() {
 	}
 
 	for _, cmd := range base.Commands {
+		if cmd.Run == nil {
+			continue
+		}
 		cmd.Flag.Usage = cmd.Usage
 		if cmd.Name() == args[0] {
 			cmd.Flag.Parse(args[1:]) //nolint:errcheck
@@ -55,6 +60,6 @@ func main() {
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "lava: unknown command %q\nRun 'lava help' for usage.\n", args[0])
+	fmt.Fprintf(os.Stderr, "Unknown command %q. Run 'lava help'.\n", args[0])
 	os.Exit(2)
 }
