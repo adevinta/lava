@@ -144,14 +144,14 @@ func mkReport(rs *reportStore, srv *targetServer) (Report, error) {
 
 		tmAddrs := tm.Addrs()
 
-		slog.Info("applying target map", "check", checkID, "map", tm, "tmAddr", tmAddrs)
+		slog.Info("applying target map", "check", checkID, "tm", tm, "tmAddr", tmAddrs)
 
-		r.Target = tm.Old
+		r.Target = tm.OldIdentifier
 
 		var vulns []report.Vulnerability
 		for _, vuln := range r.Vulnerabilities {
-			vuln = vulnReplaceAll(vuln, tm.New, tm.Old)
-			vuln = vulnReplaceAll(vuln, tmAddrs.New, tmAddrs.Old)
+			vuln = vulnReplaceAll(vuln, tm.NewIdentifier, tm.OldIdentifier)
+			vuln = vulnReplaceAll(vuln, tmAddrs.NewIdentifier, tmAddrs.OldIdentifier)
 			vulns = append(vulns, vuln)
 		}
 		r.Vulnerabilities = vulns
@@ -323,7 +323,8 @@ func beforeRun(params backend.RunParams, rc *docker.RunConfig, srv *targetServer
 	}
 	if tm, err := srv.Handle(params.CheckID, target); err == nil {
 		if !tm.IsZero() {
-			rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_CHECK_TARGET", tm.New)
+			rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_CHECK_TARGET", tm.NewIdentifier)
+			rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_CHECK_ASSET_TYPE", string(tm.NewAssetType))
 		}
 	} else {
 		slog.Warn("could not handle target", "target", target, "err", err)

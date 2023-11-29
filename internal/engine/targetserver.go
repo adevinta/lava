@@ -18,20 +18,24 @@ import (
 	types "github.com/adevinta/vulcan-types"
 	"github.com/jroimartin/proxy"
 
+	"github.com/adevinta/lava/internal/assettype"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/gitserver"
 )
 
 // targetMap maps a target identifier with its updated value.
 type targetMap struct {
-	// Old is the original target identifier.
-	Old string
+	// OldIdentifier is the original target identifier.
+	OldIdentifier string
 
-	// New is the updated target identifier.
-	New string
+	// OldAssetType is the original asset type of the target.
+	OldAssetType types.AssetType
 
-	// assetType is the asset type of the target.
-	assetType types.AssetType
+	// NewIdentifier is the updated target identifier.
+	NewIdentifier string
+
+	// NewAssetType is the updated asset type of the target.
+	NewAssetType types.AssetType
 }
 
 // IsZero reports whether tm is the zero value.
@@ -43,20 +47,21 @@ func (tm targetMap) IsZero() bool {
 // it is not possible to get the address of a target, then the target
 // is used.
 func (tm targetMap) Addrs() targetMap {
-	oldAddr, err := getTargetAddr(config.Target{Identifier: tm.Old, AssetType: tm.assetType})
+	oldAddr, err := getTargetAddr(config.Target{Identifier: tm.OldIdentifier, AssetType: tm.OldAssetType})
 	if err != nil {
-		oldAddr = tm.Old
+		oldAddr = tm.OldIdentifier
 	}
 
-	newAddr, err := getTargetAddr(config.Target{Identifier: tm.New, AssetType: tm.assetType})
+	newAddr, err := getTargetAddr(config.Target{Identifier: tm.NewIdentifier, AssetType: tm.NewAssetType})
 	if err != nil {
-		newAddr = tm.New
+		newAddr = tm.NewIdentifier
 	}
 
 	tmAddrs := targetMap{
-		Old:       oldAddr,
-		New:       newAddr,
-		assetType: tm.assetType,
+		OldIdentifier: oldAddr,
+		OldAssetType:  tm.OldAssetType,
+		NewIdentifier: newAddr,
+		NewAssetType:  tm.NewAssetType,
 	}
 	return tmAddrs
 }
@@ -125,9 +130,12 @@ func (srv *targetServer) Handle(key string, target config.Target) (targetMap, er
 		tm  targetMap
 		err error
 	)
-	if target.AssetType == types.GitRepository {
+	switch target.AssetType {
+	case types.GitRepository:
 		tm, err = srv.handleGitRepo(target)
-	} else {
+	case assettype.Path:
+		tm, err = srv.handlePath(target)
+	default:
 		tm, err = srv.handle(target)
 	}
 	if err != nil {
@@ -192,9 +200,10 @@ loop:
 	}
 
 	tm := targetMap{
-		Old:       target.Identifier,
-		New:       intIdentifier,
-		assetType: target.AssetType,
+		OldIdentifier: target.Identifier,
+		OldAssetType:  target.AssetType,
+		NewIdentifier: intIdentifier,
+		NewAssetType:  target.AssetType,
 	}
 	return tm, nil
 }
@@ -224,9 +233,27 @@ func (srv *targetServer) handleGitRepo(target config.Target) (targetMap, error) 
 	}
 
 	tm := targetMap{
-		Old:       target.Identifier,
-		New:       fmt.Sprintf("http://%v/%v", srv.gitAddr, repo),
-		assetType: target.AssetType,
+		OldIdentifier: target.Identifier,
+		OldAssetType:  target.AssetType,
+		NewIdentifier: fmt.Sprintf("http://%v/%v", srv.gitAddr, repo),
+		NewAssetType:  target.AssetType,
+	}
+	return tm, nil
+}
+
+// handlePath serves the provided path as a Git repository with a
+// single commit.
+func (srv *targetServer) handlePath(target config.Target) (targetMap, error) {
+	repo, err := srv.gs.AddPath(target.Identifier)
+	if err != nil {
+		return targetMap{}, fmt.Errorf("add path: %w", err)
+	}
+
+	tm := targetMap{
+		OldIdentifier: target.Identifier,
+		OldAssetType:  target.AssetType,
+		NewIdentifier: fmt.Sprintf("http://%v/%v", srv.gitAddr, repo),
+		NewAssetType:  assettype.ToVulcan(target.AssetType),
 	}
 	return tm, nil
 }

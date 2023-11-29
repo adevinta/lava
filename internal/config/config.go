@@ -15,6 +15,8 @@ import (
 	types "github.com/adevinta/vulcan-types"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
+
+	"github.com/adevinta/lava/internal/assettype"
 )
 
 var (
@@ -91,7 +93,7 @@ func ParseFile(path string) (Config, error) {
 }
 
 // validate validates the Lava configuration.
-func (c *Config) validate() error {
+func (c Config) validate() error {
 	// Lava version validation.
 	if !semver.IsValid(c.LavaVersion) {
 		return ErrInvalidLavaVersion
@@ -101,15 +103,9 @@ func (c *Config) validate() error {
 	if len(c.Targets) == 0 {
 		return ErrNoTargets
 	}
-	for _, target := range c.Targets {
-		if target.Identifier == "" {
-			return ErrNoTargetIdentifier
-		}
-		if target.AssetType == "" {
-			return ErrNoTargetAssetType
-		}
-		if !target.AssetType.IsValid() {
-			return fmt.Errorf("%w: %v", ErrInvalidAssetType, target.AssetType)
+	for _, t := range c.Targets {
+		if err := t.validate(); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -166,6 +162,20 @@ type Target struct {
 
 	// Options is a list of specific options for the target.
 	Options map[string]any `yaml:"options"`
+}
+
+// validate reports whether the target is a valid configuration value.
+func (t Target) validate() error {
+	if t.Identifier == "" {
+		return ErrNoTargetIdentifier
+	}
+	if t.AssetType == "" {
+		return ErrNoTargetAssetType
+	}
+	if !t.AssetType.IsValid() && !assettype.IsValid(t.AssetType) {
+		return fmt.Errorf("%w: %v", ErrInvalidAssetType, t.AssetType)
+	}
+	return nil
 }
 
 // RegistryAuth contains the credentials for a container registry.
