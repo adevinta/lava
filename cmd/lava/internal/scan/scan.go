@@ -33,9 +33,27 @@ current directory.
 The -forcecolor flag forces colorized output. By default, colorized
 output is disabled in the following cases:
 
-- Lava is not executed from a terminal.
-- Lava is executed from a "dumb" terminal.
-- The NO_COLOR environment variable is set (regardless of its value).
+  - Lava is not executed from a terminal.
+  - Lava is executed from a "dumb" terminal.
+  - The NO_COLOR environment variable is set (regardless of its value).
+
+The exit code of the command depends on the highest severity among all
+the vulnerabilities that have been found.
+
+  - 104: Critical severity vulnerabilities found
+  - 103: High severity vulnerabilities found
+  - 102: Medium severity vulnerabilities found
+  - 101: Low severity vulnerabilities found
+  - 100: Informational vulnerabilities found
+  -   2: Syntax error
+  -   1: Command error
+  -   0: No vulnerabilities found
+
+Those vulnerabilities that has been excluded in the configuration are
+not considered in the computation of the exit code. In other words,
+vulnerabilities with a severity that is lower than "report.severity"
+and vulnerabilities that match any "report.exclusions" rules are
+ignored.
 	`,
 }
 
