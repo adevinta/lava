@@ -70,6 +70,7 @@ func TestRun(t *testing.T) {
 				exitCode = status
 			}
 
+			mustChdir(tmpPath)
 			if err := run(nil); err != nil {
 				t.Fatalf("run error: %v", err)
 			}

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/fatih/color"
@@ -67,10 +66,6 @@ func run(args []string) error {
 	cfg, err := config.ParseFile(*cfgfile)
 	if err != nil {
 		return fmt.Errorf("parse config file: %w", err)
-	}
-
-	if err = os.Chdir(filepath.Dir(*cfgfile)); err != nil {
-		return fmt.Errorf("change directory: %w", err)
 	}
 
 	metrics.Collect("lava_version", cfg.LavaVersion)
