@@ -1,2 +1,4 @@
 lava: v1.0.0
+checktypesURLs:
+  - checktypes.json
 targets: []

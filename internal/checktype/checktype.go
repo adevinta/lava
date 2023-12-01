@@ -15,15 +15,9 @@ import (
 	"github.com/adevinta/lava/internal/urlutil"
 )
 
-var (
-	// ErrMalformedCatalog is returned by [NewCatalog] when the
-	// format of the retrieved catalog is not valid.
-	ErrMalformedCatalog = errors.New("malformed catalog")
-
-	// ErrMissingCatalog is returned by [NewCatalog] when no
-	// catalog URLs are provided.
-	ErrMissingCatalog = errors.New("missing catalog URLs")
-)
+// ErrMalformedCatalog is returned by [NewCatalog] when the format of
+// the retrieved catalog is not valid.
+var ErrMalformedCatalog = errors.New("malformed catalog")
 
 // Checktype represents a Vulcan checktype.
 type Checktype checkcatalog.Checktype
@@ -47,10 +41,6 @@ type Catalog map[string]Checktype
 // indexed by name. If a checktype is duplicated it is overridden with
 // the last one.
 func NewCatalog(urls []string) (Catalog, error) {
-	if len(urls) == 0 {
-		return nil, ErrMissingCatalog
-	}
-
 	checktypes := make(Catalog)
 	for _, url := range urls {
 		data, err := urlutil.Get(url)

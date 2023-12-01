@@ -1,5 +1,4 @@
 lava: v1.0.0
-checktypesURLs:
-  - checktypes.json
 targets:
   - identifier: example.com
+    assetType: DomainName

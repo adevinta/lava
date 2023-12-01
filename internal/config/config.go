@@ -25,6 +25,10 @@ var (
 	// Specification.
 	ErrInvalidLavaVersion = errors.New("invalid Lava version")
 
+	// ErrNoChecktypesURLs means that no checktypes URLs were
+	// specified.
+	ErrNoChecktypesURLs = errors.New("no checktypes URLs")
+
 	// ErrNoTargets means that no targets were specified.
 	ErrNoTargets = errors.New("no targets")
 
@@ -97,6 +101,11 @@ func (c Config) validate() error {
 	// Lava version validation.
 	if !semver.IsValid(c.LavaVersion) {
 		return ErrInvalidLavaVersion
+	}
+
+	// Checktypes URLs validation.
+	if len(c.ChecktypesURLs) == 0 {
+		return ErrNoChecktypesURLs
 	}
 
 	// Targets validation.
