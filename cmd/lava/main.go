@@ -22,7 +22,7 @@ func init() {
 		scan.CmdScan,
 		initialize.CmdInit,
 
-		help.HelpConfigfile,
+		help.HelpLavaYAML,
 	}
 }
 
