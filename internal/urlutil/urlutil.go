@@ -54,7 +54,7 @@ func getHTTP(parsedURL *url.URL) ([]byte, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("get %q: %w", parsedURL, err)
+		return nil, fmt.Errorf("get %q: invalid status code: %v", parsedURL, resp.StatusCode)
 	}
 	return io.ReadAll(resp.Body)
 }
