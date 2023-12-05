@@ -249,7 +249,7 @@ func newAgentConfig(cfg config.AgentConfig) (agentconfig.Config, error) {
 	}
 
 	auths := []agentconfig.Auth{}
-	for _, r := range cfg.RegistriesAuth {
+	for _, r := range cfg.RegistryAuths {
 		auths = append(auths, agentconfig.Auth{
 			Server: r.Server,
 			User:   r.Username,

@@ -133,9 +133,9 @@ type AgentConfig struct {
 	// checktypes.
 	Vars map[string]string `yaml:"vars"`
 
-	// RegistriesAuth contains the credentials for a set of
+	// RegistryAuths contains the credentials for a set of
 	// container registries.
-	RegistriesAuth []RegistryAuth `yaml:"registriesAuth"`
+	RegistryAuths []RegistryAuth `yaml:"registries"`
 }
 
 // ReportConfig is the configuration of the report.

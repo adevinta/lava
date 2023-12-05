@@ -102,7 +102,7 @@ properties:
     not specified, this limit is set to one.
   - vars: map with the environment variables passed to the executed
     checktypes.
-  - registriesAuth: credentials for a set of container registries. It
+  - registries: configuration of the required container registries. It
     requires the following properties "server", "username" and
     "password".
 
@@ -113,7 +113,7 @@ The sample below is a full agent configuration:
 	  parallel: 4
 	  vars:
 	    DEBUG: true
-	  registriesAuth:
+	  registries:
 	    - server: example.com
 	      username: user
 	      password: p4ssw0rd
