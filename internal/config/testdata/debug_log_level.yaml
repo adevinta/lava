@@ -4,4 +4,4 @@ checktypesURLs:
 targets:
   - identifier: example.com
     assetType: DomainName
-logLevel: debug
+log: debug

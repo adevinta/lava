@@ -1,7 +1,6 @@
 # Copyright 2023 Adevinta
 
 lava: v0.0.0
-logLevel: error
 checktypesURLs:
   # TODO(rm): update URL.
   - https://raw.githubusercontent.com/adevinta/vulcan-local/master/resources/checktypes.json
@@ -12,3 +11,4 @@ agent:
   parallel: 4
 report:
   severity: high
+log: error

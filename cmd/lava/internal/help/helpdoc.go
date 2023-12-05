@@ -33,7 +33,7 @@ fields. These are described elsewhere in this topic.
 	    - description: Ignore test certificates.
 	      summary: 'Secret Leaked in Git Repository'
 	      resource: '/testdata/certs/'
-	logLevel: error
+	log: error
 
 # lava
 
@@ -172,12 +172,12 @@ rule.
 It is possible to provide a human-friendly description of an exclusion
 rule using its "description" property.
 
-# logLevel
+# log
 
-The "logLevel" field describes the logging level of the Lava command.
-Valid values are "debug", "info", "warn" and "error". If not
-specified, "info" is used. For instance,
+The "log" field describes the logging level of the Lava command. Valid
+values are "debug", "info", "warn" and "error". If not specified,
+"info" is used. For instance,
 
-	logLevel: error
+	log: error
 	`,
 }

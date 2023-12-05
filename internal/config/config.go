@@ -70,7 +70,7 @@ type Config struct {
 	Targets []Target `yaml:"targets"`
 
 	// LogLevel is the logging level.
-	LogLevel slog.Level `yaml:"logLevel"`
+	LogLevel slog.Level `yaml:"log"`
 }
 
 // Parse returns a parsed Lava configuration given an [io.Reader].
