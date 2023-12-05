@@ -133,8 +133,7 @@ the following properties.
     specified, "high" is used.
   - format: output format. Valid values are "human" and "json". If not
     specified, "human" is used.
-  - outputFile: path of the output file. If not specified, stdout is
-    used.
+  - output: path of the output file. If not specified, stdout is used.
   - metrics: path of the file where the metrics report will be
     written. If not specified, then the metrics report is not
     generated.
@@ -147,7 +146,7 @@ The sample below is a full report configuration:
 	report:
 	  severity: high
 	  format: json
-	  outputFile: findings.json
+	  output: findings.json
 	  metrics: metrics.json
 	  exclusions:
 	    - description: Ignore test certificates.

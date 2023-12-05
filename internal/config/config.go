@@ -148,7 +148,7 @@ type ReportConfig struct {
 	Format OutputFormat `yaml:"format"`
 
 	// OutputFile is the path of the output file.
-	OutputFile string `yaml:"outputFile"`
+	OutputFile string `yaml:"output"`
 
 	// Exclusions is a list of findings that will be ignored. For
 	// instance, accepted risks, false positives, etc.

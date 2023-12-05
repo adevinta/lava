@@ -6,4 +6,4 @@ targets:
     assetType: Path
 report:
   severity: high
-  outputFile: output.txt
+  output: output.txt
