@@ -1,0 +1,21 @@
+{
+    "checktypes": [
+        {
+            "name": "vulcan-gitleaks",
+            "description": "Finds potential secrets in source code from a Git repository using gitleaks",
+            "image": "vulcansec/vulcan-gitleaks:ea42ea5-b6abd8a",
+            "timeout": 120,
+            "options": {
+                "branch": "",
+                "depth": 1
+            },
+            "required_vars": [
+                "GITHUB_ENTERPRISE_ENDPOINT",
+                "GITHUB_ENTERPRISE_TOKEN"
+            ],
+            "assets": [
+                "GitRepository"
+            ]
+        }
+    ]
+}
