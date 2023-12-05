@@ -14,3 +14,7 @@ report:
     - description: Ignore test certificates.
       summary: 'Secret Leaked in Git Repository'
       resource: '/internal/dockerutil/testdata/certs/'
+    - description: Ignore test targets.
+      resource: '/cmd/lava/internal/scan/testdata/(goodpath|vulnpath)/Dockerfile'
+    - description: Ignore test targets.
+      resource: '/internal/engine/testdata/engine/vulnpath/Dockerfile'
