@@ -66,7 +66,7 @@ func TestNewCatalog(t *testing.T) {
 		{
 			name: "valid file",
 			urls: []string{
-				"testdata/checktypes_catalog.json",
+				"testdata/checktype_catalog.json",
 			},
 			want: Catalog{
 				"vulcan-drupal": {
@@ -84,10 +84,10 @@ func TestNewCatalog(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name: "checktypes_catalog_override",
+			name: "checktype catalog override",
 			urls: []string{
-				"testdata/checktypes_catalog.json",
-				"testdata/checktypes_catalog_override.json",
+				"testdata/checktype_catalog.json",
+				"testdata/checktype_catalog_override.json",
 			},
 			want: Catalog{
 				"vulcan-drupal": {
@@ -112,7 +112,7 @@ func TestNewCatalog(t *testing.T) {
 		{
 			name: "invalid file",
 			urls: []string{
-				"testdata/invalid_checktypes_catalog.json",
+				"testdata/invalid_checktype_catalog.json",
 			},
 			want:    nil,
 			wantErr: ErrMalformedCatalog,

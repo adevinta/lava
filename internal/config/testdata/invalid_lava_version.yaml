@@ -1,5 +1,5 @@
 lava: 1.0.0
-checktypesURLs:
+checktypes:
   - checktypes.json
 targets:
   - identifier: example.com

@@ -25,9 +25,9 @@ var (
 	// Specification.
 	ErrInvalidLavaVersion = errors.New("invalid Lava version")
 
-	// ErrNoChecktypesURLs means that no checktypes URLs were
+	// ErrNoChecktypeURLs means that no checktypes URLs were
 	// specified.
-	ErrNoChecktypesURLs = errors.New("no checktypes URLs")
+	ErrNoChecktypeURLs = errors.New("no checktype catalogs")
 
 	// ErrNoTargets means that no targets were specified.
 	ErrNoTargets = errors.New("no targets")
@@ -62,9 +62,9 @@ type Config struct {
 	// ReportConfig is the configuration of the report.
 	ReportConfig ReportConfig `yaml:"report"`
 
-	// ChecktypesURLs is a list of URLs pointing to checktypes
+	// ChecktypeURLs is a list of URLs pointing to checktype
 	// catalogs.
-	ChecktypesURLs []string `yaml:"checktypesURLs"`
+	ChecktypeURLs []string `yaml:"checktypes"`
 
 	// Targets is the list of targets.
 	Targets []Target `yaml:"targets"`
@@ -103,9 +103,9 @@ func (c Config) validate() error {
 		return ErrInvalidLavaVersion
 	}
 
-	// Checktypes URLs validation.
-	if len(c.ChecktypesURLs) == 0 {
-		return ErrNoChecktypesURLs
+	// Checktype URLs validation.
+	if len(c.ChecktypeURLs) == 0 {
+		return ErrNoChecktypeURLs
 	}
 
 	// Targets validation.

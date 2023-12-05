@@ -18,7 +18,7 @@ A Lava configuration file is a YAML document with the following
 fields. These are described elsewhere in this topic.
 
 	lava: v1.0.0
-	checktypesURLs:
+	checktypes:
 	  - checktypes.json
 	targets:
 	  - identifier: .
@@ -47,20 +47,20 @@ required by the configuration file returns an error.
 
 This field is mandatory.
 
-# checktypesURLs
+# checktypes
 
-The "checktypesURLs" field contains a list of URLs that point to
-checktype catalogs.
+The "checktypes" field contains a list of URLs that point to checktype
+catalogs.
 
 If the URL omits the scheme, it is considered a file path relative to
 the current working directory of the Lava command. For instance,
 
-	checktypesURLs:
+	checktypes:
 	  - checktypes.json
 
 HTTP and HTTPS URLs are supported. For instance,
 
-	checktypesURLs:
+	checktypes:
 	  - https://example.com/checktypes.json
 
 At least one catalog must be specified.

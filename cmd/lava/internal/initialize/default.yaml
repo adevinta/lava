@@ -1,7 +1,7 @@
 # Copyright 2023 Adevinta
 
 lava: v0.0.0
-checktypesURLs:
+checktypes:
   # TODO(rm): update URL.
   - https://raw.githubusercontent.com/adevinta/vulcan-local/master/resources/checktypes.json
 targets:

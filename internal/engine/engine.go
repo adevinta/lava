@@ -39,14 +39,14 @@ type Report map[string]report.Report
 // list is based on the provided checktypes and targets. These checks
 // are run by a Vulcan agent, which is configured using the specified
 // configuration.
-func Run(checktypesURLs []string, targets []config.Target, cfg config.AgentConfig) (Report, error) {
+func Run(checktypeURLs []string, targets []config.Target, cfg config.AgentConfig) (Report, error) {
 	srv, err := newTargetServer()
 	if err != nil {
 		return nil, fmt.Errorf("new server: %w", err)
 	}
 	defer srv.Close()
 
-	checktypes, err := checktype.NewCatalog(checktypesURLs)
+	checktypes, err := checktype.NewCatalog(checktypeURLs)
 	if err != nil {
 		return nil, fmt.Errorf("get checkype catalog: %w", err)
 	}
