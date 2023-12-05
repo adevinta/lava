@@ -167,7 +167,7 @@ type Target struct {
 	Identifier string `yaml:"identifier"`
 
 	// AssetType is the asset type of the target.
-	AssetType types.AssetType `yaml:"assetType"`
+	AssetType types.AssetType `yaml:"type"`
 
 	// Options is a list of specific options for the target.
 	Options map[string]any `yaml:"options"`

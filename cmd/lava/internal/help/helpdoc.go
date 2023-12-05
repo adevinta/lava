@@ -22,9 +22,9 @@ fields. These are described elsewhere in this topic.
 	  - checktypes.json
 	targets:
 	  - identifier: .
-	    assetType: GitRepository
+	    type: GitRepository
 	  - identifier: image
-	    assetType: DockerImage
+	    type: DockerImage
 	agent:
 	  parallel: 4
 	report:
@@ -72,10 +72,9 @@ is defined by the following properties:
 
   - identifier: string that identifies the target. For instance, a
     path, a URL, a Docker image, etc. It is mandatory.
-  - assetType: the asset type of the target. Valid values are
-    "AWSAccount", "DockerImage", "GitRepository", "IP", "IPRange",
-    "DomainName", "Hostname", "WebAddress" and "Path". It is
-    mandatory.
+  - type: the asset type of the target. Valid values are "AWSAccount",
+    "DockerImage", "GitRepository", "IP", "IPRange", "DomainName",
+    "Hostname", "WebAddress" and "Path". It is mandatory.
   - options: map of target-specific options. These options are merged
     with the options coming from the checktype catalog.
 
@@ -83,7 +82,7 @@ For instance,
 
 	targets:
 	  - identifier: .
-	    assetType: GitRepository
+	    type: GitRepository
 	    options:
 	      branch: master
 

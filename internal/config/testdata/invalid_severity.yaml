@@ -3,7 +3,7 @@ checktypes:
   - checktypes.json
 targets:
   - identifier: example.com
-    assetType: DomainName
+    type: DomainName
 report:
   severity: invalid
 

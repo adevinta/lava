@@ -2,4 +2,4 @@ lava: v1.0.0
 checktypes:
   - checktypes.json
 targets:
-  - assetType: DomainName
+  - type: DomainName

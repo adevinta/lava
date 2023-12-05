@@ -6,7 +6,7 @@ checktypes:
   - https://raw.githubusercontent.com/adevinta/vulcan-local/master/resources/checktypes.json
 targets:
   - identifier: .
-    assetType: GitRepository
+    type: GitRepository
 agent:
   parallel: 4
 report:

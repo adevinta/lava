@@ -3,7 +3,7 @@ checktypes:
   - checktypes.json
 targets:
   - identifier: .
-    assetType: Path
+    type: Path
 report:
   severity: high
   output: output.txt
