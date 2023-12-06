@@ -163,7 +163,7 @@ type ReportConfig struct {
 // Target represents the target of a scan.
 type Target struct {
 	// Identifier is a string that identifies the target. For
-	// instance, a path, a URL, a Docker image, etc.
+	// instance, a path, a URL, a container image, etc.
 	Identifier string `yaml:"identifier"`
 
 	// AssetType is the asset type of the target.
