@@ -14,8 +14,8 @@ lava.yaml) that defines the parameters of the security scan.
 
 # Example
 
-A Lava configuration file is a YAML document with the following
-fields. These are described elsewhere in this topic.
+A Lava configuration file is a YAML document as shown in the following
+example.
 
 	lava: v1.0.0
 	checktypes:
@@ -34,6 +34,8 @@ fields. These are described elsewhere in this topic.
 	      summary: 'Secret Leaked in Git Repository'
 	      resource: '/testdata/certs/'
 	log: error
+
+This help topic describes every configuration parameter in detail.
 
 # lava
 
