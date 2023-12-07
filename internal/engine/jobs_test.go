@@ -12,7 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
-	"github.com/adevinta/lava/internal/assettype"
+	"github.com/adevinta/lava/internal/assettypes"
 	"github.com/adevinta/lava/internal/checktypes"
 	"github.com/adevinta/lava/internal/config"
 )
@@ -451,7 +451,7 @@ func TestGenerateChecks(t *testing.T) {
 			targets: []config.Target{
 				{
 					Identifier: ".",
-					AssetType:  assettype.Path,
+					AssetType:  assettypes.Path,
 				},
 			},
 			want: []check{
@@ -466,7 +466,7 @@ func TestGenerateChecks(t *testing.T) {
 					},
 					target: config.Target{
 						Identifier: ".",
-						AssetType:  assettype.Path,
+						AssetType:  assettypes.Path,
 					},
 					options: map[string]any{},
 				},

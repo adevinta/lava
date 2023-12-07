@@ -16,7 +16,7 @@ import (
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
 
-	"github.com/adevinta/lava/internal/assettype"
+	"github.com/adevinta/lava/internal/assettypes"
 )
 
 var (
@@ -181,7 +181,7 @@ func (t Target) validate() error {
 	if t.AssetType == "" {
 		return ErrNoTargetAssetType
 	}
-	if !t.AssetType.IsValid() && !assettype.IsValid(t.AssetType) {
+	if !t.AssetType.IsValid() && !assettypes.IsValid(t.AssetType) {
 		return fmt.Errorf("%w: %v", ErrInvalidAssetType, t.AssetType)
 	}
 	return nil

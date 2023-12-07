@@ -1,8 +1,8 @@
 // Copyright 2023 Adevinta
 
-// Package assettype defines a set of asset types that are valid in
+// Package assettypes defines a set of asset types that are valid in
 // the context of Lava.
-package assettype
+package assettypes
 
 import (
 	"slices"

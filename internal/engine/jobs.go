@@ -15,7 +15,7 @@ import (
 	checkcatalog "github.com/adevinta/vulcan-check-catalog/pkg/model"
 	"github.com/google/uuid"
 
-	"github.com/adevinta/lava/internal/assettype"
+	"github.com/adevinta/lava/internal/assettypes"
 	"github.com/adevinta/lava/internal/checktypes"
 	"github.com/adevinta/lava/internal/config"
 )
@@ -76,7 +76,7 @@ func generateChecks(catalog checktypes.Catalog, targets []config.Target) []check
 	var checks []check
 	for _, t := range dedup(targets) {
 		for _, ct := range catalog {
-			at := assettype.ToVulcan(t.AssetType)
+			at := assettypes.ToVulcan(t.AssetType)
 			if !checktypes.Accepts(ct, at) {
 				continue
 			}
