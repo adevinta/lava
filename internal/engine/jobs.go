@@ -12,17 +12,18 @@ import (
 
 	"github.com/adevinta/vulcan-agent/jobrunner"
 	"github.com/adevinta/vulcan-agent/queue"
+	checkcatalog "github.com/adevinta/vulcan-check-catalog/pkg/model"
 	"github.com/google/uuid"
 
 	"github.com/adevinta/lava/internal/assettype"
-	"github.com/adevinta/lava/internal/checktype"
+	"github.com/adevinta/lava/internal/checktypes"
 	"github.com/adevinta/lava/internal/config"
 )
 
 // generateJobs generates the jobs to be sent to the agent.
-func generateJobs(checktypes checktype.Catalog, targets []config.Target) ([]jobrunner.Job, error) {
+func generateJobs(catalog checktypes.Catalog, targets []config.Target) ([]jobrunner.Job, error) {
 	var jobs []jobrunner.Job
-	for _, check := range generateChecks(checktypes, targets) {
+	for _, check := range generateChecks(catalog, targets) {
 		// Convert the options to a marshalled json string.
 		jsonOpts, err := json.Marshal(check.options)
 		if err != nil {
@@ -64,19 +65,19 @@ func generateJobs(checktypes checktype.Catalog, targets []config.Target) ([]jobr
 // check represents an instance of a checktype.
 type check struct {
 	id        string
-	checktype checktype.Checktype
+	checktype checkcatalog.Checktype
 	target    config.Target
 	options   map[string]interface{}
 }
 
 // generateChecks generates a list of checks combining a map of
 // checktypes and a list of targets.
-func generateChecks(checktypes checktype.Catalog, targets []config.Target) []check {
+func generateChecks(catalog checktypes.Catalog, targets []config.Target) []check {
 	var checks []check
 	for _, t := range dedup(targets) {
-		for _, c := range checktypes {
+		for _, ct := range catalog {
 			at := assettype.ToVulcan(t.AssetType)
-			if !c.Accepts(at) {
+			if !checktypes.Accepts(ct, at) {
 				continue
 			}
 
@@ -84,11 +85,11 @@ func generateChecks(checktypes checktype.Catalog, targets []config.Target) []che
 			// options take precedence for being more
 			// restrictive.
 			opts := make(map[string]interface{})
-			maps.Copy(opts, c.Options)
+			maps.Copy(opts, ct.Options)
 			maps.Copy(opts, t.Options)
 			checks = append(checks, check{
 				id:        uuid.New().String(),
-				checktype: c,
+				checktype: ct,
 				target:    t,
 				options:   opts,
 			})

@@ -1,27 +1,28 @@
 // Copyright 2023 Adevinta
 
-package checktype
+package checktypes
 
 import (
 	"errors"
 	"os"
 	"testing"
 
+	checkcatalog "github.com/adevinta/vulcan-check-catalog/pkg/model"
 	types "github.com/adevinta/vulcan-types"
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestChecktype_Accepts(t *testing.T) {
+func TestAccepts(t *testing.T) {
 	tests := []struct {
 		name      string
 		assetType types.AssetType
-		checktype Checktype
+		checktype checkcatalog.Checktype
 		want      bool
 	}{
 		{
 			name:      "accepted asset type",
 			assetType: types.Hostname,
-			checktype: Checktype{
+			checktype: checkcatalog.Checktype{
 				Name:        "vulcan-drupal",
 				Description: "Checks for some vulnerable versions of Drupal.",
 				Image:       "vulcansec/vulcan-drupal:edge",
@@ -34,7 +35,7 @@ func TestChecktype_Accepts(t *testing.T) {
 		{
 			name:      "not accepted asset type",
 			assetType: types.DomainName,
-			checktype: Checktype{
+			checktype: checkcatalog.Checktype{
 				Name:        "vulcan-drupal",
 				Description: "Checks for some vulnerable versions of Drupal.",
 				Image:       "vulcansec/vulcan-drupal:edge",
@@ -48,7 +49,7 @@ func TestChecktype_Accepts(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.checktype.Accepts(tt.assetType)
+			got := Accepts(tt.checktype, tt.assetType)
 			if got != tt.want {
 				t.Errorf("unexpected return value: want: %v, got: %v", got, tt.want)
 			}
