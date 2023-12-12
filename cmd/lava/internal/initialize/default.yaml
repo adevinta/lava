@@ -2,8 +2,7 @@
 
 lava: v0.0.0
 checktypes:
-  # TODO(rm): update URL.
-  - https://raw.githubusercontent.com/adevinta/vulcan-local/master/resources/checktypes.json
+  - https://github.com/adevinta/lava-resources/releases/download/checktypes/v0/checktypes.json
 targets:
   - identifier: .
     type: GitRepository
