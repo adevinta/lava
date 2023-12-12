@@ -73,7 +73,7 @@ The "targets" field contains the list of targets to scan. Every target
 is defined by the following properties:
 
   - identifier: string that identifies the target. For instance, a
-    path, a URL, a Docker image, etc. It is mandatory.
+    path, a URL, a container image, etc. It is mandatory.
   - type: the asset type of the target. Valid values are "AWSAccount",
     "DockerImage", "GitRepository", "IP", "IPRange", "DomainName",
     "Hostname", "WebAddress" and "Path". It is mandatory.
@@ -96,15 +96,15 @@ The "agent" field contains the configuration passed to the Vulcan
 agent that Lava runs internally. The agent accepts the following
 properties:
 
-  - pullPolicy: policy used to decide when to pull a required Docker
-    image. Valid values are "Always", "IfNotPresent" and "Never". If
-    not specified, "IfNotPresent" is used.
+  - pullPolicy: policy used to decide when to pull a required
+    container image. Valid values are "Always", "IfNotPresent" and
+    "Never". If not specified, "IfNotPresent" is used.
   - parallel: maximum number of checks that can run in parallel. If
     not specified, this limit is set to one.
   - vars: map with the environment variables passed to the executed
     checktypes.
   - registries: configuration of the required container registries. It
-    requires the following properties "server", "username" and
+    requires the following properties: "server", "username" and
     "password".
 
 The sample below is a full agent configuration:
@@ -119,10 +119,10 @@ The sample below is a full agent configuration:
 	      username: user
 	      password: p4ssw0rd
 
-It is important to note that Lava is able to use the credentials
-configured for the Docker CLI. So, if Docker is already logged in, it
-is not necessary to configure the credentials of the registry in the
-configuration file.
+It is important to note that Lava is able to use the credentials from
+the container runtime CLIs installed in the system. So, if these CLIs
+are already logged in, it is not necessary to configure the registry
+in the configuration file.
 
 # report
 
