@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -24,9 +23,9 @@ import (
 	"github.com/docker/docker/pkg/archive"
 	"github.com/jroimartin/clilog"
 
+	"github.com/adevinta/lava/internal/assettype"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/dockerutil"
-	"github.com/adevinta/lava/internal/gitserver/gittest"
 )
 
 func TestMain(m *testing.M) {
@@ -150,19 +149,13 @@ func TestRun_docker_image(t *testing.T) {
 	t.Logf("found %v vulnerabilities", len(gotReport.Vulnerabilities))
 }
 
-func TestRun_git_repository(t *testing.T) {
+func TestRun_path(t *testing.T) {
 	var (
 		checktypesURLs = []string{"testdata/engine/checktypes_trivy.json"}
 		agentConfig    = config.AgentConfig{
 			PullPolicy: agentconfig.PullPolicyAlways,
 		}
 	)
-
-	tmpPath, err := gittest.ExtractTemp("testdata/engine/vulnrepo.tar")
-	if err != nil {
-		t.Fatalf("unexpected error extracting test repository: %v", err)
-	}
-	defer os.RemoveAll(tmpPath)
 
 	tests := []struct {
 		name       string
@@ -173,8 +166,8 @@ func TestRun_git_repository(t *testing.T) {
 		{
 			name: "dir",
 			target: config.Target{
-				Identifier: tmpPath,
-				AssetType:  types.GitRepository,
+				Identifier: "testdata/engine/vulnpath",
+				AssetType:  assettype.Path,
 			},
 			wantStatus: "FINISHED",
 			wantVulns:  true,
@@ -182,19 +175,19 @@ func TestRun_git_repository(t *testing.T) {
 		{
 			name: "file",
 			target: config.Target{
-				Identifier: filepath.Join(tmpPath, "Dockerfile"),
-				AssetType:  types.GitRepository,
+				Identifier: "testdata/engine/vulnpath/Dockerfile",
+				AssetType:  assettype.Path,
 			},
-			wantStatus: "INCONCLUSIVE",
-			wantVulns:  false,
+			wantStatus: "FINISHED",
+			wantVulns:  true,
 		},
 		{
 			name: "not exist",
 			target: config.Target{
-				Identifier: filepath.Join(tmpPath, "notexist"),
-				AssetType:  types.GitRepository,
+				Identifier: "testdata/engine/notexist",
+				AssetType:  assettype.Path,
 			},
-			wantStatus: "INCONCLUSIVE",
+			wantStatus: "FAILED",
 			wantVulns:  false,
 		},
 	}
@@ -229,6 +222,42 @@ func TestRun_git_repository(t *testing.T) {
 
 			t.Logf("found %v vulnerabilities", len(gotReport.Vulnerabilities))
 		})
+	}
+}
+
+func TestRun_inconclusive(t *testing.T) {
+	checktypesURLs := []string{"testdata/engine/checktypes_trivy.json"}
+	agentConfig := config.AgentConfig{
+		PullPolicy: agentconfig.PullPolicyAlways,
+	}
+	target := config.Target{
+		Identifier: "testdata/engine/vulnpath",
+		AssetType:  types.GitRepository,
+	}
+	engineReport, err := Run(checktypesURLs, []config.Target{target}, agentConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	checkReportTarget(t, engineReport, dockerInternalHost)
+
+	var checkReports []report.Report
+	for _, v := range engineReport {
+		checkReports = append(checkReports, v)
+	}
+
+	if len(checkReports) != 1 {
+		t.Fatalf("unexpected number of reports: %v", len(checkReports))
+	}
+
+	gotReport := checkReports[0]
+
+	if gotReport.Status != "INCONCLUSIVE" {
+		t.Errorf("unexpected status: %v", gotReport.Status)
+	}
+
+	if len(gotReport.Vulnerabilities) > 0 {
+		t.Errorf("unexpected number of vulnerabilities: %v", len(gotReport.Vulnerabilities))
 	}
 }
 

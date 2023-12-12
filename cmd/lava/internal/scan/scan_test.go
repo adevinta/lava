@@ -6,12 +6,9 @@ import (
 	"flag"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/jroimartin/clilog"
-
-	"github.com/adevinta/lava/internal/gitserver/gittest"
 )
 
 func TestMain(m *testing.M) {
@@ -32,17 +29,17 @@ func TestRun(t *testing.T) {
 	tests := []struct {
 		name         string
 		wantExitCode int
-		repo         string
+		path         string
 	}{
 		{
-			name:         "good repo",
+			name:         "good path",
 			wantExitCode: 0,
-			repo:         "testdata/goodrepo.tar",
+			path:         "testdata/goodpath",
 		},
 		{
-			name:         "vulnerable repo",
+			name:         "vulnerable path",
 			wantExitCode: 103,
-			repo:         "testdata/vulnrepo.tar",
+			path:         "testdata/vulnpath",
 		},
 	}
 
@@ -57,20 +54,14 @@ func TestRun(t *testing.T) {
 				osExit = oldOsExit
 			}()
 
-			tmpPath, err := gittest.ExtractTemp(tt.repo)
-			if err != nil {
-				t.Fatalf("unexpected error extracting test repository: %v", err)
-			}
-			defer os.RemoveAll(tmpPath)
-
-			*cfgfile = filepath.Join(tmpPath, "lava.yaml")
+			*cfgfile = "lava.yaml"
 
 			var exitCode int
 			osExit = func(status int) {
 				exitCode = status
 			}
 
-			mustChdir(tmpPath)
+			mustChdir(tt.path)
 			if err := run(nil); err != nil {
 				t.Fatalf("run error: %v", err)
 			}

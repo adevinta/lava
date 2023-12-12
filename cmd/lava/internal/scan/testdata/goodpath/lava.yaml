@@ -1,0 +1,9 @@
+lava: v1.0.0
+checktypesURLs:
+  - checktypes.json
+targets:
+  - identifier: .
+    assetType: Path
+report:
+  severity: high
+  outputFile: output.txt
