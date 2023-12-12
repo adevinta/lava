@@ -2,7 +2,7 @@
 
 lava: v0.0.0
 checktypesURLs:
-  - checktypes.json
+  - https://github.com/adevinta/lava-resources/releases/download/checktypes/v0/checktypes.json
 targets:
   - identifier: .
     assetType: GitRepository
@@ -11,9 +11,6 @@ agent:
 report:
   severity: high
   exclusions:
-    - description: Ignore test certificates.
-      summary: 'Secret Leaked in Git Repository'
-      resource: '/internal/dockerutil/testdata/certs/'
     - description: Ignore test targets.
       resource: '/cmd/lava/internal/scan/testdata/(goodpath|vulnpath)/Dockerfile'
     - description: Ignore test targets.
