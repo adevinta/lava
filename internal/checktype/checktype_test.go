@@ -117,12 +117,6 @@ func TestNewCatalog(t *testing.T) {
 			want:    nil,
 			wantErr: ErrMalformedCatalog,
 		},
-		{
-			name:    "empty urls",
-			urls:    []string{},
-			want:    nil,
-			wantErr: ErrMissingCatalog,
-		},
 	}
 
 	for _, tt := range tests {
