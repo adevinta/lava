@@ -1,6 +1,6 @@
 // Copyright 2023 Adevinta
 
-// Lava runs Vulcan checks locally.
+// Lava runs security checks locally.
 package main
 
 import (

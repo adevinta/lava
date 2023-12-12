@@ -57,8 +57,8 @@ func TestRun(t *testing.T) {
 	t.Logf("test server listening at %v", srv.URL)
 
 	var (
-		checktypesURLs = []string{"testdata/engine/checktypes_lava_engine_test.json"}
-		targets        = []config.Target{
+		checktypeURLs = []string{"testdata/engine/checktypes_lava_engine_test.json"}
+		targets       = []config.Target{
 			{
 				Identifier: srv.URL,
 				AssetType:  types.WebAddress,
@@ -69,7 +69,7 @@ func TestRun(t *testing.T) {
 		}
 	)
 
-	engineReport, err := Run(checktypesURLs, targets, agentConfig)
+	engineReport, err := Run(checktypeURLs, targets, agentConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -108,8 +108,8 @@ func TestRun(t *testing.T) {
 
 func TestRun_docker_image(t *testing.T) {
 	var (
-		checktypesURLs = []string{"testdata/engine/checktypes_trivy.json"}
-		targets        = []config.Target{
+		checktypeURLs = []string{"testdata/engine/checktypes_trivy.json"}
+		targets       = []config.Target{
 			{
 				Identifier: "python:3.4-alpine",
 				AssetType:  types.DockerImage,
@@ -120,7 +120,7 @@ func TestRun_docker_image(t *testing.T) {
 		}
 	)
 
-	engineReport, err := Run(checktypesURLs, targets, agentConfig)
+	engineReport, err := Run(checktypeURLs, targets, agentConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -151,8 +151,8 @@ func TestRun_docker_image(t *testing.T) {
 
 func TestRun_path(t *testing.T) {
 	var (
-		checktypesURLs = []string{"testdata/engine/checktypes_trivy.json"}
-		agentConfig    = config.AgentConfig{
+		checktypeURLs = []string{"testdata/engine/checktypes_trivy.json"}
+		agentConfig   = config.AgentConfig{
 			PullPolicy: agentconfig.PullPolicyAlways,
 		}
 	)
@@ -194,7 +194,7 @@ func TestRun_path(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			engineReport, err := Run(checktypesURLs, []config.Target{tt.target}, agentConfig)
+			engineReport, err := Run(checktypeURLs, []config.Target{tt.target}, agentConfig)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -226,7 +226,7 @@ func TestRun_path(t *testing.T) {
 }
 
 func TestRun_inconclusive(t *testing.T) {
-	checktypesURLs := []string{"testdata/engine/checktypes_trivy.json"}
+	checktypeURLs := []string{"testdata/engine/checktypes_trivy.json"}
 	agentConfig := config.AgentConfig{
 		PullPolicy: agentconfig.PullPolicyAlways,
 	}
@@ -234,7 +234,7 @@ func TestRun_inconclusive(t *testing.T) {
 		Identifier: "testdata/engine/vulnpath",
 		AssetType:  types.GitRepository,
 	}
-	engineReport, err := Run(checktypesURLs, []config.Target{target}, agentConfig)
+	engineReport, err := Run(checktypeURLs, []config.Target{target}, agentConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -263,13 +263,13 @@ func TestRun_inconclusive(t *testing.T) {
 
 func TestRun_no_jobs(t *testing.T) {
 	var (
-		checktypesURLs = []string{"testdata/engine/checktypes_lava_engine_test.json"}
-		agentConfig    = config.AgentConfig{
+		checktypeURLs = []string{"testdata/engine/checktypes_lava_engine_test.json"}
+		agentConfig   = config.AgentConfig{
 			PullPolicy: agentconfig.PullPolicyNever,
 		}
 	)
 
-	engineReport, err := Run(checktypesURLs, nil, agentConfig)
+	engineReport, err := Run(checktypeURLs, nil, agentConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

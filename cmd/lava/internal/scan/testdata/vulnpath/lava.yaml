@@ -1,9 +1,9 @@
 lava: v1.0.0
-checktypesURLs:
+checktypes:
   - checktypes.json
 targets:
   - identifier: .
-    assetType: Path
+    type: Path
 report:
   severity: high
-  outputFile: output.txt
+  output: output.txt

@@ -14,17 +14,17 @@ lava.yaml) that defines the parameters of the security scan.
 
 # Example
 
-A Lava configuration file is a YAML document with the following
-fields. These are described elsewhere in this topic.
+A Lava configuration file is a YAML document as shown in the following
+example.
 
 	lava: v1.0.0
-	checktypesURLs:
+	checktypes:
 	  - checktypes.json
 	targets:
 	  - identifier: .
-	    assetType: GitRepository
+	    type: GitRepository
 	  - identifier: image
-	    assetType: DockerImage
+	    type: DockerImage
 	agent:
 	  parallel: 4
 	report:
@@ -33,7 +33,9 @@ fields. These are described elsewhere in this topic.
 	    - description: Ignore test certificates.
 	      summary: 'Secret Leaked in Git Repository'
 	      resource: '/testdata/certs/'
-	logLevel: error
+	log: error
+
+This help topic describes every configuration parameter in detail.
 
 # lava
 
@@ -47,20 +49,20 @@ required by the configuration file returns an error.
 
 This field is mandatory.
 
-# checktypesURLs
+# checktypes
 
-The "checktypesURLs" field contains a list of URLs that point to
-checktype catalogs.
+The "checktypes" field contains a list of URLs that point to checktype
+catalogs.
 
 If the URL omits the scheme, it is considered a file path relative to
 the current working directory of the Lava command. For instance,
 
-	checktypesURLs:
+	checktypes:
 	  - checktypes.json
 
 HTTP and HTTPS URLs are supported. For instance,
 
-	checktypesURLs:
+	checktypes:
 	  - https://example.com/checktypes.json
 
 At least one catalog must be specified.
@@ -72,10 +74,9 @@ is defined by the following properties:
 
   - identifier: string that identifies the target. For instance, a
     path, a URL, a Docker image, etc. It is mandatory.
-  - assetType: the asset type of the target. Valid values are
-    "AWSAccount", "DockerImage", "GitRepository", "IP", "IPRange",
-    "DomainName", "Hostname", "WebAddress" and "Path". It is
-    mandatory.
+  - type: the asset type of the target. Valid values are "AWSAccount",
+    "DockerImage", "GitRepository", "IP", "IPRange", "DomainName",
+    "Hostname", "WebAddress" and "Path". It is mandatory.
   - options: map of target-specific options. These options are merged
     with the options coming from the checktype catalog.
 
@@ -83,7 +84,7 @@ For instance,
 
 	targets:
 	  - identifier: .
-	    assetType: GitRepository
+	    type: GitRepository
 	    options:
 	      branch: master
 
@@ -102,7 +103,7 @@ properties:
     not specified, this limit is set to one.
   - vars: map with the environment variables passed to the executed
     checktypes.
-  - registriesAuth: credentials for a set of container registries. It
+  - registries: configuration of the required container registries. It
     requires the following properties "server", "username" and
     "password".
 
@@ -113,7 +114,7 @@ The sample below is a full agent configuration:
 	  parallel: 4
 	  vars:
 	    DEBUG: true
-	  registriesAuth:
+	  registries:
 	    - server: example.com
 	      username: user
 	      password: p4ssw0rd
@@ -133,8 +134,7 @@ the following properties.
     specified, "high" is used.
   - format: output format. Valid values are "human" and "json". If not
     specified, "human" is used.
-  - outputFile: path of the output file. If not specified, stdout is
-    used.
+  - output: path of the output file. If not specified, stdout is used.
   - metrics: path of the file where the metrics report will be
     written. If not specified, then the metrics report is not
     generated.
@@ -147,7 +147,7 @@ The sample below is a full report configuration:
 	report:
 	  severity: high
 	  format: json
-	  outputFile: findings.json
+	  output: findings.json
 	  metrics: metrics.json
 	  exclusions:
 	    - description: Ignore test certificates.
@@ -172,12 +172,12 @@ rule.
 It is possible to provide a human-friendly description of an exclusion
 rule using its "description" property.
 
-# logLevel
+# log
 
-The "logLevel" field describes the logging level of the Lava command.
-Valid values are "debug", "info", "warn" and "error". If not
-specified, "info" is used. For instance,
+The "log" field describes the logging level of the Lava command. Valid
+values are "debug", "info", "warn" and "error". If not specified,
+"info" is used. For instance,
 
-	logLevel: error
+	log: error
 	`,
 }

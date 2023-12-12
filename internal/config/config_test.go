@@ -27,7 +27,7 @@ func TestParse(t *testing.T) {
 			file: "testdata/valid.yaml",
 			want: Config{
 				LavaVersion: "v1.0.0",
-				ChecktypesURLs: []string{
+				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
 				Targets: []Target{
@@ -54,7 +54,7 @@ func TestParse(t *testing.T) {
 			name:    "no checktypes URLs",
 			file:    "testdata/no_checktypes_urls.yaml",
 			want:    Config{},
-			wantErr: ErrNoChecktypesURLs,
+			wantErr: ErrNoChecktypeURLs,
 		},
 		{
 			name:    "no targets",
@@ -79,7 +79,7 @@ func TestParse(t *testing.T) {
 			file: "testdata/critical_severity.yaml",
 			want: Config{
 				LavaVersion: "v1.0.0",
-				ChecktypesURLs: []string{
+				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
 				ReportConfig: ReportConfig{
@@ -104,7 +104,7 @@ func TestParse(t *testing.T) {
 			file: "testdata/never_pull_policy.yaml",
 			want: Config{
 				LavaVersion: "v1.0.0",
-				ChecktypesURLs: []string{
+				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
 				AgentConfig: AgentConfig{
@@ -135,7 +135,7 @@ func TestParse(t *testing.T) {
 			file: "testdata/json_output_format.yaml",
 			want: Config{
 				LavaVersion: "v1.0.0",
-				ChecktypesURLs: []string{
+				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
 				Targets: []Target{
@@ -160,7 +160,7 @@ func TestParse(t *testing.T) {
 			file: "testdata/debug_log_level.yaml",
 			want: Config{
 				LavaVersion: "v1.0.0",
-				ChecktypesURLs: []string{
+				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
 				Targets: []Target{

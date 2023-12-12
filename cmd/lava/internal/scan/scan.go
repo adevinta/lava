@@ -90,7 +90,7 @@ func run(args []string) error {
 	metrics.Collect("targets", cfg.Targets)
 
 	base.LogLevel.Set(cfg.LogLevel)
-	er, err := engine.Run(cfg.ChecktypesURLs, cfg.Targets, cfg.AgentConfig)
+	er, err := engine.Run(cfg.ChecktypeURLs, cfg.Targets, cfg.AgentConfig)
 	if err != nil {
 		return fmt.Errorf("engine run: %w", err)
 	}

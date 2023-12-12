@@ -25,9 +25,9 @@ var (
 	// Specification.
 	ErrInvalidLavaVersion = errors.New("invalid Lava version")
 
-	// ErrNoChecktypesURLs means that no checktypes URLs were
+	// ErrNoChecktypeURLs means that no checktypes URLs were
 	// specified.
-	ErrNoChecktypesURLs = errors.New("no checktypes URLs")
+	ErrNoChecktypeURLs = errors.New("no checktype catalogs")
 
 	// ErrNoTargets means that no targets were specified.
 	ErrNoTargets = errors.New("no targets")
@@ -62,15 +62,15 @@ type Config struct {
 	// ReportConfig is the configuration of the report.
 	ReportConfig ReportConfig `yaml:"report"`
 
-	// ChecktypesURLs is a list of URLs pointing to checktypes
+	// ChecktypeURLs is a list of URLs pointing to checktype
 	// catalogs.
-	ChecktypesURLs []string `yaml:"checktypesURLs"`
+	ChecktypeURLs []string `yaml:"checktypes"`
 
 	// Targets is the list of targets.
 	Targets []Target `yaml:"targets"`
 
 	// LogLevel is the logging level.
-	LogLevel slog.Level `yaml:"logLevel"`
+	LogLevel slog.Level `yaml:"log"`
 }
 
 // Parse returns a parsed Lava configuration given an [io.Reader].
@@ -103,9 +103,9 @@ func (c Config) validate() error {
 		return ErrInvalidLavaVersion
 	}
 
-	// Checktypes URLs validation.
-	if len(c.ChecktypesURLs) == 0 {
-		return ErrNoChecktypesURLs
+	// Checktype URLs validation.
+	if len(c.ChecktypeURLs) == 0 {
+		return ErrNoChecktypeURLs
 	}
 
 	// Targets validation.
@@ -133,9 +133,9 @@ type AgentConfig struct {
 	// checktypes.
 	Vars map[string]string `yaml:"vars"`
 
-	// RegistriesAuth contains the credentials for a set of
+	// RegistryAuths contains the credentials for a set of
 	// container registries.
-	RegistriesAuth []RegistryAuth `yaml:"registriesAuth"`
+	RegistryAuths []RegistryAuth `yaml:"registries"`
 }
 
 // ReportConfig is the configuration of the report.
@@ -148,7 +148,7 @@ type ReportConfig struct {
 	Format OutputFormat `yaml:"format"`
 
 	// OutputFile is the path of the output file.
-	OutputFile string `yaml:"outputFile"`
+	OutputFile string `yaml:"output"`
 
 	// Exclusions is a list of findings that will be ignored. For
 	// instance, accepted risks, false positives, etc.
@@ -167,7 +167,7 @@ type Target struct {
 	Identifier string `yaml:"identifier"`
 
 	// AssetType is the asset type of the target.
-	AssetType types.AssetType `yaml:"assetType"`
+	AssetType types.AssetType `yaml:"type"`
 
 	// Options is a list of specific options for the target.
 	Options map[string]any `yaml:"options"`
