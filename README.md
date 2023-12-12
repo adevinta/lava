@@ -3,6 +3,8 @@
 Lava is an open source vulnerability scanner that makes it easy to run
 security checks in your local and CI/CD environments.
 
+<p align="center"><img width="128" alt="Lava logo" src="https://github.com/adevinta/lava-resources/releases/download/logo/v0.1.0/lava_512px.png"></p>
+
 Lava is part of the [Vulcan ecosystem][vulcan-docs] and it is built on
 top of the same components that power Vulcan.
 Thus, Lava continuously benefits from Vulcan improvements.
