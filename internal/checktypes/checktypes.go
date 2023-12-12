@@ -1,8 +1,8 @@
 // Copyright 2023 Adevinta
 
-// Package checktype provides utilities for working with checktypes
+// Package checktypes provides utilities for working with checktypes
 // and chektype catalogs.
-package checktype
+package checktypes
 
 import (
 	"encoding/json"
@@ -19,12 +19,9 @@ import (
 // the retrieved catalog is not valid.
 var ErrMalformedCatalog = errors.New("malformed catalog")
 
-// Checktype represents a Vulcan checktype.
-type Checktype checkcatalog.Checktype
-
-// Accepts returns true if the specified asset type is accepted by the
-// receiver.
-func (ct Checktype) Accepts(at types.AssetType) bool {
+// Accepts reports whether the specified checktype accepts an asset
+// type.
+func Accepts(ct checkcatalog.Checktype, at types.AssetType) bool {
 	for _, accepted := range ct.Assets {
 		if accepted == string(at) {
 			return true
@@ -34,14 +31,14 @@ func (ct Checktype) Accepts(at types.AssetType) bool {
 }
 
 // Catalog represents a collection of Vulcan checktypes.
-type Catalog map[string]Checktype
+type Catalog map[string]checkcatalog.Checktype
 
 // NewCatalog retrieves the specified checktype catalogs and
 // consolidates them in a single catalog with all the checktypes
 // indexed by name. If a checktype is duplicated it is overridden with
 // the last one.
 func NewCatalog(urls []string) (Catalog, error) {
-	checktypes := make(Catalog)
+	catalog := make(Catalog)
 	for _, url := range urls {
 		data, err := urlutil.Get(url)
 		if err != nil {
@@ -49,7 +46,7 @@ func NewCatalog(urls []string) (Catalog, error) {
 		}
 
 		var decData struct {
-			Checktypes []Checktype `json:"checktypes"`
+			Checktypes []checkcatalog.Checktype `json:"checktypes"`
 		}
 		err = json.Unmarshal(data, &decData)
 		if err != nil {
@@ -57,8 +54,8 @@ func NewCatalog(urls []string) (Catalog, error) {
 		}
 
 		for _, checktype := range decData.Checktypes {
-			checktypes[checktype.Name] = checktype
+			catalog[checktype.Name] = checktype
 		}
 	}
-	return checktypes, nil
+	return catalog, nil
 }

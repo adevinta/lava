@@ -23,7 +23,7 @@ import (
 	"github.com/docker/docker/pkg/archive"
 	"github.com/jroimartin/clilog"
 
-	"github.com/adevinta/lava/internal/assettype"
+	"github.com/adevinta/lava/internal/assettypes"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/dockerutil"
 )
@@ -167,7 +167,7 @@ func TestRun_path(t *testing.T) {
 			name: "dir",
 			target: config.Target{
 				Identifier: "testdata/engine/vulnpath",
-				AssetType:  assettype.Path,
+				AssetType:  assettypes.Path,
 			},
 			wantStatus: "FINISHED",
 			wantVulns:  true,
@@ -176,7 +176,7 @@ func TestRun_path(t *testing.T) {
 			name: "file",
 			target: config.Target{
 				Identifier: "testdata/engine/vulnpath/Dockerfile",
-				AssetType:  assettype.Path,
+				AssetType:  assettypes.Path,
 			},
 			wantStatus: "FINISHED",
 			wantVulns:  true,
@@ -185,7 +185,7 @@ func TestRun_path(t *testing.T) {
 			name: "not exist",
 			target: config.Target{
 				Identifier: "testdata/engine/notexist",
-				AssetType:  assettype.Path,
+				AssetType:  assettypes.Path,
 			},
 			wantStatus: "FAILED",
 			wantVulns:  false,

@@ -18,7 +18,7 @@ import (
 	types "github.com/adevinta/vulcan-types"
 	"github.com/jroimartin/proxy"
 
-	"github.com/adevinta/lava/internal/assettype"
+	"github.com/adevinta/lava/internal/assettypes"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/gitserver"
 )
@@ -133,7 +133,7 @@ func (srv *targetServer) Handle(key string, target config.Target) (targetMap, er
 	switch target.AssetType {
 	case types.GitRepository:
 		tm, err = srv.handleGitRepo(target)
-	case assettype.Path:
+	case assettypes.Path:
 		tm, err = srv.handlePath(target)
 	default:
 		tm, err = srv.handle(target)
@@ -253,7 +253,7 @@ func (srv *targetServer) handlePath(target config.Target) (targetMap, error) {
 		OldIdentifier: target.Identifier,
 		OldAssetType:  target.AssetType,
 		NewIdentifier: fmt.Sprintf("http://%v/%v", srv.gitAddr, repo),
-		NewAssetType:  assettype.ToVulcan(target.AssetType),
+		NewAssetType:  assettypes.ToVulcan(target.AssetType),
 	}
 	return tm, nil
 }

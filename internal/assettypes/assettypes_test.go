@@ -1,6 +1,6 @@
 // Copyright 2023 Adevinta
 
-package assettype
+package assettypes
 
 import (
 	"testing"

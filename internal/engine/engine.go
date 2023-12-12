@@ -22,7 +22,7 @@ import (
 	report "github.com/adevinta/vulcan-report"
 	types "github.com/adevinta/vulcan-types"
 
-	"github.com/adevinta/lava/internal/checktype"
+	"github.com/adevinta/lava/internal/checktypes"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/dockerutil"
 )
@@ -46,12 +46,12 @@ func Run(checktypeURLs []string, targets []config.Target, cfg config.AgentConfig
 	}
 	defer srv.Close()
 
-	checktypes, err := checktype.NewCatalog(checktypeURLs)
+	catalog, err := checktypes.NewCatalog(checktypeURLs)
 	if err != nil {
 		return nil, fmt.Errorf("get checkype catalog: %w", err)
 	}
 
-	jl, err := generateJobs(checktypes, targets)
+	jl, err := generateJobs(catalog, targets)
 	if err != nil {
 		return nil, fmt.Errorf("create job list: %w", err)
 	}
