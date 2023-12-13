@@ -25,6 +25,7 @@ import (
 	"github.com/adevinta/lava/internal/checktypes"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/dockerutil"
+	"github.com/adevinta/lava/internal/metrics"
 )
 
 // dockerInternalHost is the host used by the containers to access the
@@ -50,6 +51,8 @@ func Run(checktypeURLs []string, targets []config.Target, cfg config.AgentConfig
 	if err != nil {
 		return nil, fmt.Errorf("get checkype catalog: %w", err)
 	}
+
+	metrics.Collect("checktypes", catalog)
 
 	jl, err := generateJobs(catalog, targets)
 	if err != nil {

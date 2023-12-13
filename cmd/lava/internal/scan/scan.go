@@ -78,16 +78,19 @@ func run(args []string) error {
 		color.NoColor = false
 	}
 
-	executionTime := time.Now()
-	metrics.Collect("execution_time", executionTime)
+	startTime := time.Now()
+	metrics.Collect("start_time", startTime)
 
 	cfg, err := config.ParseFile(*cfgfile)
 	if err != nil {
 		return fmt.Errorf("parse config file: %w", err)
 	}
 
-	metrics.Collect("lava_version", cfg.LavaVersion)
+	metrics.Collect("config_version", cfg.LavaVersion)
+	metrics.Collect("checktype_urls", cfg.ChecktypeURLs)
 	metrics.Collect("targets", cfg.Targets)
+	metrics.Collect("severity", cfg.ReportConfig.Severity)
+	metrics.Collect("exclusion_count", len(cfg.ReportConfig.Exclusions))
 
 	base.LogLevel.Set(cfg.LogLevel)
 	er, err := engine.Run(cfg.ChecktypeURLs, cfg.Targets, cfg.AgentConfig)
@@ -107,8 +110,7 @@ func run(args []string) error {
 	}
 
 	metrics.Collect("exit_code", exitCode)
-	duration := time.Since(executionTime)
-	metrics.Collect("duration", duration.String())
+	metrics.Collect("duration", time.Since(startTime).Seconds())
 
 	if cfg.ReportConfig.Metrics != "" {
 		if err = metrics.WriteFile(cfg.ReportConfig.Metrics); err != nil {

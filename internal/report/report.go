@@ -76,8 +76,9 @@ func (writer Writer) Write(er engine.Report) (ExitCode, error) {
 		return 0, fmt.Errorf("calculate summary: %w", err)
 	}
 
-	metrics.Collect("excluded", sum.excluded)
-	metrics.Collect("vulnerabilities", sum.count)
+	metrics.Collect("excluded_vulnerability_count", sum.excluded)
+	metrics.Collect("vulnerability_count", sum.count)
+
 	exitCode := writer.calculateExitCode(sum)
 	fvulns := writer.filterVulns(vulns)
 	if err = writer.prn.Print(writer.w, fvulns, sum); err != nil {
