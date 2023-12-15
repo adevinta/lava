@@ -137,7 +137,7 @@ the following properties.
   - output: path of the output file. If not specified, stdout is used.
   - metrics: path of the file where the metrics report will be
     written. If not specified, then the metrics report is not
-    generated.
+    generated. For more details, use 'lava help metrics'.
   - exclusions: list of rules that define what findings should be
     excluded from the report. It allows to ignore findings because of
     accepted risks, false positives, etc.
@@ -179,5 +179,75 @@ values are "debug", "info", "warn" and "error". If not specified,
 "info" is used. For instance,
 
 	log: error
+	`,
+}
+
+// HelpMetrics documents metrics collection.
+var HelpMetrics = &base.Command{
+	UsageLine: "metrics",
+	Short:     "metrics collection",
+	Long: `
+After a security scan has finished, Lava can generate a metrics file
+with security, operational and configuration information. This data is
+serialized as JSON.
+
+For more details about how to enable this functionality, use 'lava
+help lava.yaml'.
+
+# Example
+
+A Lava metrics file is a JSON document as shown in the following
+example.
+
+	{
+	  "checktype_urls": [
+	    "https://example.com/checktypes.json"
+	  ],
+	  "checktypes": {
+	    "vulcan-example": {
+	      "name": "vulcan-example",
+	      "description": "Example Vulcan checktype",
+	      "image": "vulcan-example:latest",
+	      "assets": ["GitRepository"]
+	    }
+	  },
+	  "config_version": "v0.0.0",
+	  "duration": 10.986237086,
+	  "excluded_vulnerability_count": 3,
+	  "exclusion_count": 2,
+	  "exit_code": 0,
+	  "severity": "high",
+	  "start_time": "2023-12-14T14:45:31.925307331+01:00",
+	  "targets": [
+	    {
+	      "Identifier": ".",
+	      "AssetType": "GitRepository",
+	      "Options": null
+	    }
+	  ],
+	  "vulnerability_count": {
+	    "low": 1
+	  }
+	}
+
+# Collected data
+
+A Lava metrics file contains the following data:
+
+  - checktype_urls: List of URLs pointing to checktype catalogs.
+  - checktypes: Checktype catalog used during the scan. It is computed
+    by merging all the checktype catalogs specified in checktype_urls.
+  - config_version: Minimum version of Lava required by the
+    configuration file.
+  - duration: Duration of the scan.
+  - excluded_vulnerability_count: Number of vulnerabilities excluded
+    due to matching one or more exclusion rules.
+  - exclusion_count: Number of exclusion rules.
+  - exit_code: Exit code returned by the Lava command.
+  - severity: Minimum severity required to report a finding.
+  - start_time: When the scan started.
+  - targets: List of targets to scan.
+  - vulnerability_count: Number of vulnerabilities grouped by
+    severity.
 	`,
 }
