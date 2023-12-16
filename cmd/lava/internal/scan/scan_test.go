@@ -6,6 +6,7 @@ import (
 	"flag"
 	"log/slog"
 	"os"
+	"runtime/debug"
 	"testing"
 
 	"github.com/jroimartin/clilog"
@@ -28,18 +29,37 @@ func TestMain(m *testing.M) {
 func TestRun(t *testing.T) {
 	tests := []struct {
 		name         string
-		wantExitCode int
 		path         string
+		version      string
+		wantNilErr   bool
+		wantExitCode int
 	}{
 		{
 			name:         "good path",
-			wantExitCode: 0,
 			path:         "testdata/goodpath",
+			version:      "v1.0.0",
+			wantNilErr:   true,
+			wantExitCode: 0,
 		},
 		{
 			name:         "vulnerable path",
-			wantExitCode: 103,
 			path:         "testdata/vulnpath",
+			version:      "v1.0.0",
+			wantNilErr:   true,
+			wantExitCode: 103,
+		},
+		{
+			name:       "incompatible",
+			path:       "testdata/vulnpath",
+			version:    "v0.1.0",
+			wantNilErr: false,
+		},
+		{
+			name:         "skip compatibility check",
+			path:         "testdata/vulnpath",
+			version:      "(devel)",
+			wantNilErr:   true,
+			wantExitCode: 103,
 		},
 	}
 
@@ -48,10 +68,12 @@ func TestRun(t *testing.T) {
 			oldPwd := mustGetwd()
 			oldCfgfile := *cfgfile
 			oldOsExit := osExit
+			oldDebugReadBuildInfo := debugReadBuildInfo
 			defer func() {
 				mustChdir(oldPwd)
 				*cfgfile = oldCfgfile
 				osExit = oldOsExit
+				debugReadBuildInfo = oldDebugReadBuildInfo
 			}()
 
 			*cfgfile = "lava.yaml"
@@ -61,9 +83,18 @@ func TestRun(t *testing.T) {
 				exitCode = status
 			}
 
+			debugReadBuildInfo = func() (*debug.BuildInfo, bool) {
+				bi := &debug.BuildInfo{
+					Main: debug.Module{
+						Version: tt.version,
+					},
+				}
+				return bi, true
+			}
+
 			mustChdir(tt.path)
-			if err := run(nil); err != nil {
-				t.Fatalf("run error: %v", err)
+			if err := run(nil); (err == nil) != tt.wantNilErr {
+				t.Fatalf("unexpected error: %v", err)
 			}
 
 			if exitCode != tt.wantExitCode {
