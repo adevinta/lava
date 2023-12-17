@@ -692,6 +692,90 @@ func TestMkSummary(t *testing.T) {
 	}
 }
 
+func TestMkStatus(t *testing.T) {
+	tests := []struct {
+		name string
+		er   engine.Report
+		want []checkStatus
+	}{
+		{
+			name: "multiple checks",
+			er: engine.Report{
+				"CheckID1": vreport.Report{
+					CheckData: vreport.CheckData{
+						ChecktypeName: "Checktype1",
+						Target:        "Target1",
+						Status:        "Status1",
+					},
+				},
+				"CheckID2": vreport.Report{
+					CheckData: vreport.CheckData{
+						ChecktypeName: "Checktype2",
+						Target:        "Target2",
+						Status:        "Status2",
+					},
+				},
+			},
+			want: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "Status1",
+				},
+				{
+					Checktype: "Checktype2",
+					Target:    "Target2",
+					Status:    "Status2",
+				},
+			},
+		},
+		{
+			name: "duplicated check",
+			er: engine.Report{
+				"CheckID1": vreport.Report{
+					CheckData: vreport.CheckData{
+						ChecktypeName: "Checktype1",
+						Target:        "Target1",
+						Status:        "Status1",
+					},
+				},
+				"CheckID2": vreport.Report{
+					CheckData: vreport.CheckData{
+						ChecktypeName: "Checktype1",
+						Target:        "Target1",
+						Status:        "Status1",
+					},
+				},
+			},
+			want: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "Status1",
+				},
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "Status1",
+				},
+			},
+		},
+		{
+			name: "empty",
+			er:   engine.Report{},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := mkStatus(tt.er)
+			if diff := cmp.Diff(tt.want, got, cmpopts.SortSlices(statusLess)); diff != "" {
+				t.Errorf("status mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
+}
+
 func TestWriter_filterVulns(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -1102,6 +1186,13 @@ func TestNewWriter_OutputFile(t *testing.T) {
 
 func vulnLess(a, b vulnerability) bool {
 	h := func(v vulnerability) string {
+		return fmt.Sprintf("%#v", v)
+	}
+	return h(a) < h(b)
+}
+
+func statusLess(a, b checkStatus) bool {
+	h := func(v checkStatus) string {
 		return fmt.Sprintf("%#v", v)
 	}
 	return h(a) < h(b)

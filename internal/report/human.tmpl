@@ -1,5 +1,10 @@
 {{- /* report is the template used to render the full scan report. */ -}}
 {{- define "report" -}}
+{{- if .Status -}}
+{{"STATUS" | bold | underline}}
+{{template "status" .}}
+
+{{end -}}
 {{"SUMMARY" | bold | underline}}
 {{if .Total}}
 {{template "summary" .}}
@@ -9,6 +14,20 @@ No vulnerabilities found during the scan.
 {{- if .Vulns}}
 {{template "vulns" . -}}
 {{end -}}
+{{- end -}}
+
+
+{{- /* status is the template used to render all the check status. */ -}}
+{{- define "status" -}}
+{{range .Status}}
+{{template "checkStatus" . -}}
+{{end}}
+{{- end -}}
+
+
+{{- /* checkStatus is the template used to render one check status. */ -}}
+{{- define "checkStatus" -}}
+- {{.Checktype | bold}} → {{.Target|bold}}: {{.Status}}
 {{- end -}}
 
 

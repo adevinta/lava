@@ -81,7 +81,8 @@ func (writer Writer) Write(er engine.Report) (ExitCode, error) {
 
 	exitCode := writer.calculateExitCode(sum)
 	fvulns := writer.filterVulns(vulns)
-	if err = writer.prn.Print(writer.w, fvulns, sum); err != nil {
+	status := mkStatus(er)
+	if err = writer.prn.Print(writer.w, fvulns, sum, status); err != nil {
 		return exitCode, fmt.Errorf("print report: %w", err)
 	}
 
@@ -216,7 +217,7 @@ type vulnerability struct {
 
 // A printer renders a Vulcan report in a specific format.
 type printer interface {
-	Print(w io.Writer, vulns []vulnerability, sum summary) error
+	Print(w io.Writer, vulns []vulnerability, sum summary, status []checkStatus) error
 }
 
 // scoreToSeverity converts a CVSS score into a [config.Severity].
@@ -267,6 +268,29 @@ func mkSummary(vulns []vulnerability) (summary, error) {
 		}
 	}
 	return sum, nil
+}
+
+// checkStatus represents the status of a check after the scan has
+// finished.
+type checkStatus struct {
+	Checktype string
+	Target    string
+	Status    string
+}
+
+// mkStatus returns the status of every check after the scan has
+// finished.
+func mkStatus(er engine.Report) []checkStatus {
+	var status []checkStatus
+	for _, r := range er {
+		cs := checkStatus{
+			Checktype: r.ChecktypeName,
+			Target:    r.Target,
+			Status:    r.Status,
+		}
+		status = append(status, cs)
+	}
+	return status
 }
 
 // ExitCode represents an exit code depending on the vulnerabilities found.
