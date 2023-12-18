@@ -23,6 +23,7 @@ func init() {
 		initialize.CmdInit,
 
 		help.HelpLavaYAML,
+		help.HelpMetrics,
 	}
 }
 
