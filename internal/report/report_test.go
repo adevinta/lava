@@ -19,14 +19,14 @@ import (
 func TestWriter_calculateExitCode(t *testing.T) {
 	tests := []struct {
 		name    string
-		sum     summary
+		summ    summary
 		status  []checkStatus
 		rConfig config.ReportConfig
 		want    ExitCode
 	}{
 		{
 			name: "critical",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 1,
 					config.SeverityHigh:     1,
@@ -49,7 +49,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 		},
 		{
 			name: "high",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     1,
@@ -72,7 +72,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 		},
 		{
 			name: "medium",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     0,
@@ -95,7 +95,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 		},
 		{
 			name: "low",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     0,
@@ -118,7 +118,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 		},
 		{
 			name: "info",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     0,
@@ -141,7 +141,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 		},
 		{
 			name: "zero exit code",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     0,
@@ -165,7 +165,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 		},
 		{
 			name: "failed check",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     0,
@@ -188,7 +188,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 		},
 		{
 			name: "inconclusive check",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     0,
@@ -216,7 +216,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unable to create a report writer: %v", err)
 			}
-			got := w.calculateExitCode(tt.sum, tt.status)
+			got := w.calculateExitCode(tt.summ, tt.status)
 			if got != tt.want {
 				t.Errorf("unexpected exit code: got: %v, want: %v", got, tt.want)
 			}
