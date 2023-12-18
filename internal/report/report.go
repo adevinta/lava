@@ -79,9 +79,10 @@ func (writer Writer) Write(er engine.Report) (ExitCode, error) {
 	metrics.Collect("excluded_vulnerability_count", sum.excluded)
 	metrics.Collect("vulnerability_count", sum.count)
 
-	exitCode := writer.calculateExitCode(sum)
 	fvulns := writer.filterVulns(vulns)
 	status := mkStatus(er)
+	exitCode := writer.calculateExitCode(sum, status)
+
 	if err = writer.prn.Print(writer.w, fvulns, sum, status); err != nil {
 		return exitCode, fmt.Errorf("print report: %w", err)
 	}
@@ -197,7 +198,13 @@ func (writer Writer) filterVulns(vulns []vulnerability) []vulnerability {
 // min severity configured in the writer. For that it makes use of the summary.
 //
 // See [ExitCode] for more information about exit codes.
-func (writer Writer) calculateExitCode(sum summary) ExitCode {
+func (writer Writer) calculateExitCode(sum summary, status []checkStatus) ExitCode {
+	for _, cs := range status {
+		if cs.Status != "FINISHED" {
+			return ExitCodeCheckError
+		}
+	}
+
 	for sev := config.SeverityCritical; sev >= writer.minSeverity; sev-- {
 		if sum.count[sev] > 0 {
 			diff := sev - config.SeverityInfo
@@ -298,9 +305,10 @@ type ExitCode int
 
 // Exit codes depending on the maximum severity found.
 const (
-	ExitCodeCritical ExitCode = 104
-	ExitCodeHigh     ExitCode = 103
-	ExitCodeMedium   ExitCode = 102
-	ExitCodeLow      ExitCode = 101
-	ExitCodeInfo     ExitCode = 100
+	ExitCodeCheckError ExitCode = 3
+	ExitCodeInfo       ExitCode = 100
+	ExitCodeLow        ExitCode = 101
+	ExitCodeMedium     ExitCode = 102
+	ExitCodeHigh       ExitCode = 103
+	ExitCodeCritical   ExitCode = 104
 )

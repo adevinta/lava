@@ -20,6 +20,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 	tests := []struct {
 		name    string
 		sum     summary
+		status  []checkStatus
 		rConfig config.ReportConfig
 		want    ExitCode
 	}{
@@ -32,6 +33,13 @@ func TestWriter_calculateExitCode(t *testing.T) {
 					config.SeverityMedium:   1,
 					config.SeverityLow:      1,
 					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
 				},
 			},
 			rConfig: config.ReportConfig{
@@ -50,6 +58,13 @@ func TestWriter_calculateExitCode(t *testing.T) {
 					config.SeverityInfo:     1,
 				},
 			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
+				},
+			},
 			rConfig: config.ReportConfig{
 				Severity: config.SeverityInfo,
 			},
@@ -64,6 +79,13 @@ func TestWriter_calculateExitCode(t *testing.T) {
 					config.SeverityMedium:   1,
 					config.SeverityLow:      1,
 					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
 				},
 			},
 			rConfig: config.ReportConfig{
@@ -82,6 +104,13 @@ func TestWriter_calculateExitCode(t *testing.T) {
 					config.SeverityInfo:     1,
 				},
 			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
+				},
+			},
 			rConfig: config.ReportConfig{
 				Severity: config.SeverityInfo,
 			},
@@ -98,13 +127,20 @@ func TestWriter_calculateExitCode(t *testing.T) {
 					config.SeverityInfo:     1,
 				},
 			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
+				},
+			},
 			rConfig: config.ReportConfig{
 				Severity: config.SeverityInfo,
 			},
 			want: ExitCodeInfo,
 		},
 		{
-			name: "no exit code",
+			name: "zero exit code",
 			sum: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
@@ -114,10 +150,64 @@ func TestWriter_calculateExitCode(t *testing.T) {
 					config.SeverityInfo:     1,
 				},
 			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
+				},
+			},
+
 			rConfig: config.ReportConfig{
 				Severity: config.SeverityHigh,
 			},
 			want: 0,
+		},
+		{
+			name: "failed check",
+			sum: summary{
+				count: map[config.Severity]int{
+					config.SeverityCritical: 0,
+					config.SeverityHigh:     0,
+					config.SeverityMedium:   1,
+					config.SeverityLow:      1,
+					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FAILED",
+				},
+			},
+			rConfig: config.ReportConfig{
+				Severity: config.SeverityHigh,
+			},
+			want: ExitCodeCheckError,
+		},
+		{
+			name: "inconclusive check",
+			sum: summary{
+				count: map[config.Severity]int{
+					config.SeverityCritical: 0,
+					config.SeverityHigh:     0,
+					config.SeverityMedium:   1,
+					config.SeverityLow:      1,
+					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "INCONCLUSIVE",
+				},
+			},
+			rConfig: config.ReportConfig{
+				Severity: config.SeverityHigh,
+			},
+			want: ExitCodeCheckError,
 		},
 	}
 	for _, tt := range tests {
@@ -126,7 +216,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unable to create a report writer: %v", err)
 			}
-			got := w.calculateExitCode(tt.sum)
+			got := w.calculateExitCode(tt.sum, tt.status)
 			if got != tt.want {
 				t.Errorf("unexpected exit code: got: %v, want: %v", got, tt.want)
 			}
@@ -1020,7 +1110,10 @@ func TestNewWriter_OutputFile(t *testing.T) {
 			report: map[string]vreport.Report{
 				"CheckID1": {
 					CheckData: vreport.CheckData{
-						CheckID: "CheckID1",
+						CheckID:       "CheckID1",
+						ChecktypeName: "Checktype1",
+						Target:        "Target1",
+						Status:        "FINISHED",
 					},
 					ResultData: vreport.ResultData{
 						Vulnerabilities: []vreport.Vulnerability{
