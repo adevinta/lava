@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/fatih/color"
@@ -68,6 +69,9 @@ func init() {
 // osExit is used by tests to capture the exit code.
 var osExit = os.Exit
 
+// debugReadBuildInfo is used by tests to set the command version.
+var debugReadBuildInfo = debug.ReadBuildInfo
+
 // run is the entry point of the scan command.
 func run(args []string) error {
 	if len(args) > 0 {
@@ -84,6 +88,16 @@ func run(args []string) error {
 	cfg, err := config.ParseFile(*cfgfile)
 	if err != nil {
 		return fmt.Errorf("parse config file: %w", err)
+	}
+
+	bi, ok := debugReadBuildInfo()
+	if !ok {
+		return errors.New("could not read build info")
+	}
+
+	// Config compatibility is not checked for development builds.
+	if bi.Main.Version != "(devel)" && !cfg.IsCompatible(bi.Main.Version) {
+		return fmt.Errorf("minimum required version %v", cfg.LavaVersion)
 	}
 
 	metrics.Collect("config_version", cfg.LavaVersion)

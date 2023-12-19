@@ -120,6 +120,13 @@ func (c Config) validate() error {
 	return nil
 }
 
+// IsCompatible reports whether the configuration is compatible with
+// the specified version. An invalid semantic version string is
+// considered incompatible.
+func (c Config) IsCompatible(v string) bool {
+	return semver.Compare(v, c.LavaVersion) >= 0
+}
+
 // AgentConfig is the configuration passed to the vulcan-agent.
 type AgentConfig struct {
 	// PullPolicy is the pull policy passed to vulcan-agent.

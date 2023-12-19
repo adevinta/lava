@@ -208,6 +208,55 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestConfig_IsCompatible(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  Config
+		v    string
+		want bool
+	}{
+		{
+			name: "same version",
+			cfg:  Config{LavaVersion: "v1.0.0"},
+			v:    "v1.0.0",
+			want: true,
+		},
+		{
+			name: "lower version",
+			cfg:  Config{LavaVersion: "v1.1.0"},
+			v:    "1.0.0",
+			want: false,
+		},
+		{
+			name: "higher version",
+			cfg:  Config{LavaVersion: "v1.0.0"},
+			v:    "v1.1.0",
+			want: true,
+		},
+		{
+			name: "pre-release",
+			cfg:  Config{LavaVersion: "v0.0.0"},
+			v:    "v0.0.0-20231216173526-1150d51c5272",
+			want: false,
+		},
+		{
+			name: "invalid version",
+			cfg:  Config{LavaVersion: "v1.0.0"},
+			v:    "invalid",
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.cfg.IsCompatible(tt.v)
+			if got != tt.want {
+				t.Errorf("unexpected result: %v, minimum required version: %v, v: %v", got, tt.cfg.LavaVersion, tt.v)
+			}
+		})
+	}
+}
+
 func TestSeverity_MarshalText(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -252,6 +301,7 @@ func TestSeverity_MarshalText(t *testing.T) {
 			wantErr:  ErrInvalidSeverity,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.severity.MarshalText()
