@@ -18,7 +18,7 @@ import (
 type humanPrinter struct{}
 
 var (
-	//go:embed templates/human.tmpl
+	//go:embed human.tmpl
 	humanReport string
 
 	// humanTmplFuncs stores the functions called from the
@@ -40,16 +40,16 @@ var (
 )
 
 // Print renders the scan results in a human-readable format.
-func (prn humanPrinter) Print(w io.Writer, vulns []vulnerability, sum summary) error {
+func (prn humanPrinter) Print(w io.Writer, vulns []vulnerability, summ summary, status []checkStatus) error {
 	// count the total non-excluded vulnerabilities found.
 	var total int
-	for _, ss := range sum.count {
+	for _, ss := range summ.count {
 		total += ss
 	}
 
 	stats := make(map[string]int)
 	for s := config.SeverityCritical; s >= config.SeverityInfo; s-- {
-		stats[s.String()] = sum.count[s]
+		stats[s.String()] = summ.count[s]
 	}
 
 	data := struct {
@@ -57,11 +57,13 @@ func (prn humanPrinter) Print(w io.Writer, vulns []vulnerability, sum summary) e
 		Total    int
 		Excluded int
 		Vulns    []vulnerability
+		Status   []checkStatus
 	}{
 		Stats:    stats,
 		Total:    total,
-		Excluded: sum.excluded,
+		Excluded: summ.excluded,
 		Vulns:    vulns,
+		Status:   status,
 	}
 
 	if err := humanTmpl.Execute(w, data); err != nil {

@@ -16,7 +16,8 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 	tests := []struct {
 		name            string
 		vulnerabilities []vulnerability
-		sum             summary
+		summ            summary
+		status          []checkStatus
 		want            []string
 	}{
 		{
@@ -147,14 +148,23 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 					},
 				},
 			},
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityHigh:   3,
 					config.SeverityMedium: 15,
 				},
 				excluded: 3,
 			},
+			status: []checkStatus{
+				{
+					Checktype: "Check1",
+					Target:    ".",
+					Status:    "FINISHED",
+				},
+			},
 			want: []string{
+				"STATUS",
+				"FINISHED",
 				"SUMMARY",
 				"Number of excluded vulnerabilities not included in the summary table: 3",
 				"VULNERABILITIES",
@@ -164,7 +174,17 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 		{
 			name:            "No vulnerabilities",
 			vulnerabilities: nil,
+			status: []checkStatus{
+				{
+					Checktype: "Check1",
+					Target:    ".",
+					Status:    "FINISHED",
+				},
+			},
 			want: []string{
+				"STATUS",
+				"FINISHED",
+				"SUMMARY",
 				"No vulnerabilities found during the scan.",
 			},
 		},
@@ -173,7 +193,7 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			w := humanPrinter{}
-			if err := w.Print(&buf, tt.vulnerabilities, tt.sum); err != nil {
+			if err := w.Print(&buf, tt.vulnerabilities, tt.summ, tt.status); err != nil {
 				t.Errorf("unexpected error value: %v", err)
 			}
 			text := buf.String()

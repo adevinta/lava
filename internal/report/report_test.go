@@ -19,19 +19,27 @@ import (
 func TestWriter_calculateExitCode(t *testing.T) {
 	tests := []struct {
 		name    string
-		sum     summary
+		summ    summary
+		status  []checkStatus
 		rConfig config.ReportConfig
 		want    ExitCode
 	}{
 		{
 			name: "critical",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 1,
 					config.SeverityHigh:     1,
 					config.SeverityMedium:   1,
 					config.SeverityLow:      1,
 					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
 				},
 			},
 			rConfig: config.ReportConfig{
@@ -41,13 +49,20 @@ func TestWriter_calculateExitCode(t *testing.T) {
 		},
 		{
 			name: "high",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     1,
 					config.SeverityMedium:   1,
 					config.SeverityLow:      1,
 					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
 				},
 			},
 			rConfig: config.ReportConfig{
@@ -57,13 +72,20 @@ func TestWriter_calculateExitCode(t *testing.T) {
 		},
 		{
 			name: "medium",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     0,
 					config.SeverityMedium:   1,
 					config.SeverityLow:      1,
 					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
 				},
 			},
 			rConfig: config.ReportConfig{
@@ -73,13 +95,20 @@ func TestWriter_calculateExitCode(t *testing.T) {
 		},
 		{
 			name: "low",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     0,
 					config.SeverityMedium:   0,
 					config.SeverityLow:      1,
 					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
 				},
 			},
 			rConfig: config.ReportConfig{
@@ -89,7 +118,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 		},
 		{
 			name: "info",
-			sum: summary{
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     0,
@@ -98,14 +127,21 @@ func TestWriter_calculateExitCode(t *testing.T) {
 					config.SeverityInfo:     1,
 				},
 			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
+				},
+			},
 			rConfig: config.ReportConfig{
 				Severity: config.SeverityInfo,
 			},
 			want: ExitCodeInfo,
 		},
 		{
-			name: "no exit code",
-			sum: summary{
+			name: "zero exit code",
+			summ: summary{
 				count: map[config.Severity]int{
 					config.SeverityCritical: 0,
 					config.SeverityHigh:     0,
@@ -114,10 +150,64 @@ func TestWriter_calculateExitCode(t *testing.T) {
 					config.SeverityInfo:     1,
 				},
 			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
+				},
+			},
+
 			rConfig: config.ReportConfig{
 				Severity: config.SeverityHigh,
 			},
 			want: 0,
+		},
+		{
+			name: "failed check",
+			summ: summary{
+				count: map[config.Severity]int{
+					config.SeverityCritical: 0,
+					config.SeverityHigh:     0,
+					config.SeverityMedium:   1,
+					config.SeverityLow:      1,
+					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FAILED",
+				},
+			},
+			rConfig: config.ReportConfig{
+				Severity: config.SeverityHigh,
+			},
+			want: ExitCodeCheckError,
+		},
+		{
+			name: "inconclusive check",
+			summ: summary{
+				count: map[config.Severity]int{
+					config.SeverityCritical: 0,
+					config.SeverityHigh:     0,
+					config.SeverityMedium:   1,
+					config.SeverityLow:      1,
+					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "INCONCLUSIVE",
+				},
+			},
+			rConfig: config.ReportConfig{
+				Severity: config.SeverityHigh,
+			},
+			want: ExitCodeCheckError,
 		},
 	}
 	for _, tt := range tests {
@@ -126,7 +216,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unable to create a report writer: %v", err)
 			}
-			got := w.calculateExitCode(tt.sum)
+			got := w.calculateExitCode(tt.summ, tt.status)
 			if got != tt.want {
 				t.Errorf("unexpected exit code: got: %v, want: %v", got, tt.want)
 			}
@@ -692,6 +782,90 @@ func TestMkSummary(t *testing.T) {
 	}
 }
 
+func TestMkStatus(t *testing.T) {
+	tests := []struct {
+		name string
+		er   engine.Report
+		want []checkStatus
+	}{
+		{
+			name: "multiple checks",
+			er: engine.Report{
+				"CheckID1": vreport.Report{
+					CheckData: vreport.CheckData{
+						ChecktypeName: "Checktype1",
+						Target:        "Target1",
+						Status:        "Status1",
+					},
+				},
+				"CheckID2": vreport.Report{
+					CheckData: vreport.CheckData{
+						ChecktypeName: "Checktype2",
+						Target:        "Target2",
+						Status:        "Status2",
+					},
+				},
+			},
+			want: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "Status1",
+				},
+				{
+					Checktype: "Checktype2",
+					Target:    "Target2",
+					Status:    "Status2",
+				},
+			},
+		},
+		{
+			name: "duplicated check",
+			er: engine.Report{
+				"CheckID1": vreport.Report{
+					CheckData: vreport.CheckData{
+						ChecktypeName: "Checktype1",
+						Target:        "Target1",
+						Status:        "Status1",
+					},
+				},
+				"CheckID2": vreport.Report{
+					CheckData: vreport.CheckData{
+						ChecktypeName: "Checktype1",
+						Target:        "Target1",
+						Status:        "Status1",
+					},
+				},
+			},
+			want: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "Status1",
+				},
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "Status1",
+				},
+			},
+		},
+		{
+			name: "empty",
+			er:   engine.Report{},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := mkStatus(tt.er)
+			if diff := cmp.Diff(tt.want, got, cmpopts.SortSlices(statusLess)); diff != "" {
+				t.Errorf("status mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
+}
+
 func TestWriter_filterVulns(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -936,7 +1110,10 @@ func TestNewWriter_OutputFile(t *testing.T) {
 			report: map[string]vreport.Report{
 				"CheckID1": {
 					CheckData: vreport.CheckData{
-						CheckID: "CheckID1",
+						CheckID:       "CheckID1",
+						ChecktypeName: "Checktype1",
+						Target:        "Target1",
+						Status:        "FINISHED",
 					},
 					ResultData: vreport.ResultData{
 						Vulnerabilities: []vreport.Vulnerability{
@@ -1102,6 +1279,13 @@ func TestNewWriter_OutputFile(t *testing.T) {
 
 func vulnLess(a, b vulnerability) bool {
 	h := func(v vulnerability) string {
+		return fmt.Sprintf("%#v", v)
+	}
+	return h(a) < h(b)
+}
+
+func statusLess(a, b checkStatus) bool {
+	h := func(v checkStatus) string {
 		return fmt.Sprintf("%#v", v)
 	}
 	return h(a) < h(b)

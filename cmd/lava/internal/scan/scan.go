@@ -37,23 +37,25 @@ output is disabled in the following cases:
   - Lava is executed from a "dumb" terminal.
   - The NO_COLOR environment variable is set (regardless of its value).
 
-The exit code of the command depends on the highest severity among all
-the vulnerabilities that have been found.
+The exit code of the command depends on the correct execution of the
+security scan and the highest severity among all the vulnerabilities
+that have been found.
 
-  - 104: Critical severity vulnerabilities found
-  - 103: High severity vulnerabilities found
-  - 102: Medium severity vulnerabilities found
-  - 101: Low severity vulnerabilities found
-  - 100: Informational vulnerabilities found
-  -   2: Syntax error
-  -   1: Command error
   -   0: No vulnerabilities found
+  -   1: Command error
+  -   2: Syntax error
+  -   3: Check error
+  - 100: Informational vulnerabilities found
+  - 101: Low severity vulnerabilities found
+  - 102: Medium severity vulnerabilities found
+  - 103: High severity vulnerabilities found
+  - 104: Critical severity vulnerabilities found
 
 Those vulnerabilities that has been excluded in the configuration are
 not considered in the computation of the exit code. In other words,
 vulnerabilities with a severity that is lower than "report.severity"
-and vulnerabilities that match any "report.exclusions" rules are
-ignored.
+and vulnerabilities that match one or more "report.exclusions" rules
+are ignored.
 	`,
 }
 
