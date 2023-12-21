@@ -1,38 +1,45 @@
 {{- /* report is the template used to render the full scan report. */ -}}
 {{- define "report" -}}
-{{- if .Status -}}
-{{"STATUS" | bold | underline}}
 {{template "status" .}}
-
-{{end -}}
-{{"SUMMARY" | bold | underline}}
-{{if .Total}}
 {{template "summary" .}}
-{{else}}
-No vulnerabilities found during the scan.
-{{end}}
 {{- if .Vulns}}
 {{template "vulns" . -}}
 {{end -}}
 {{- end -}}
 
 
-{{- /* status is the template used to render all the check status. */ -}}
+{{- /* status is the template used to render the status section of the report. */ -}}
 {{- define "status" -}}
-{{range .Status}}
-{{template "checkStatus" . -}}
+{{"STATUS" | bold | underline}}
+{{if .Status -}}
+{{template "checkStatus" .}}
+{{else}}
+No status updates received during the scan.
 {{end}}
 {{- end -}}
 
 
-{{- /* checkStatus is the template used to render one check status. */ -}}
+{{- /* checkStatus is the template used to render the checks and their status. */ -}}
 {{- define "checkStatus" -}}
-- {{.Checktype | bold}} → {{.Target|bold}}: {{.Status}}
+{{- range .Status}}
+- {{.Checktype | bold}} → {{.Target|bold}}: {{.Status -}}
+{{end}}
 {{- end -}}
 
 
-{{- /* summary is the template used to render the scan summary. */ -}}
+{{- /* summary is the template used to render the summary section of the report. */ -}}
 {{- define "summary" -}}
+{{"SUMMARY" | bold | underline}}
+{{if .Total}}
+{{template "vulnCount" .}}
+{{else}}
+No vulnerabilities found during the scan.
+{{end}}
+{{- end -}}
+
+
+{{- /* vulnCount is the template used to render the vulnerability count. */ -}}
+{{- define "vulnCount" -}}
 {{"CRITICAL" | bold | magenta}}: {{index .Stats "critical"}}
 {{"HIGH" | bold | red}}: {{index .Stats "high"}}
 {{"MEDIUM" | bold | yellow}}: {{index .Stats "medium"}}
@@ -43,7 +50,7 @@ Number of excluded vulnerabilities not included in the summary table: {{.Exclude
 {{- end -}}
 
 
-{{- /* vulns is the template used to render all the vulnerability reports. */ -}}
+{{- /* vulns is the template used to render the vulnerabilities section of the report. */ -}}
 {{- define "vulns" -}}
 {{"VULNERABILITIES" | bold | underline}}
 {{range .Vulns}}
@@ -151,4 +158,5 @@ Number of excluded vulnerabilities not included in the summary table: {{.Exclude
 {{- end -}}
 
 
+{{- /* Render the report. */ -}}
 {{- template "report" . -}}
