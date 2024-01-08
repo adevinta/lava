@@ -18,8 +18,10 @@ linters-settings:
     values:
       const:
         COMPANY: Adevinta
+      regexp:
+        ANY-YEAR: \d{4}
     template: |-
-      Copyright {{ YEAR }} {{ COMPANY }}
+      Copyright {{ ANY-YEAR }} {{ COMPANY }}
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
