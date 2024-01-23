@@ -12,7 +12,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Run Lava Action
-        uses: adevinta/lava-action@main
+        uses: adevinta/lava-action@v0
         with:
           version: latest
           config: lava.yaml
