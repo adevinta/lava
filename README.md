@@ -13,6 +13,11 @@ catalog shipped with Vulcan.
 
 ## Install
 
+### Binary Distributions
+
+Official binary distributions are available at
+https://github.com/adevinta/lava/releases.
+
 ### Install From Source
 
 Install the Lava command with `go install`.
