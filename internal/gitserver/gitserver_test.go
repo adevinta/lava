@@ -3,15 +3,33 @@
 package gitserver
 
 import (
+	"flag"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/jroimartin/clilog"
+
 	"github.com/adevinta/lava/internal/gitserver/gittest"
 )
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+
+	level := slog.LevelError
+	if testing.Verbose() {
+		level = slog.LevelDebug
+	}
+
+	h := clilog.NewCLIHandler(os.Stderr, &clilog.HandlerOptions{Level: level})
+	slog.SetDefault(slog.New(h))
+
+	os.Exit(m.Run())
+}
 
 func TestServer_AddRepository(t *testing.T) {
 	// Not parallel: uses global test hook.
@@ -167,7 +185,7 @@ func TestServer_AddPath(t *testing.T) {
 
 	repoName, err := gs.AddPath("testdata/dir")
 	if err != nil {
-		t.Fatalf("unable to add a repository: %v", err)
+		t.Fatalf("unable to add a path: %v", err)
 	}
 
 	repoPath, err := gittest.CloneTemp(fmt.Sprintf("http://%v/%s", ln.Addr(), repoName))
@@ -202,7 +220,7 @@ func TestServer_AddPath_file(t *testing.T) {
 
 	repoName, err := gs.AddPath("testdata/dir/foo.txt")
 	if err != nil {
-		t.Fatalf("unable to add a repository: %v", err)
+		t.Fatalf("unable to add a path: %v", err)
 	}
 
 	repoPath, err := gittest.CloneTemp(fmt.Sprintf("http://%v/%s", ln.Addr(), repoName))
@@ -212,6 +230,41 @@ func TestServer_AddPath_file(t *testing.T) {
 	defer os.RemoveAll(repoPath)
 
 	if _, err := os.Stat(filepath.Join(repoPath, "foo.txt")); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestServer_AddPath_symlink(t *testing.T) {
+	// Not parallel: uses global test hook.
+	defer func() { testHookServerServe = nil }()
+
+	gs, err := New()
+	if err != nil {
+		t.Fatalf("unable to create a server: %v", err)
+	}
+	defer gs.Close()
+
+	lnc := make(chan net.Listener)
+	testHookServerServe = func(gs *Server, ln net.Listener) {
+		lnc <- ln
+	}
+
+	go gs.ListenAndServe("127.0.0.1:0") //nolint:errcheck
+
+	ln := <-lnc
+
+	repoName, err := gs.AddPath("testdata/symlink")
+	if err != nil {
+		t.Fatalf("unable to add a path: %v", err)
+	}
+
+	repoPath, err := gittest.CloneTemp(fmt.Sprintf("http://%v/%s", ln.Addr(), repoName))
+	if err != nil {
+		t.Fatalf("unable to clone the repo %s: %v", repoName, err)
+	}
+	defer os.RemoveAll(repoPath)
+
+	if _, err := os.Stat(filepath.Join(repoPath, "bar.txt")); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -243,7 +296,7 @@ func TestServer_AddPath_repo(t *testing.T) {
 
 	repoName, err := gs.AddPath(tmpPath)
 	if err != nil {
-		t.Fatalf("unable to add a repository: %v", err)
+		t.Fatalf("unable to add a path: %v", err)
 	}
 
 	repoPath, err := gittest.CloneTemp(fmt.Sprintf("http://%v/%s", ln.Addr(), repoName))
@@ -294,12 +347,12 @@ func TestServer_AddPath_already_added(t *testing.T) {
 
 	repoName, err := gs.AddPath("testdata/dir")
 	if err != nil {
-		t.Fatalf("unable to add a repository: %v", err)
+		t.Fatalf("unable to add a path: %v", err)
 	}
 
 	repoName2, err := gs.AddPath("testdata/dir")
 	if err != nil {
-		t.Fatalf("unable to add a repository: %v", err)
+		t.Fatalf("unable to add a path: %v", err)
 	}
 
 	if repoName != repoName2 {
