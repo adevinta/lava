@@ -75,8 +75,14 @@ type Config struct {
 
 // Parse returns a parsed Lava configuration given an [io.Reader].
 func Parse(r io.Reader) (Config, error) {
+	dec := yaml.NewDecoder(r)
+
+	// Ensure that the keys in the read data exist as fields in
+	// the struct being decoded into.
+	dec.KnownFields(true)
+
 	var cfg Config
-	if err := yaml.NewDecoder(r).Decode(&cfg); err != nil {
+	if err := dec.Decode(&cfg); err != nil {
 		return Config{}, fmt.Errorf("decode config: %w", err)
 	}
 	if err := cfg.validate(); err != nil {
