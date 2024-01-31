@@ -3,7 +3,7 @@ checktypes:
   - https://github.com/adevinta/lava-resources/releases/download/checktypes/v0/checktypes.json
 targets:
   - identifier: .
-    type: GitRepository
+    type: Path
 agent:
   parallel: 4
 report:
