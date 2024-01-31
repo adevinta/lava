@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"math/rand"
 	"net"
 	"net/http"
@@ -195,7 +196,7 @@ func fscopy(dst, src string) error {
 				return fmt.Errorf("copy file: %w", err)
 			}
 		default:
-			return fmt.Errorf("invalid file type: %v", path)
+			slog.Warn("invalid file type", "path", path, "mode", typ)
 		}
 		return nil
 	})
