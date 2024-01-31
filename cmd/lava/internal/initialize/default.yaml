@@ -1,5 +1,3 @@
-# Copyright 2023 Adevinta
-
 lava: v0.0.0
 checktypes:
   - https://github.com/adevinta/lava-resources/releases/download/checktypes/v0/checktypes.json
