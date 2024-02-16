@@ -1,0 +1,50 @@
+version: 2
+updates:
+- package-ecosystem: "gomod"
+  directory: "/"
+  schedule:
+    interval: "daily"
+  ignore:
+  - dependency-name: "github.com/aws/aws-sdk-go"
+    update-types: ["version-update:semver-patch"]
+  labels:
+    - "dependencies"
+- package-ecosystem: "gomod"
+  directory: "/internal/engine/testdata/engine/lava-engine-test/"
+  schedule:
+    interval: "daily"
+  ignore:
+  - dependency-name: "github.com/aws/aws-sdk-go"
+    update-types: ["version-update:semver-patch"]
+  labels:
+    - "dependencies"
+- package-ecosystem: "docker"
+  directory: "/cmd/lava/internal/scan/testdata/goodpath/"
+  schedule:
+    interval: "weekly"
+  labels:
+    - "dependencies"
+- package-ecosystem: "docker"
+  directory: "/cmd/lava/internal/scan/testdata/vulnpath/"
+  schedule:
+    interval: "weekly"
+  labels:
+    - "dependencies"
+- package-ecosystem: "docker"
+  directory: "/internal/engine/testdata/engine/lava-engine-test/"
+  schedule:
+    interval: "weekly"
+  labels:
+    - "dependencies"
+- package-ecosystem: "docker"
+  directory: "/internal/engine/testdata/engine/vulnpath/"
+  schedule:
+    interval: "weekly"
+  labels:
+    - "dependencies"
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+  labels:
+    - "dependencies"
