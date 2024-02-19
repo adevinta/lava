@@ -12,6 +12,6 @@ report:
   severity: high
   exclusions:
     - description: Ignore test targets.
-      resource: '/cmd/lava/internal/scan/testdata/(goodpath|vulnpath)/Dockerfile'
+      resource: 'cmd/lava/internal/scan/testdata/(goodpath|vulnpath)/Dockerfile'
     - description: Ignore test targets.
-      resource: '/internal/engine/testdata/engine/vulnpath/Dockerfile'
+      resource: 'internal/engine/testdata/engine/vulnpath/Dockerfile'
