@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 
+	"github.com/fatih/color"
 	"github.com/jroimartin/clilog"
 
 	"github.com/adevinta/lava/cmd/lava/internal/base"
@@ -43,6 +45,11 @@ func main() {
 		os.Exit(2)
 	}
 
+	if err := parseEnv(); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(2)
+	}
+
 	if args[0] == "help" {
 		help.Help(args[1:])
 		return
@@ -66,4 +73,15 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "Unknown command %q. Run 'lava help'.\n", args[0])
 	os.Exit(2)
+}
+
+func parseEnv() error {
+	if envForceColor := os.Getenv("LAVA_FORCECOLOR"); envForceColor != "" {
+		forceColor, err := strconv.ParseBool(envForceColor)
+		if err != nil {
+			return fmt.Errorf("invalid LAVA_FORCECOLOR value: %v", envForceColor)
+		}
+		color.NoColor = !forceColor
+	}
+	return nil
 }

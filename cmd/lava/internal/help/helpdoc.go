@@ -261,6 +261,13 @@ The lava command consults environment variables for configuration. If
 an environment variable is unset or empty, the lava command uses a
 sensible default setting.
 
+General-purpose environment variables:
+
+	LAVA_FORCECOLOR
+		Forces colorized output. By default, colorized output
+		is disabled if the lava command is not executed from a
+		terminal, it is executed from a "dumb" terminal or the
+		NO_COLOR environment variable is set.
 	LAVA_RUNTIME
 		Controls the container runtime used by the lava
 		command. Valid values are "Dockerd" and
