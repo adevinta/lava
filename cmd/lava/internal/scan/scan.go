@@ -76,8 +76,21 @@ var debugReadBuildInfo = debug.ReadBuildInfo
 
 // run is the entry point of the scan command.
 func run(args []string) error {
+	exitCode, err := scan(args)
+	if err != nil {
+		return err
+	}
+	osExit(exitCode)
+	return nil
+}
+
+// scan contains the logic of the [CmdScan] command. It is wrapped by
+// the run function, so the deferred functions can be executed
+// before calling [os.Exit]. It returns the exit code that must be
+// passed to [os.Exit].
+func scan(args []string) (int, error) {
 	if len(args) > 0 {
-		return errors.New("too many arguments")
+		return 0, errors.New("too many arguments")
 	}
 
 	if *forceColor {
@@ -89,17 +102,17 @@ func run(args []string) error {
 
 	cfg, err := config.ParseFile(*cfgfile)
 	if err != nil {
-		return fmt.Errorf("parse config file: %w", err)
+		return 0, fmt.Errorf("parse config file: %w", err)
 	}
 
 	bi, ok := debugReadBuildInfo()
 	if !ok {
-		return errors.New("could not read build info")
+		return 0, errors.New("could not read build info")
 	}
 
 	// Config compatibility is not checked for development builds.
 	if bi.Main.Version != "(devel)" && !cfg.IsCompatible(bi.Main.Version) {
-		return fmt.Errorf("minimum required version %v", cfg.LavaVersion)
+		return 0, fmt.Errorf("minimum required version %v", cfg.LavaVersion)
 	}
 
 	metrics.Collect("config_version", cfg.LavaVersion)
@@ -109,20 +122,27 @@ func run(args []string) error {
 	metrics.Collect("exclusion_count", len(cfg.ReportConfig.Exclusions))
 
 	base.LogLevel.Set(cfg.LogLevel)
-	er, err := engine.Run(cfg.ChecktypeURLs, cfg.Targets, cfg.AgentConfig)
+
+	eng, err := engine.New(cfg.AgentConfig, cfg.ChecktypeURLs)
 	if err != nil {
-		return fmt.Errorf("engine run: %w", err)
+		return 0, fmt.Errorf("engine initialization: %w", err)
+	}
+	defer eng.Close()
+
+	er, err := eng.Run(cfg.Targets)
+	if err != nil {
+		return 0, fmt.Errorf("engine run: %w", err)
 	}
 
 	rw, err := report.NewWriter(cfg.ReportConfig)
 	if err != nil {
-		return fmt.Errorf("new writer: %w", err)
+		return 0, fmt.Errorf("new writer: %w", err)
 	}
 	defer rw.Close()
 
 	exitCode, err := rw.Write(er)
 	if err != nil {
-		return fmt.Errorf("render report: %w", err)
+		return 0, fmt.Errorf("render report: %w", err)
 	}
 
 	metrics.Collect("exit_code", exitCode)
@@ -130,11 +150,9 @@ func run(args []string) error {
 
 	if cfg.ReportConfig.Metrics != "" {
 		if err = metrics.WriteFile(cfg.ReportConfig.Metrics); err != nil {
-			return fmt.Errorf("write metrics: %w", err)
+			return 0, fmt.Errorf("write metrics: %w", err)
 		}
 	}
 
-	osExit(int(exitCode))
-
-	return nil
+	return int(exitCode), nil
 }
