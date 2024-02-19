@@ -9,6 +9,7 @@ import (
 	types "github.com/adevinta/vulcan-types"
 
 	"github.com/adevinta/lava/internal/config"
+	"github.com/adevinta/lava/internal/containers"
 )
 
 func TestGetTargetAddr(t *testing.T) {
@@ -170,7 +171,15 @@ func TestGetTargetAddr(t *testing.T) {
 	}
 }
 
-func TestMkIntIdentifier(t *testing.T) {
+func TestTargetServer_mkIntIdentifier(t *testing.T) {
+	cli, err := containers.NewDockerdClient(testRuntime)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer cli.Close()
+
+	hostGatewayHostname := cli.HostGatewayHostname()
+
 	tests := []struct {
 		name       string
 		target     config.Target
@@ -183,7 +192,7 @@ func TestMkIntIdentifier(t *testing.T) {
 				Identifier: "127.0.0.1",
 				AssetType:  "IP",
 			},
-			want:       dockerInternalHost,
+			want:       hostGatewayHostname,
 			wantNilErr: true,
 		},
 		{
@@ -192,7 +201,7 @@ func TestMkIntIdentifier(t *testing.T) {
 				Identifier: "192.168.1.1",
 				AssetType:  "IP",
 			},
-			want:       dockerInternalHost,
+			want:       hostGatewayHostname,
 			wantNilErr: true,
 		},
 		{
@@ -201,7 +210,7 @@ func TestMkIntIdentifier(t *testing.T) {
 				Identifier: "localhost",
 				AssetType:  "Hostname",
 			},
-			want:       dockerInternalHost,
+			want:       hostGatewayHostname,
 			wantNilErr: true,
 		},
 		{
@@ -210,7 +219,7 @@ func TestMkIntIdentifier(t *testing.T) {
 				Identifier: "example.com",
 				AssetType:  "Hostname",
 			},
-			want:       dockerInternalHost,
+			want:       hostGatewayHostname,
 			wantNilErr: true,
 		},
 		{
@@ -219,7 +228,7 @@ func TestMkIntIdentifier(t *testing.T) {
 				Identifier: "http://127.0.0.1:12345/path",
 				AssetType:  "WebAddress",
 			},
-			want:       fmt.Sprintf("http://%v:12345/path", dockerInternalHost),
+			want:       fmt.Sprintf("http://%v:12345/path", hostGatewayHostname),
 			wantNilErr: true,
 		},
 		{
@@ -228,7 +237,7 @@ func TestMkIntIdentifier(t *testing.T) {
 				Identifier: "http://192.168.1.1/path",
 				AssetType:  "WebAddress",
 			},
-			want:       fmt.Sprintf("http://%v/path", dockerInternalHost),
+			want:       fmt.Sprintf("http://%v/path", hostGatewayHostname),
 			wantNilErr: true,
 		},
 		{
@@ -237,7 +246,7 @@ func TestMkIntIdentifier(t *testing.T) {
 				Identifier: "ssh://git@localhost:12345/path/to/repo.git",
 				AssetType:  "GitRepository",
 			},
-			want:       fmt.Sprintf("ssh://git@%v:12345/path/to/repo.git", dockerInternalHost),
+			want:       fmt.Sprintf("ssh://git@%v:12345/path/to/repo.git", hostGatewayHostname),
 			wantNilErr: true,
 		},
 		{
@@ -246,7 +255,7 @@ func TestMkIntIdentifier(t *testing.T) {
 				Identifier: "git@example.com:/path/to/repo.git",
 				AssetType:  "GitRepository",
 			},
-			want:       fmt.Sprintf("ssh://git@%v/path/to/repo.git", dockerInternalHost),
+			want:       fmt.Sprintf("ssh://git@%v/path/to/repo.git", hostGatewayHostname),
 			wantNilErr: true,
 		},
 		{
@@ -255,7 +264,7 @@ func TestMkIntIdentifier(t *testing.T) {
 				Identifier: "localhost://localhost:12345/path",
 				AssetType:  "WebAddress",
 			},
-			want:       fmt.Sprintf("localhost://%v:12345/path", dockerInternalHost),
+			want:       fmt.Sprintf("localhost://%v:12345/path", hostGatewayHostname),
 			wantNilErr: true,
 		},
 		{
@@ -289,7 +298,13 @@ func TestMkIntIdentifier(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := mkIntIdentifier(tt.target)
+			srv, err := newTargetServer(testRuntime)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			defer srv.Close()
+
+			got, err := srv.mkIntIdentifier(tt.target)
 
 			if (err == nil) != tt.wantNilErr {
 				t.Errorf("unexpected error: %v", err)

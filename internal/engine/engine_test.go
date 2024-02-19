@@ -25,8 +25,10 @@ import (
 
 	"github.com/adevinta/lava/internal/assettypes"
 	"github.com/adevinta/lava/internal/config"
-	"github.com/adevinta/lava/internal/dockerutil"
+	"github.com/adevinta/lava/internal/containers"
 )
+
+var testRuntime containers.Runtime
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -39,10 +41,17 @@ func TestMain(m *testing.M) {
 	h := clilog.NewCLIHandler(os.Stderr, &clilog.HandlerOptions{Level: level})
 	slog.SetDefault(slog.New(h))
 
+	rt, err := containers.GetenvRuntime()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: get env runtime: %v", err)
+		os.Exit(2)
+	}
+	testRuntime = rt
+
 	os.Exit(m.Run())
 }
 
-func TestRun(t *testing.T) {
+func TestEngine_Run(t *testing.T) {
 	if err := dockerBuild("testdata/engine/lava-engine-test", "lava-engine-test:latest"); err != nil {
 		t.Fatalf("could build Docker image: %v", err)
 	}
@@ -69,12 +78,18 @@ func TestRun(t *testing.T) {
 		}
 	)
 
-	engineReport, err := Run(checktypeURLs, targets, agentConfig)
+	eng, err := New(agentConfig, checktypeURLs)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("engine initialization error: %v", err)
+	}
+	defer eng.Close()
+
+	engineReport, err := eng.Run(targets)
+	if err != nil {
+		t.Fatalf("engine run error: %v", err)
 	}
 
-	checkReportTarget(t, engineReport, dockerInternalHost)
+	checkReportTarget(t, engineReport, eng.cli.HostGatewayHostname())
 
 	var checkReports []report.Report
 	for _, v := range engineReport {
@@ -106,7 +121,7 @@ func TestRun(t *testing.T) {
 	}
 }
 
-func TestRun_docker_image(t *testing.T) {
+func TestEngine_Run_docker_image(t *testing.T) {
 	var (
 		checktypeURLs = []string{"testdata/engine/checktypes_trivy.json"}
 		targets       = []config.Target{
@@ -120,12 +135,18 @@ func TestRun_docker_image(t *testing.T) {
 		}
 	)
 
-	engineReport, err := Run(checktypeURLs, targets, agentConfig)
+	eng, err := New(agentConfig, checktypeURLs)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("engine initialization error: %v", err)
+	}
+	defer eng.Close()
+
+	engineReport, err := eng.Run(targets)
+	if err != nil {
+		t.Fatalf("engine run error: %v", err)
 	}
 
-	checkReportTarget(t, engineReport, dockerInternalHost)
+	checkReportTarget(t, engineReport, eng.cli.HostGatewayHostname())
 
 	var checkReports []report.Report
 	for _, v := range engineReport {
@@ -149,7 +170,7 @@ func TestRun_docker_image(t *testing.T) {
 	t.Logf("found %v vulnerabilities", len(gotReport.Vulnerabilities))
 }
 
-func TestRun_path(t *testing.T) {
+func TestEngine_Run_path(t *testing.T) {
 	var (
 		checktypeURLs = []string{"testdata/engine/checktypes_trivy.json"}
 		agentConfig   = config.AgentConfig{
@@ -194,12 +215,18 @@ func TestRun_path(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			engineReport, err := Run(checktypeURLs, []config.Target{tt.target}, agentConfig)
+			eng, err := New(agentConfig, checktypeURLs)
 			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+				t.Fatalf("engine initialization error: %v", err)
+			}
+			defer eng.Close()
+
+			engineReport, err := eng.Run([]config.Target{tt.target})
+			if err != nil {
+				t.Fatalf("engine run error: %v", err)
 			}
 
-			checkReportTarget(t, engineReport, dockerInternalHost)
+			checkReportTarget(t, engineReport, eng.cli.HostGatewayHostname())
 
 			var checkReports []report.Report
 			for _, v := range engineReport {
@@ -225,7 +252,7 @@ func TestRun_path(t *testing.T) {
 	}
 }
 
-func TestRun_inconclusive(t *testing.T) {
+func TestEngine_Run_inconclusive(t *testing.T) {
 	checktypeURLs := []string{"testdata/engine/checktypes_trivy.json"}
 	agentConfig := config.AgentConfig{
 		PullPolicy: agentconfig.PullPolicyAlways,
@@ -234,12 +261,19 @@ func TestRun_inconclusive(t *testing.T) {
 		Identifier: "testdata/engine/vulnpath",
 		AssetType:  types.GitRepository,
 	}
-	engineReport, err := Run(checktypeURLs, []config.Target{target}, agentConfig)
+
+	eng, err := New(agentConfig, checktypeURLs)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("engine initialization error: %v", err)
+	}
+	defer eng.Close()
+
+	engineReport, err := eng.Run([]config.Target{target})
+	if err != nil {
+		t.Fatalf("engine run error: %v", err)
 	}
 
-	checkReportTarget(t, engineReport, dockerInternalHost)
+	checkReportTarget(t, engineReport, eng.cli.HostGatewayHostname())
 
 	var checkReports []report.Report
 	for _, v := range engineReport {
@@ -261,7 +295,7 @@ func TestRun_inconclusive(t *testing.T) {
 	}
 }
 
-func TestRun_no_jobs(t *testing.T) {
+func TestEngine_Run_no_jobs(t *testing.T) {
 	var (
 		checktypeURLs = []string{"testdata/engine/checktypes_lava_engine_test.json"}
 		agentConfig   = config.AgentConfig{
@@ -269,9 +303,15 @@ func TestRun_no_jobs(t *testing.T) {
 		}
 	)
 
-	engineReport, err := Run(checktypeURLs, nil, agentConfig)
+	eng, err := New(agentConfig, checktypeURLs)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("engine initialization error: %v", err)
+	}
+	defer eng.Close()
+
+	engineReport, err := eng.Run(nil)
+	if err != nil {
+		t.Fatalf("engine run error: %v", err)
 	}
 
 	if len(engineReport) != 0 {
@@ -280,9 +320,9 @@ func TestRun_no_jobs(t *testing.T) {
 }
 
 func dockerBuild(path, tag string) error {
-	cli, err := dockerutil.NewAPIClient()
+	cli, err := containers.NewDockerdClient(testRuntime)
 	if err != nil {
-		return fmt.Errorf("new client: %w", err)
+		return fmt.Errorf("new dockerd client: %w", err)
 	}
 	defer cli.Close()
 
@@ -318,6 +358,6 @@ func checkReportTarget(t *testing.T, report Report, substr string) {
 	}
 
 	if strings.Contains(string(doc), substr) {
-		t.Errorf("report contains %q:\n%s", dockerInternalHost, doc)
+		t.Errorf("report contains %q:\n%s", substr, doc)
 	}
 }
