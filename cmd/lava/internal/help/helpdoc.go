@@ -251,3 +251,22 @@ A Lava metrics file contains the following data:
     severity.
 	`,
 }
+
+// HelpEnvironment documents the Lava environment variables.
+var HelpEnvironment = &base.Command{
+	UsageLine: "environment",
+	Short:     "environment variables",
+	Long: `
+The lava command consults environment variables for configuration. If
+an environment variable is unset or empty, the lava command uses a
+sensible default setting.
+
+	LAVA_RUNTIME
+		Controls the container runtime used by the lava
+		command. Valid values are "Dockerd" and
+		DockerdDockerDesktop". If not specified, "Dockerd" is
+		used. The values "DockerdRancherDesktop" and
+		"DockerdPodmanDesktop" are also valid, but they are
+		considered experimental.
+	`,
+}
