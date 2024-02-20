@@ -215,18 +215,13 @@ func (eng Engine) runAgent(jobs []jobrunner.Job) (Report, error) {
 
 	done <- true
 
-	report, err := eng.mkReport(srv, rs)
-	if err != nil {
-		return nil, fmt.Errorf("restore targets: %w", err)
-	}
-
-	return report, nil
+	return eng.mkReport(srv, rs), nil
 }
 
 // mkReport generates a report from the information stored in the
 // provided [reportStore]. It uses the specified [targetServer] to
 // replace the targets sent to the checks with the original targets.
-func (eng Engine) mkReport(srv *targetServer, rs *reportStore) (Report, error) {
+func (eng Engine) mkReport(srv *targetServer, rs *reportStore) Report {
 	rep := make(Report)
 	for checkID, r := range rs.Reports() {
 		tm, ok := srv.TargetMap(checkID)
@@ -251,7 +246,7 @@ func (eng Engine) mkReport(srv *targetServer, rs *reportStore) (Report, error) {
 
 		rep[checkID] = r
 	}
-	return rep, nil
+	return rep
 }
 
 // vulnReplaceAll returns a copy of the vulnerability vuln with all

@@ -593,7 +593,7 @@ type ipamConfig struct {
 	Gateway string `json:"Gateway"`
 }
 
-func (api testAPI) handleNetworks(w http.ResponseWriter, r *http.Request, name string) {
+func (api testAPI) handleNetworks(w http.ResponseWriter, _ *http.Request, name string) {
 	td, ok := api.testdata.networks[name]
 	if !ok {
 		http.Error(w, "not found", http.StatusNotFound)
@@ -614,7 +614,7 @@ type info struct {
 	ID string `json:"ID"`
 }
 
-func (api testAPI) handleInfo(w http.ResponseWriter, r *http.Request) {
+func (api testAPI) handleInfo(w http.ResponseWriter, _ *http.Request) {
 	net := info{ID: api.testdata.system.id}
 	if err := json.NewEncoder(w).Encode(net); err != nil {
 		http.Error(w, fmt.Sprintf("marshal: %v", err), http.StatusInternalServerError)
