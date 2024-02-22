@@ -10,8 +10,6 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/fatih/color"
-
 	"github.com/adevinta/lava/cmd/lava/internal/base"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/engine"
@@ -29,13 +27,6 @@ Run a scan using the provided config file.
 The -c flag allows to specify a configuration file. By default, "lava
 scan" looks for a configuration file with the name "lava.yaml" in the
 current directory.
-
-The -forcecolor flag forces colorized output. By default, colorized
-output is disabled in the following cases:
-
-  - Lava is not executed from a terminal.
-  - Lava is executed from a "dumb" terminal.
-  - The NO_COLOR environment variable is set (regardless of its value).
 
 The exit code of the command depends on the correct execution of the
 security scan and the highest severity among all the vulnerabilities
@@ -59,10 +50,7 @@ are ignored.
 	`,
 }
 
-var (
-	cfgfile    = CmdScan.Flag.String("c", "lava.yaml", "config file")
-	forceColor = CmdScan.Flag.Bool("forcecolor", false, "force colorized output")
-)
+var cfgfile = CmdScan.Flag.String("c", "lava.yaml", "config file")
 
 func init() {
 	CmdScan.Run = run // Break initialization cycle.
@@ -91,10 +79,6 @@ func run(args []string) error {
 func scan(args []string) (int, error) {
 	if len(args) > 0 {
 		return 0, errors.New("too many arguments")
-	}
-
-	if *forceColor {
-		color.NoColor = false
 	}
 
 	startTime := time.Now()
