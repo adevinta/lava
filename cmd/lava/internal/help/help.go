@@ -32,7 +32,7 @@ func Help(args []string) {
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "Unknown help topic %q. Run 'lava help'.\n", arg)
+	fmt.Fprintf(os.Stderr, "Unknown help topic %q. Run \"lava help\".\n", arg)
 	os.Exit(2)
 }
 
@@ -51,7 +51,8 @@ func tmpl(text string, data interface{}) {
 	}
 }
 
-const usageTemplate = `Lava runs Vulcan checks locally
+const usageTemplate = `Lava is a tool for running security checks in your local and CI/CD
+environments.
 
 Usage:
 
@@ -61,13 +62,13 @@ The commands are:
 {{range .}}{{ if .Run}}
 	{{.Name | printf "%-11s"}} {{.Short}}{{end}}{{end}}
 
-Use 'lava help <command>' for more information about a command.
+Use "lava help <command>" for more information about a command.
 
 Additional help topics:
 {{range .}}{{if not .Run}}
 	{{.Name | printf "%-11s"}} {{.Short}}{{end}}{{end}}
 
-Use 'lava help <topic>' for more information about that topic.
+Use "lava help <topic>" for more information about that topic.
 `
 
 const helpTemplate = `{{if .Run}}usage: lava {{.UsageLine}}
