@@ -47,6 +47,10 @@ not considered in the computation of the exit code. In other words,
 vulnerabilities with a severity that is lower than "report.severity"
 and vulnerabilities that match one or more "report.exclusions" rules
 are ignored.
+
+Lava supports several container runtimes. The environment variable
+LAVA_RUNTIME allows to select which one is in use. For more details,
+use "lava help environment".
 	`,
 }
 
