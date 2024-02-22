@@ -20,6 +20,7 @@ import (
 
 	"github.com/adevinta/lava/internal/assettypes"
 	"github.com/adevinta/lava/internal/config"
+	"github.com/adevinta/lava/internal/containers"
 	"github.com/adevinta/lava/internal/gitserver"
 )
 
@@ -69,6 +70,7 @@ func (tm targetMap) Addrs() targetMap {
 // targetServer represents Lava's internal target server. It is used
 // to serve local Git repositories and services.
 type targetServer struct {
+	cli     containers.DockerdClient
 	gs      *gitserver.Server
 	gitAddr string
 	pg      *proxy.Group
@@ -78,13 +80,18 @@ type targetServer struct {
 }
 
 // newTargetServer returns a new [targetServer].
-func newTargetServer() (srv *targetServer, err error) {
+func newTargetServer(rt containers.Runtime) (srv *targetServer, err error) {
+	cli, err := containers.NewDockerdClient(rt)
+	if err != nil {
+		return nil, fmt.Errorf("new dockerd client: %w", err)
+	}
+
 	gs, err := gitserver.New()
 	if err != nil {
 		return nil, fmt.Errorf("new GitServer: %w", err)
 	}
 
-	listenHost, err := bridgeHost()
+	listenHost, err := cli.HostGatewayInterfaceAddr()
 	if err != nil {
 		return nil, fmt.Errorf("get bridge host: %w", err)
 	}
@@ -102,8 +109,9 @@ func newTargetServer() (srv *targetServer, err error) {
 	go gs.Serve(ln) //nolint:errcheck
 
 	srv = &targetServer{
+		cli:     cli,
 		gs:      gs,
-		gitAddr: net.JoinHostPort(dockerInternalHost, gitPort),
+		gitAddr: net.JoinHostPort(cli.HostGatewayHostname(), gitPort),
 		pg:      proxy.NewGroup(),
 		maps:    make(map[string]targetMap),
 	}
@@ -151,7 +159,7 @@ func (srv *targetServer) Handle(key string, target config.Target) (targetMap, er
 // handle serves the specified target through an internal proxy, so
 // Vulcan checks can access the service.
 func (srv *targetServer) handle(target config.Target) (targetMap, error) {
-	stream, loopback, err := mkStream(target)
+	stream, loopback, err := srv.mkStream(target)
 	if err != nil {
 		return targetMap{}, fmt.Errorf("generate stream: %w", err)
 	}
@@ -194,7 +202,7 @@ loop:
 		}
 	}
 
-	intIdentifier, err := mkIntIdentifier(target)
+	intIdentifier, err := srv.mkIntIdentifier(target)
 	if err != nil {
 		return targetMap{}, fmt.Errorf("generate internal identifier: %w", err)
 	}
@@ -271,6 +279,10 @@ func (srv *targetServer) TargetMap(key string) (tm targetMap, ok bool) {
 
 // Close closes the internal Git server and proxy.
 func (srv *targetServer) Close() error {
+	if err := srv.cli.Close(); err != nil {
+		return fmt.Errorf("close dockerd client: %w", err)
+	}
+
 	if err := srv.gs.Close(); err != nil {
 		return fmt.Errorf("close Git server: %w", err)
 	}
@@ -287,7 +299,7 @@ func (srv *targetServer) Close() error {
 // address, so if the target is host:port, the returned stream will be
 // "bridgehost:port,host:port". The returned bool reports whether the
 // target is a loopback address.
-func mkStream(target config.Target) (stream proxy.Stream, loopback bool, err error) {
+func (srv *targetServer) mkStream(target config.Target) (stream proxy.Stream, loopback bool, err error) {
 	addr, err := getTargetAddr(target)
 	if err != nil {
 		return proxy.Stream{}, false, fmt.Errorf("get target addr: %w", err)
@@ -298,7 +310,7 @@ func mkStream(target config.Target) (stream proxy.Stream, loopback bool, err err
 		return proxy.Stream{}, false, fmt.Errorf("split host port: %w", err)
 	}
 
-	listenHost, err := bridgeHost()
+	listenHost, err := srv.cli.HostGatewayInterfaceAddr()
 	if err != nil {
 		return proxy.Stream{}, false, fmt.Errorf("get listen host: %w", err)
 	}
@@ -387,30 +399,30 @@ func guessHostPort(u *url.URL) string {
 // replacing the host with the Docker internal host. If it is not
 // possible to generate an internal target from the provided asset
 // type the function returns an error.
-func mkIntIdentifier(target config.Target) (string, error) {
+func (srv *targetServer) mkIntIdentifier(target config.Target) (string, error) {
 	switch target.AssetType {
 	case types.IP, types.Hostname:
-		return dockerInternalHost, nil
+		return srv.cli.HostGatewayHostname(), nil
 	case types.WebAddress:
 		u, err := url.Parse(target.Identifier)
 		if err != nil {
 			return "", fmt.Errorf("parse URL: %w", err)
 		}
-		return mkIntURL(u), nil
+		return srv.mkIntURL(u), nil
 	case types.GitRepository:
 		u, err := parseGitURL(target.Identifier)
 		if err != nil {
 			return "", fmt.Errorf("parse Git URL: %w", err)
 		}
-		return mkIntURL(u), nil
+		return srv.mkIntURL(u), nil
 	}
 	return "", fmt.Errorf("invalid asset type: %v", target.AssetType)
 }
 
 // mkIntURL returns the string representation of the provided URL
 // after replacing its host with the Docker internal host.
-func mkIntURL(u *url.URL) string {
-	host := dockerInternalHost
+func (srv *targetServer) mkIntURL(u *url.URL) string {
+	host := srv.cli.HostGatewayHostname()
 	if port := u.Port(); port != "" {
 		host = net.JoinHostPort(host, port)
 	}

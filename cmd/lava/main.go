@@ -24,6 +24,7 @@ func init() {
 		initialize.CmdInit,
 		version.CmdVersion,
 
+		help.HelpEnvironment,
 		help.HelpLavaYAML,
 		help.HelpMetrics,
 	}

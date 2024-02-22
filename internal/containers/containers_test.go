@@ -1,6 +1,6 @@
 // Copyright 2023 Adevinta
 
-package dockerutil
+package containers
 
 import (
 	"context"
@@ -15,9 +15,130 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/docker/docker/client"
 	"github.com/google/go-cmp/cmp"
 )
+
+func TestParseRuntime(t *testing.T) {
+	tests := []struct {
+		name       string
+		rtName     string
+		want       Runtime
+		wantNilErr bool
+	}{
+		{
+			name:       "valid runtime",
+			rtName:     "DockerdDockerDesktop",
+			want:       RuntimeDockerdDockerDesktop,
+			wantNilErr: true,
+		},
+		{
+			name:       "invalid runtime",
+			rtName:     "Invalid",
+			want:       Runtime(0),
+			wantNilErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseRuntime(tt.rtName)
+
+			if (err == nil) != tt.wantNilErr {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if got != tt.want {
+				t.Errorf("unexpected runtime: got: %v, want: %v", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestGetenvRuntime(t *testing.T) {
+	tests := []struct {
+		name       string
+		env        string
+		want       Runtime
+		wantNilErr bool
+	}{
+		{
+			name:       "empty env var",
+			env:        "",
+			want:       RuntimeDockerd,
+			wantNilErr: true,
+		},
+		{
+			name:       "dockerd podman desktop",
+			env:        "DockerdPodmanDesktop",
+			want:       RuntimeDockerdPodmanDesktop,
+			wantNilErr: true,
+		},
+		{
+			name:       "invalid runtime",
+			env:        "Invalid",
+			want:       Runtime(0),
+			wantNilErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("LAVA_RUNTIME", tt.env)
+
+			got, err := GetenvRuntime()
+
+			if (err == nil) != tt.wantNilErr {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if got != tt.want {
+				t.Errorf("unexpected runtime: got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRuntime_UnmarshalText(t *testing.T) {
+	type JSONData struct {
+		Runtime Runtime `json:"runtime"`
+	}
+
+	tests := []struct {
+		name       string
+		data       string
+		want       JSONData
+		wantNilErr bool
+	}{
+		{
+			name:       "valid runtime",
+			data:       `{"runtime": "DockerdRancherDesktop"}`,
+			want:       JSONData{Runtime: RuntimeDockerdRancherDesktop},
+			wantNilErr: true,
+		},
+		{
+			name:       "invalid runtime",
+			data:       `{"runtime": "Invalid"}`,
+			want:       JSONData{},
+			wantNilErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got JSONData
+
+			err := json.Unmarshal([]byte(tt.data), &got)
+
+			if (err == nil) != tt.wantNilErr {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			if got != tt.want {
+				t.Errorf("unexpected runtime: got: %v, want: %v", tt.want, got)
+			}
+		})
+	}
+}
 
 var (
 	bridgeCfgs = []ipamConfig{{Subnet: "172.17.0.0/16", Gateway: "172.17.0.1"}}
@@ -25,7 +146,7 @@ var (
 
 	defaultAPITestdata = apiTestdata{
 		networks: map[string]networkTestdata{
-			DefaultBridgeNetwork: {
+			defaultDockerBridgeNetwork: {
 				cfgs:          bridgeCfgs,
 				gateways:      []*net.IPNet{bridgeAddr},
 				bridgeGateway: bridgeAddr,
@@ -63,24 +184,7 @@ var (
 	}
 )
 
-func TestNewAPIClient_host(t *testing.T) {
-	const dockerHost = "tcp://example.com:1234"
-
-	t.Setenv("DOCKER_CONFIG", "testdata/certs")
-	t.Setenv("DOCKER_HOST", dockerHost)
-
-	cli, err := NewAPIClient()
-	if err != nil {
-		t.Fatalf("new API client: %v", err)
-	}
-	defer cli.Close()
-
-	if dh := cli.DaemonHost(); dh != dockerHost {
-		t.Errorf("unexpected daemon host: got: %v, want: %v", dh, dockerHost)
-	}
-}
-
-func TestNewAPIClient_tls(t *testing.T) {
+func TestNewDockerdClient_tls(t *testing.T) {
 	tests := []struct {
 		name       string
 		host       string
@@ -122,7 +226,7 @@ func TestNewAPIClient_tls(t *testing.T) {
 			t.Setenv("DOCKER_HOST", dockerHost)
 			t.Setenv("DOCKER_TLS_VERIFY", "1")
 
-			cli, err := NewAPIClient()
+			cli, err := NewDockerdClient(RuntimeDockerd)
 			if err != nil {
 				t.Fatalf("new API client: %v", err)
 			}
@@ -152,7 +256,102 @@ func TestNewAPIClient_tls(t *testing.T) {
 	}
 }
 
-func TestGateways(t *testing.T) {
+func TestDockerdClient_DaemonHost(t *testing.T) {
+	const dockerHost = "tcp://example.com:1234"
+
+	t.Setenv("DOCKER_CONFIG", "testdata/certs")
+	t.Setenv("DOCKER_HOST", dockerHost)
+
+	cli, err := NewDockerdClient(RuntimeDockerd)
+	if err != nil {
+		t.Fatalf("new API client: %v", err)
+	}
+	defer cli.Close()
+
+	if dh := cli.DaemonHost(); dh != dockerHost {
+		t.Errorf("unexpected daemon host: got: %v, want: %v", dh, dockerHost)
+	}
+}
+
+func TestDockerdClient_HostGatewayHostname(t *testing.T) {
+	tests := []struct {
+		name string
+		rt   Runtime
+		want string
+	}{
+		{
+			name: "dockerd",
+			rt:   RuntimeDockerd,
+			want: "host.docker.internal",
+		},
+		{
+			name: "dockerd podman desktop",
+			rt:   RuntimeDockerdPodmanDesktop,
+			want: "host.containers.internal",
+		},
+		{
+			name: "invalid runtime",
+			rt:   Runtime(255),
+			want: "host.docker.internal",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli, err := NewDockerdClient(tt.rt)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			defer cli.Close()
+
+			got := cli.HostGatewayHostname()
+			if got != tt.want {
+				t.Errorf("unexpected hostname: got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDockerdClient_HostGatewayMapping(t *testing.T) {
+	tests := []struct {
+		name string
+		rt   Runtime
+		want string
+	}{
+		{
+			name: "dockerd",
+			rt:   RuntimeDockerd,
+			want: "host.docker.internal:host-gateway",
+		},
+		{
+			name: "dockerd podman desktop",
+			rt:   RuntimeDockerdPodmanDesktop,
+			want: "",
+		},
+		{
+			name: "invalid runtime",
+			rt:   Runtime(255),
+			want: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli, err := NewDockerdClient(tt.rt)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			defer cli.Close()
+
+			got := cli.HostGatewayMapping()
+			if got != tt.want {
+				t.Errorf("unexpected hostname: got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDockerdClient_gateways(t *testing.T) {
 	tests := []struct {
 		name       string
 		net        string
@@ -160,7 +359,7 @@ func TestGateways(t *testing.T) {
 	}{
 		{
 			name:       "default bridge network",
-			net:        DefaultBridgeNetwork,
+			net:        defaultDockerBridgeNetwork,
 			wantNilErr: true,
 		},
 		{
@@ -197,13 +396,13 @@ func TestGateways(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli, err := newTestClient(defaultAPITestdata)
+			cli, err := newTestDockerdClient(t, RuntimeDockerd, defaultAPITestdata)
 			if err != nil {
 				t.Fatalf("new test client: %v", err)
 			}
 			defer cli.Close()
 
-			got, err := Gateways(context.Background(), cli, tt.net)
+			got, err := cli.gateways(context.Background(), tt.net)
 
 			if (err == nil) != tt.wantNilErr {
 				t.Errorf("unexpected error: %v", err)
@@ -217,7 +416,7 @@ func TestGateways(t *testing.T) {
 	}
 }
 
-func TestBridgeGateway(t *testing.T) {
+func TestDockerdClient_bridgeGateway(t *testing.T) {
 	tests := []struct {
 		name       string
 		td         apiTestdata
@@ -232,7 +431,7 @@ func TestBridgeGateway(t *testing.T) {
 			name: "multiple gateways",
 			td: apiTestdata{
 				networks: map[string]networkTestdata{
-					DefaultBridgeNetwork: {
+					defaultDockerBridgeNetwork: {
 						cfgs: []ipamConfig{
 							{Subnet: "172.18.0.0/16", Gateway: "172.18.0.1"},
 							{Subnet: "172.19.0.0/16", Gateway: "172.19.0.10"},
@@ -246,7 +445,7 @@ func TestBridgeGateway(t *testing.T) {
 			name: "no gateways",
 			td: apiTestdata{
 				networks: map[string]networkTestdata{
-					DefaultBridgeNetwork: {},
+					defaultDockerBridgeNetwork: {},
 				},
 			},
 			wantNilErr: false,
@@ -255,19 +454,19 @@ func TestBridgeGateway(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli, err := newTestClient(tt.td)
+			cli, err := newTestDockerdClient(t, RuntimeDockerd, tt.td)
 			if err != nil {
 				t.Fatalf("new test client: %v", err)
 			}
 			defer cli.Close()
 
-			got, err := BridgeGateway(cli)
+			got, err := cli.bridgeGateway()
 
 			if (err == nil) != tt.wantNilErr {
 				t.Errorf("unexpected error: %v", err)
 			}
 
-			want := tt.td.networks[DefaultBridgeNetwork].bridgeGateway
+			want := tt.td.networks[defaultDockerBridgeNetwork].bridgeGateway
 			if !cmp.Equal(got, want) {
 				t.Errorf("unexpected value: got: %v, want: %v", got, want)
 			}
@@ -275,40 +474,33 @@ func TestBridgeGateway(t *testing.T) {
 	}
 }
 
-func TestBridgeHost(t *testing.T) {
+func TestDockerdClient_HostGatewayInterfaceAddr(t *testing.T) {
 	tests := []struct {
-		name       string
-		ifaceAddrs []net.Addr
-		want       string
+		name string
+		rt   Runtime
+		want string
 	}{
 		{
 			name: "docker desktop",
-			ifaceAddrs: []net.Addr{
-				&net.IPNet{IP: net.ParseIP("1.1.1.1"), Mask: net.CIDRMask(16, 32)},
-			},
+			rt:   RuntimeDockerdDockerDesktop,
 			want: "127.0.0.1",
 		},
 		{
 			name: "docker engine",
-			ifaceAddrs: []net.Addr{
-				&net.IPNet{IP: net.ParseIP("1.1.1.1"), Mask: net.CIDRMask(16, 32)},
-				bridgeAddr,
-			},
+			rt:   RuntimeDockerd,
 			want: bridgeAddr.IP.String(),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli, err := newTestClient(defaultAPITestdata)
+			cli, err := newTestDockerdClient(t, tt.rt, defaultAPITestdata)
 			if err != nil {
 				t.Fatalf("new test client: %v", err)
 			}
 			defer cli.Close()
 
-			got, err := bridgeHost(cli, func() ([]net.Addr, error) {
-				return tt.ifaceAddrs, nil
-			})
+			got, err := cli.HostGatewayInterfaceAddr()
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
@@ -320,90 +512,32 @@ func TestBridgeHost(t *testing.T) {
 	}
 }
 
-func TestIsDockerDesktop(t *testing.T) {
-	tests := []struct {
-		name       string
-		ifaceAddrs []net.Addr
-		want       bool
-	}{
-		{
-			name: "docker desktop",
-			ifaceAddrs: []net.Addr{
-				&net.IPNet{IP: net.ParseIP("1.1.1.1"), Mask: net.CIDRMask(16, 32)},
-			},
-			want: true,
-		},
-		{
-			name: "docker engine",
-			ifaceAddrs: []net.Addr{
-				&net.IPNet{IP: net.ParseIP("1.1.1.1"), Mask: net.CIDRMask(16, 32)},
-				bridgeAddr,
-			},
-			want: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cli, err := newTestClient(defaultAPITestdata)
-			if err != nil {
-				t.Fatalf("new test client: %v", err)
-			}
-			defer cli.Close()
-
-			got, err := isDockerDesktop(cli, func() ([]net.Addr, error) {
-				return tt.ifaceAddrs, nil
-			})
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-
-			if got != tt.want {
-				t.Errorf("unexpected value: got: %v, want: %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestIsDockerDesktop_resolver_error(t *testing.T) {
-	cli, err := newTestClient(defaultAPITestdata)
-	if err != nil {
-		t.Fatalf("new test client: %v", err)
-	}
-	defer cli.Close()
-
-	_, err = isDockerDesktop(cli, func() ([]net.Addr, error) {
-		return nil, errors.New("error")
-	})
-	if err == nil {
-		t.Errorf("unexpected nil error")
-	}
-}
-
-type testClient struct {
-	*client.Client
+type testDockerdClient struct {
+	DockerdClient
 	srv *httptest.Server
 }
 
-func newTestClient(td apiTestdata) (testClient, error) {
+func newTestDockerdClient(t *testing.T, rt Runtime, td apiTestdata) (testDockerdClient, error) {
 	srv := httptest.NewServer(testAPI{testdata: td})
 
-	cli, err := client.NewClientWithOpts(client.WithHost(srv.URL))
+	t.Setenv("DOCKER_HOST", "tcp://"+srv.Listener.Addr().String())
+
+	cli, err := NewDockerdClient(rt)
 	if err != nil {
 		srv.Close()
-		return testClient{}, fmt.Errorf("new client: %w", err)
+		return testDockerdClient{}, fmt.Errorf("new client: %w", err)
 	}
 
-	mc := testClient{
-		Client: cli,
-		srv:    srv,
+	tdc := testDockerdClient{
+		DockerdClient: cli,
+		srv:           srv,
 	}
-	return mc, nil
+	return tdc, nil
 }
 
-func (mc testClient) Close() error {
-	mc.srv.Close()
-	return mc.Client.Close()
+func (tdc testDockerdClient) Close() error {
+	tdc.srv.Close()
+	return tdc.DockerdClient.Close()
 }
 
 type testAPI struct {
@@ -459,7 +593,7 @@ type ipamConfig struct {
 	Gateway string `json:"Gateway"`
 }
 
-func (api testAPI) handleNetworks(w http.ResponseWriter, r *http.Request, name string) {
+func (api testAPI) handleNetworks(w http.ResponseWriter, _ *http.Request, name string) {
 	td, ok := api.testdata.networks[name]
 	if !ok {
 		http.Error(w, "not found", http.StatusNotFound)
@@ -480,7 +614,7 @@ type info struct {
 	ID string `json:"ID"`
 }
 
-func (api testAPI) handleInfo(w http.ResponseWriter, r *http.Request) {
+func (api testAPI) handleInfo(w http.ResponseWriter, _ *http.Request) {
 	net := info{ID: api.testdata.system.id}
 	if err := json.NewEncoder(w).Encode(net); err != nil {
 		http.Error(w, fmt.Sprintf("marshal: %v", err), http.StatusInternalServerError)

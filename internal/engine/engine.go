@@ -24,66 +24,156 @@ import (
 
 	"github.com/adevinta/lava/internal/checktypes"
 	"github.com/adevinta/lava/internal/config"
-	"github.com/adevinta/lava/internal/dockerutil"
+	"github.com/adevinta/lava/internal/containers"
 	"github.com/adevinta/lava/internal/metrics"
 )
-
-// dockerInternalHost is the host used by the containers to access the
-// services exposed by the Docker host.
-const dockerInternalHost = "host.lava.internal"
 
 // Report is a collection of reports returned by Vulcan checks and
 // indexed by check ID.
 type Report map[string]report.Report
 
-// Run runs vulcan checks and returns the generated report. The check
-// list is based on the provided checktypes and targets. These checks
-// are run by a Vulcan agent, which is configured using the specified
-// configuration.
-func Run(checktypeURLs []string, targets []config.Target, cfg config.AgentConfig) (Report, error) {
-	srv, err := newTargetServer()
+// Engine represents a Lava engine able to run Vulcan checks and
+// retrieve the generated reports.
+type Engine struct {
+	cli     containers.DockerdClient
+	catalog checktypes.Catalog
+	cfg     agentconfig.Config
+	runtime containers.Runtime
+}
+
+// New returns a new [Engine].
+func New(cfg config.AgentConfig, checktypeURLs []string) (eng Engine, err error) {
+	rt, err := containers.GetenvRuntime()
 	if err != nil {
-		return nil, fmt.Errorf("new server: %w", err)
+		return Engine{}, fmt.Errorf("get env runtime: %w", err)
 	}
-	defer srv.Close()
+
+	cli, err := containers.NewDockerdClient(rt)
+	if err != nil {
+		return Engine{}, fmt.Errorf("new dockerd client: %w", err)
+	}
 
 	catalog, err := checktypes.NewCatalog(checktypeURLs)
 	if err != nil {
-		return nil, fmt.Errorf("get checkype catalog: %w", err)
+		return Engine{}, fmt.Errorf("get checkype catalog: %w", err)
 	}
 
 	metrics.Collect("checktypes", catalog)
 
-	jl, err := generateJobs(catalog, targets)
+	agentCfg, err := newAgentConfig(cli, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("create job list: %w", err)
+		return Engine{}, fmt.Errorf("get agent config: %w", err)
 	}
 
-	if len(jl) == 0 {
+	eng = Engine{
+		cli:     cli,
+		catalog: catalog,
+		cfg:     agentCfg,
+		runtime: rt,
+	}
+	return eng, nil
+}
+
+// newAgentConfig creates a new [agentconfig.Config] based on the
+// provided Vulcan agent configuration.
+func newAgentConfig(cli containers.DockerdClient, cfg config.AgentConfig) (agentconfig.Config, error) {
+	listenHost, err := cli.HostGatewayInterfaceAddr()
+	if err != nil {
+		return agentconfig.Config{}, fmt.Errorf("get gateway interface address: %w", err)
+	}
+
+	parallel := cfg.Parallel
+	if parallel == 0 {
+		parallel = 1
+	}
+
+	ln, err := net.Listen("tcp", net.JoinHostPort(listenHost, "0"))
+	if err != nil {
+		return agentconfig.Config{}, fmt.Errorf("listen: %w", err)
+	}
+
+	auths := []agentconfig.Auth{}
+	for _, r := range cfg.RegistryAuths {
+		auths = append(auths, agentconfig.Auth{
+			Server: r.Server,
+			User:   r.Username,
+			Pass:   r.Password,
+		})
+	}
+
+	acfg := agentconfig.Config{
+		Agent: agentconfig.AgentConfig{
+			ConcurrentJobs:         parallel,
+			MaxNoMsgsInterval:      5,   // Low as all the messages will be in the queue before starting the agent.
+			MaxProcessMessageTimes: 1,   // No retry.
+			Timeout:                180, // Default timeout of 3 minutes.
+		},
+		API: agentconfig.APIConfig{
+			Host:     cli.HostGatewayHostname(),
+			Listener: ln,
+		},
+		Check: agentconfig.CheckConfig{
+			Vars: cfg.Vars,
+		},
+		Runtime: agentconfig.RuntimeConfig{
+			Docker: agentconfig.DockerConfig{
+				Registry: agentconfig.RegistryConfig{
+					PullPolicy:          cfg.PullPolicy,
+					BackoffMaxRetries:   5,
+					BackoffInterval:     5,
+					BackoffJitterFactor: 0.5,
+					Auths:               auths,
+				},
+			},
+		},
+	}
+	return acfg, nil
+}
+
+// Close releases the internal resources used by the Lava engine.
+func (eng Engine) Close() error {
+	if err := eng.cli.Close(); err != nil {
+		return fmt.Errorf("close dockerd client: %w", err)
+	}
+	return nil
+}
+
+// Run runs vulcan checks and returns the generated report. The check
+// list is based on the configured checktype catalogs and the provided
+// targets. These checks are run by a Vulcan agent, which is
+// configured using the specified configuration.
+func (eng Engine) Run(targets []config.Target) (Report, error) {
+	jobs, err := generateJobs(eng.catalog, targets)
+	if err != nil {
+		return nil, fmt.Errorf("generate jobs: %w", err)
+	}
+
+	if len(jobs) == 0 {
 		return nil, nil
 	}
 
-	return runAgent(jl, srv, cfg)
+	return eng.runAgent(jobs)
 }
 
 // summaryInterval is the time between summary logs.
 const summaryInterval = 15 * time.Second
 
-// runAgent creates a Vulcan agent using the specified config and uses
-// it to run the provided jobs.
-func runAgent(jobs []jobrunner.Job, srv *targetServer, cfg config.AgentConfig) (Report, error) {
+// runAgent creates a Vulcan agent using the configured Vulcan agent
+// config and uses it to run the provided jobs.
+func (eng Engine) runAgent(jobs []jobrunner.Job) (Report, error) {
+	srv, err := newTargetServer(eng.runtime)
+	if err != nil {
+		return nil, fmt.Errorf("new target server: %w", err)
+	}
+	defer srv.Close()
+
 	alogger := newAgentLogger(slog.Default())
 
-	agentConfig, err := newAgentConfig(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("get agent config: %w", err)
-	}
-
 	br := func(params backend.RunParams, rc *docker.RunConfig) error {
-		return beforeRun(params, rc, srv)
+		return eng.beforeRun(params, rc, srv)
 	}
 
-	backend, err := docker.NewBackend(alogger, agentConfig, br)
+	backend, err := docker.NewBackend(alogger, eng.cfg, br)
 	if err != nil {
 		return nil, fmt.Errorf("new Docker backend: %w", err)
 	}
@@ -118,25 +208,20 @@ func runAgent(jobs []jobrunner.Job, srv *targetServer, cfg config.AgentConfig) (
 		}
 	}()
 
-	exitCode := agent.RunWithQueues(agentConfig, rs, backend, stateQueue, jobsQueue, alogger)
+	exitCode := agent.RunWithQueues(eng.cfg, rs, backend, stateQueue, jobsQueue, alogger)
 	if exitCode != 0 {
 		return nil, fmt.Errorf("run agent: exit code %v", exitCode)
 	}
 
 	done <- true
 
-	report, err := mkReport(rs, srv)
-	if err != nil {
-		return nil, fmt.Errorf("restore targets: %w", err)
-	}
-
-	return report, nil
+	return eng.mkReport(srv, rs), nil
 }
 
 // mkReport generates a report from the information stored in the
-// provided [reportStore]. It uses the provided [targetServer] to
+// provided [reportStore]. It uses the specified [targetServer] to
 // replace the targets sent to the checks with the original targets.
-func mkReport(rs *reportStore, srv *targetServer) (Report, error) {
+func (eng Engine) mkReport(srv *targetServer, rs *reportStore) Report {
 	rep := make(Report)
 	for checkID, r := range rs.Reports() {
 		tm, ok := srv.TargetMap(checkID)
@@ -161,7 +246,7 @@ func mkReport(rs *reportStore, srv *targetServer) (Report, error) {
 
 		rep[checkID] = r
 	}
-	return rep, nil
+	return rep
 }
 
 // vulnReplaceAll returns a copy of the vulnerability vuln with all
@@ -233,67 +318,13 @@ func rscReplaceAll(rsc report.ResourcesGroup, old, new string) report.ResourcesG
 	return rsc
 }
 
-// newAgentConfig creates a new [agentconfig.Config] based on the
-// provided Lava configuration.
-func newAgentConfig(cfg config.AgentConfig) (agentconfig.Config, error) {
-	listenHost, err := bridgeHost()
-	if err != nil {
-		return agentconfig.Config{}, fmt.Errorf("get listen host: %w", err)
-	}
-
-	parallel := cfg.Parallel
-	if parallel == 0 {
-		parallel = 1
-	}
-
-	ln, err := net.Listen("tcp", net.JoinHostPort(listenHost, "0"))
-	if err != nil {
-		return agentconfig.Config{}, fmt.Errorf("listen: %w", err)
-	}
-
-	auths := []agentconfig.Auth{}
-	for _, r := range cfg.RegistryAuths {
-		auths = append(auths, agentconfig.Auth{
-			Server: r.Server,
-			User:   r.Username,
-			Pass:   r.Password,
-		})
-	}
-
-	acfg := agentconfig.Config{
-		Agent: agentconfig.AgentConfig{
-			ConcurrentJobs:         parallel,
-			MaxNoMsgsInterval:      5,   // Low as all the messages will be in the queue before starting the agent.
-			MaxProcessMessageTimes: 1,   // No retry.
-			Timeout:                180, // Default timeout of 3 minutes.
-		},
-		API: agentconfig.APIConfig{
-			Host:     dockerInternalHost,
-			Listener: ln,
-		},
-		Check: agentconfig.CheckConfig{
-			Vars: cfg.Vars,
-		},
-		Runtime: agentconfig.RuntimeConfig{
-			Docker: agentconfig.DockerConfig{
-				Registry: agentconfig.RegistryConfig{
-					PullPolicy:          cfg.PullPolicy,
-					BackoffMaxRetries:   5,
-					BackoffInterval:     5,
-					BackoffJitterFactor: 0.5,
-					Auths:               auths,
-				},
-			},
-		},
-	}
-	return acfg, nil
-}
-
 // beforeRun is called by the agent before creating each check
 // container.
-func beforeRun(params backend.RunParams, rc *docker.RunConfig, srv *targetServer) error {
+func (eng Engine) beforeRun(params backend.RunParams, rc *docker.RunConfig, srv *targetServer) error {
 	// Register a host pointing to the host gateway.
-	rc.HostConfig.ExtraHosts = []string{dockerInternalHost + ":host-gateway"}
+	if gwmap := eng.cli.HostGatewayMapping(); gwmap != "" {
+		rc.HostConfig.ExtraHosts = []string{gwmap}
+	}
 
 	// Allow all checks to scan local assets.
 	rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_ALLOW_PRIVATE_IPS", "true")
@@ -308,10 +339,7 @@ func beforeRun(params backend.RunParams, rc *docker.RunConfig, srv *targetServer
 		// Tools like trivy require access to the Docker
 		// daemon to scan local Docker images. So, we share
 		// the Docker socket with them.
-		dockerHost, err := daemonHost()
-		if err != nil {
-			return fmt.Errorf("get Docker client: %w", err)
-		}
+		dockerHost := eng.cli.DaemonHost()
 
 		// Remote Docker daemons are not supported.
 		if dockerVol, found := strings.CutPrefix(dockerHost, "unix://"); found {
@@ -334,34 +362,6 @@ func beforeRun(params backend.RunParams, rc *docker.RunConfig, srv *targetServer
 	}
 
 	return nil
-}
-
-// daemonHost returns the Docker daemon host.
-func daemonHost() (string, error) {
-	cli, err := dockerutil.NewAPIClient()
-	if err != nil {
-		return "", fmt.Errorf("get Docker client: %w", err)
-	}
-	defer cli.Close()
-
-	return cli.DaemonHost(), nil
-}
-
-// bridgeHost returns a host that points to the Docker host and is
-// reachable from the containers running in the default bridge.
-func bridgeHost() (string, error) {
-	cli, err := dockerutil.NewAPIClient()
-	if err != nil {
-		return "", fmt.Errorf("get Docker client: %w", err)
-	}
-	defer cli.Close()
-
-	host, err := dockerutil.BridgeHost(cli)
-	if err != nil {
-		return "", fmt.Errorf("get bridge host: %w", err)
-	}
-
-	return host, nil
 }
 
 // setenv sets the value of the variable named by the key in the
