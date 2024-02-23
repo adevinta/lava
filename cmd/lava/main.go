@@ -1,6 +1,7 @@
 // Copyright 2023 Adevinta
 
-// Lava runs security checks locally.
+// Lava is a tool for running security checks in your local and CI/CD
+// environments.
 package main
 
 import (
@@ -71,7 +72,7 @@ func main() {
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "Unknown command %q. Run 'lava help'.\n", args[0])
+	fmt.Fprintf(os.Stderr, "Unknown command %q. Run \"lava help\".\n", args[0])
 	os.Exit(2)
 }
 

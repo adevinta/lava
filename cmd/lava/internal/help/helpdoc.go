@@ -137,7 +137,7 @@ the following properties.
   - output: path of the output file. If not specified, stdout is used.
   - metrics: path of the file where the metrics report will be
     written. If not specified, then the metrics report is not
-    generated. For more details, use 'lava help metrics'.
+    generated. For more details, use "lava help metrics".
   - exclusions: list of rules that define what findings should be
     excluded from the report. It allows to ignore findings because of
     accepted risks, false positives, etc.
@@ -191,8 +191,8 @@ After a security scan has finished, Lava can generate a metrics file
 with security, operational and configuration information. This data is
 serialized as JSON.
 
-For more details about how to enable this functionality, use 'lava
-help lava.yaml'.
+For more details about how to enable this functionality, use "lava
+help lava.yaml".
 
 # Example
 
