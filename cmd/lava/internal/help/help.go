@@ -5,6 +5,7 @@ package help
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"text/template"
@@ -15,7 +16,7 @@ import (
 // Help prints the documentation of the provided command.
 func Help(args []string) {
 	if len(args) == 0 {
-		PrintUsage()
+		PrintUsage(os.Stdout)
 		return
 	}
 	if len(args) != 1 {
@@ -27,7 +28,7 @@ func Help(args []string) {
 
 	for _, cmd := range base.Commands {
 		if cmd.Name() == arg {
-			tmpl(helpTemplate, cmd)
+			tmpl(os.Stdout, helpTemplate, cmd)
 			return
 		}
 	}
@@ -38,15 +39,15 @@ func Help(args []string) {
 
 // PrintUsage prints a usage message documenting all the Lava
 // commands.
-func PrintUsage() {
-	tmpl(usageTemplate, base.Commands)
+func PrintUsage(w io.Writer) {
+	tmpl(w, usageTemplate, base.Commands)
 }
 
-func tmpl(text string, data interface{}) {
+func tmpl(w io.Writer, text string, data interface{}) {
 	t := template.New("top")
 	t.Funcs(template.FuncMap{"trim": strings.TrimSpace})
 	template.Must(t.Parse(text))
-	if err := t.Execute(os.Stderr, data); err != nil {
+	if err := t.Execute(w, data); err != nil {
 		panic(err)
 	}
 }

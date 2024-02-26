@@ -37,12 +37,14 @@ func main() {
 	h := clilog.NewCLIHandler(os.Stderr, &clilog.HandlerOptions{Level: base.LogLevel})
 	slog.SetDefault(slog.New(h))
 
-	flag.Usage = help.PrintUsage
+	flag.Usage = func() {
+		help.PrintUsage(os.Stderr)
+	}
 	flag.Parse() //nolint:errcheck
 
 	args := flag.Args()
 	if len(args) < 1 {
-		help.PrintUsage()
+		help.PrintUsage(os.Stderr)
 		os.Exit(2)
 	}
 
