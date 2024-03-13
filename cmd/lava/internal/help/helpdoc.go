@@ -271,7 +271,7 @@ General-purpose environment variables:
 	LAVA_RUNTIME
 		Controls the container runtime used by the lava
 		command. Valid values are "Dockerd" and
-		DockerdDockerDesktop". If not specified, "Dockerd" is
+		"DockerdDockerDesktop". If not specified, "Dockerd" is
 		used. The values "DockerdRancherDesktop" and
 		"DockerdPodmanDesktop" are also valid, but they are
 		considered experimental.
