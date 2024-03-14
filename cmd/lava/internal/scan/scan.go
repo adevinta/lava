@@ -103,6 +103,7 @@ func scan(args []string) (int, error) {
 		return 0, fmt.Errorf("minimum required version %v", cfg.LavaVersion)
 	}
 
+	metrics.Collect("lava_version", bi.Main.Version)
 	metrics.Collect("config_version", cfg.LavaVersion)
 	metrics.Collect("checktype_urls", cfg.ChecktypeURLs)
 	metrics.Collect("targets", cfg.Targets)

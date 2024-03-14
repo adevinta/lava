@@ -211,6 +211,7 @@ example.
 	      "assets": ["GitRepository"]
 	    }
 	  },
+	  "lava_version": "v0.4.2",
 	  "config_version": "v0.0.0",
 	  "duration": 10.986237086,
 	  "excluded_vulnerability_count": 3,
@@ -237,6 +238,7 @@ A Lava metrics file contains the following data:
   - checktype_urls: List of URLs pointing to checktype catalogs.
   - checktypes: Checktype catalog used during the scan. It is computed
     by merging all the checktype catalogs specified in checktype_urls.
+  - lava_version: Version of the Lava command.
   - config_version: Minimum version of Lava required by the
     configuration file.
   - duration: Duration of the scan.
