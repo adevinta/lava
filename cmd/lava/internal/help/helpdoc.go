@@ -17,7 +17,7 @@ lava.yaml) that defines the parameters of the security scan.
 A Lava configuration file is a YAML document as shown in the following
 example.
 
-	lava: v1.0.0
+	lava: v0.0.0
 	checktypes:
 	  - checktypes.json
 	targets:
@@ -42,7 +42,7 @@ This help topic describes every configuration parameter in detail.
 The "lava" field describes the minimum required version of the Lava
 command. For instance,
 
-	lava: v1.0.0
+	lava: v0.0.0
 
 Using a Lava command whose version is lower than the minimum version
 required by the configuration file returns an error.
@@ -271,7 +271,7 @@ General-purpose environment variables:
 	LAVA_RUNTIME
 		Controls the container runtime used by the lava
 		command. Valid values are "Dockerd" and
-		DockerdDockerDesktop". If not specified, "Dockerd" is
+		"DockerdDockerDesktop". If not specified, "Dockerd" is
 		used. The values "DockerdRancherDesktop" and
 		"DockerdPodmanDesktop" are also valid, but they are
 		considered experimental.
