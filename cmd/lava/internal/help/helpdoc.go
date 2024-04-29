@@ -12,6 +12,9 @@ var HelpLavaYAML = &base.Command{
 Each Lava project is defined by a configuration file (usually named
 lava.yaml) that defines the parameters of the security scan.
 
+A Lava configuration file is a YAML document that supports environment
+variable substitution with ${ENVVAR_NAME} notation.
+
 # Example
 
 A Lava configuration file is a YAML document as shown in the following
@@ -23,7 +26,7 @@ example.
 	targets:
 	  - identifier: .
 	    type: GitRepository
-	  - identifier: image
+	  - identifier: ${DOCKER_IMAGE}
 	    type: DockerImage
 	agent:
 	  parallel: 4
@@ -117,7 +120,7 @@ The sample below is a full agent configuration:
 	  registries:
 	    - server: example.com
 	      username: user
-	      password: p4ssw0rd
+	      password: ${REGISTRY_PASSWORD}
 
 It is important to note that Lava is able to use the credentials from
 the container runtime CLIs installed in the system. So, if these CLIs

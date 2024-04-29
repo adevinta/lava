@@ -1,0 +1,6 @@
+lava: v1.0.0
+checktypes:
+  - "${CHECK_types_URL1}"
+targets:
+  - identifier: ${TARGET}
+    type: DomainName

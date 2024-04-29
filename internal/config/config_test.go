@@ -18,6 +18,7 @@ func TestParse(t *testing.T) {
 	tests := []struct {
 		name          string
 		file          string
+		envs          map[string]string
 		want          Config
 		wantErr       error
 		wantErrRegexp *regexp.Regexp
@@ -33,6 +34,42 @@ func TestParse(t *testing.T) {
 				Targets: []Target{
 					{
 						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+				},
+			},
+		},
+		{
+			name: "valid env",
+			file: "testdata/valid_env.yaml",
+			want: Config{
+				LavaVersion: "v1.0.0",
+				ChecktypeURLs: []string{
+					"checktypes.json",
+				},
+				Targets: []Target{
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+				},
+			},
+			envs: map[string]string{
+				"TARGET":           "example.com",
+				"CHECK_types_URL1": "checktypes.json",
+			},
+		},
+		{
+			name: "invalid env",
+			file: "testdata/invalid_env.yaml",
+			want: Config{
+				LavaVersion: "v1.0.0",
+				ChecktypeURLs: []string{
+					"checktypes.json",
+				},
+				Targets: []Target{
+					{
+						Identifier: "${1NVALID}",
 						AssetType:  types.DomainName,
 					},
 				},
@@ -182,6 +219,9 @@ func TestParse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
 			got, err := ParseFile(tt.file)
 
 			switch {
