@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"regexp"
 	"strings"
 
 	agentconfig "github.com/adevinta/vulcan-agent/config"
@@ -73,9 +74,21 @@ type Config struct {
 	LogLevel slog.Level `yaml:"log"`
 }
 
+// reEnv is used to replace embedded environment variables.
+var reEnv = regexp.MustCompile(`\$\{[a-zA-Z_][a-zA-Z_0-9]*\}`)
+
 // Parse returns a parsed Lava configuration given an [io.Reader].
 func Parse(r io.Reader) (Config, error) {
-	dec := yaml.NewDecoder(r)
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return Config{}, fmt.Errorf("read config: %w", err)
+	}
+
+	s := reEnv.ReplaceAllStringFunc(string(b), func(match string) string {
+		return os.Getenv(match[2 : len(match)-1])
+	})
+
+	dec := yaml.NewDecoder(strings.NewReader(s))
 
 	// Ensure that the keys in the read data exist as fields in
 	// the struct being decoded into.
