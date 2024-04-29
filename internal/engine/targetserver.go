@@ -143,8 +143,13 @@ func (srv *targetServer) Handle(key string, target config.Target) (targetMap, er
 		tm, err = srv.handleGitRepo(target)
 	case assettypes.Path:
 		tm, err = srv.handlePath(target)
-	default:
+	case types.IP, types.Hostname, types.WebAddress:
 		tm, err = srv.handle(target)
+	case types.AWSAccount, types.DockerImage, types.IPRange, types.DomainName:
+		// These asset types are not handled by the target
+		// server.
+	default:
+		return targetMap{}, fmt.Errorf("unsupported asset type: %v", target.AssetType)
 	}
 	if err != nil {
 		return targetMap{}, err
