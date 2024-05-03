@@ -21,11 +21,11 @@ Version prints the version of the Lava command.
 }
 
 func init() {
-	CmdVersion.Run = run // Break initialization cycle.
+	CmdVersion.Run = runVersion // Break initialization cycle.
 }
 
-// run is the entry point of the version command.
-func run(args []string) error {
+// runVersion is the entry point of the version command.
+func runVersion(args []string) error {
 	if len(args) > 0 {
 		return errors.New("too many arguments")
 	}

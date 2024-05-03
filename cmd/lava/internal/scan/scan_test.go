@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestRun(t *testing.T) {
+func TestRunScan(t *testing.T) {
 	tests := []struct {
 		name         string
 		path         string
@@ -66,17 +66,17 @@ func TestRun(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			oldPwd := mustGetwd()
-			oldCfgfile := *cfgfile
+			oldScanC := scanC
 			oldOsExit := osExit
 			oldDebugReadBuildInfo := debugReadBuildInfo
 			defer func() {
 				mustChdir(oldPwd)
-				*cfgfile = oldCfgfile
+				scanC = oldScanC
 				osExit = oldOsExit
 				debugReadBuildInfo = oldDebugReadBuildInfo
 			}()
 
-			*cfgfile = "lava.yaml"
+			scanC = "lava.yaml"
 
 			var exitCode int
 			osExit = func(status int) {
@@ -93,7 +93,7 @@ func TestRun(t *testing.T) {
 			}
 
 			mustChdir(tt.path)
-			if err := run(nil); (err == nil) != tt.wantNilErr {
+			if err := runScan(nil); (err == nil) != tt.wantNilErr {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
