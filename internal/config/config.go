@@ -225,6 +225,16 @@ type RegistryAuth struct {
 	Password string `yaml:"password"`
 }
 
+// String returns the string representation of the [RegistryAuth]
+// masking the password.
+func (auth RegistryAuth) String() string {
+	var s string
+	if auth.Username != "" {
+		s = auth.Username + ":*****@"
+	}
+	return s + auth.Server
+}
+
 // Severity is the severity of a given finding.
 type Severity int
 
