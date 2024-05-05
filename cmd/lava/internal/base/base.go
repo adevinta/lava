@@ -40,7 +40,7 @@ func (c *Command) Name() string {
 
 // Usage prints a usage message documenting the command.
 func (c *Command) Usage() {
-	fmt.Fprintf(os.Stderr, "usage: %s\n", c.UsageLine)
+	fmt.Fprintf(os.Stderr, "usage: lava %s\n", c.UsageLine)
 	fmt.Fprintf(os.Stderr, "Run \"lava help %s\" for details.\n", c.Name())
 	os.Exit(2)
 }
