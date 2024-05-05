@@ -41,8 +41,22 @@ type Engine struct {
 	runtime containers.Runtime
 }
 
-// New returns a new [Engine].
+// New returns a new [Engine]. It retrieves and merges the checktype
+// catalogs from the provided checktype URLs to generate the catalog
+// that will be used to configure the scans.
 func New(cfg config.AgentConfig, checktypeURLs []string) (eng Engine, err error) {
+	catalog, err := checktypes.NewCatalog(checktypeURLs)
+	if err != nil {
+		return Engine{}, fmt.Errorf("get checkype catalog: %w", err)
+	}
+	return NewWithCatalog(cfg, catalog)
+}
+
+// NewWithCatalog returns a new [Engine] from a provided agent
+// configuration and checktype catalog.
+func NewWithCatalog(cfg config.AgentConfig, catalog checktypes.Catalog) (eng Engine, err error) {
+	metrics.Collect("checktypes", catalog)
+
 	rt, err := containers.GetenvRuntime()
 	if err != nil {
 		return Engine{}, fmt.Errorf("get env runtime: %w", err)
@@ -52,13 +66,6 @@ func New(cfg config.AgentConfig, checktypeURLs []string) (eng Engine, err error)
 	if err != nil {
 		return Engine{}, fmt.Errorf("new dockerd client: %w", err)
 	}
-
-	catalog, err := checktypes.NewCatalog(checktypeURLs)
-	if err != nil {
-		return Engine{}, fmt.Errorf("get checkype catalog: %w", err)
-	}
-
-	metrics.Collect("checktypes", catalog)
 
 	agentCfg, err := newAgentConfig(cli, cfg)
 	if err != nil {
