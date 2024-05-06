@@ -1,16 +1,17 @@
-// Copyright 2023 Adevinta
+// Copyright 2024 Adevinta
 
-package scan
+package run
 
 import (
 	"flag"
 	"log/slog"
 	"os"
-	"runtime/debug"
 	"testing"
 
 	"github.com/jroimartin/clilog"
 )
+
+const checktype = "vulcansec/vulcan-gitleaks:ea42ea5-b6abd8a"
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -26,39 +27,20 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestRunScan(t *testing.T) {
+func TestRunRun(t *testing.T) {
 	tests := []struct {
 		name         string
 		path         string
-		version      string
-		wantNilErr   bool
 		wantExitCode int
 	}{
 		{
 			name:         "good path",
 			path:         "testdata/goodpath",
-			version:      "v1.0.0",
-			wantNilErr:   true,
 			wantExitCode: 0,
 		},
 		{
 			name:         "vulnerable path",
 			path:         "testdata/vulnpath",
-			version:      "v1.0.0",
-			wantNilErr:   true,
-			wantExitCode: 103,
-		},
-		{
-			name:       "incompatible",
-			path:       "testdata/vulnpath",
-			version:    "v0.1.0",
-			wantNilErr: false,
-		},
-		{
-			name:         "skip compatibility check",
-			path:         "testdata/vulnpath",
-			version:      "(devel)",
-			wantNilErr:   true,
 			wantExitCode: 103,
 		},
 	}
@@ -66,34 +48,26 @@ func TestRunScan(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			oldPwd := mustGetwd()
-			oldScanC := scanC
 			oldOsExit := osExit
-			oldDebugReadBuildInfo := debugReadBuildInfo
+			oldRunO := runO
+			oldRunOptfile := runOptfile
 			defer func() {
 				mustChdir(oldPwd)
-				scanC = oldScanC
 				osExit = oldOsExit
-				debugReadBuildInfo = oldDebugReadBuildInfo
+				runO = oldRunO
+				runOptfile = oldRunOptfile
 			}()
 
-			scanC = "lava.yaml"
+			runO = "output.txt"
+			runOptfile = "options.json"
 
 			var exitCode int
 			osExit = func(status int) {
 				exitCode = status
 			}
 
-			debugReadBuildInfo = func() (*debug.BuildInfo, bool) {
-				bi := &debug.BuildInfo{
-					Main: debug.Module{
-						Version: tt.version,
-					},
-				}
-				return bi, true
-			}
-
 			mustChdir(tt.path)
-			if err := runScan(nil); (err == nil) != tt.wantNilErr {
+			if err := runRun([]string{checktype, "."}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 

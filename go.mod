@@ -3,7 +3,7 @@ module github.com/adevinta/lava
 go 1.21.1
 
 require (
-	github.com/adevinta/vulcan-agent v1.2.8
+	github.com/adevinta/vulcan-agent v1.2.10
 	github.com/adevinta/vulcan-check-catalog v0.0.0-20240321120804-fe4ed05f8505
 	github.com/adevinta/vulcan-report v1.0.0
 	github.com/adevinta/vulcan-types v1.2.15
@@ -25,7 +25,7 @@ require (
 	github.com/DataDog/datadog-go v4.8.3+incompatible // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/adevinta/vulcan-metrics-client v1.0.1 // indirect
-	github.com/aws/aws-sdk-go v1.51.30 // indirect
+	github.com/aws/aws-sdk-go v1.52.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect

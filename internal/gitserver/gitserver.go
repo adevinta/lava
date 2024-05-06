@@ -65,6 +65,18 @@ func (srv *Server) AddRepository(path string) (string, error) {
 		return repoName, nil
 	}
 
+	info, err := os.Stat(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return "", fmt.Errorf("not exist: %v", path)
+		}
+		return "", fmt.Errorf("stat path: %w", err)
+	}
+
+	if !info.IsDir() {
+		return "", fmt.Errorf("not a directory: %v", path)
+	}
+
 	dstPath, err := os.MkdirTemp(srv.basePath, "*.git")
 	if err != nil {
 		return "", fmt.Errorf("make temp dir: %w", err)

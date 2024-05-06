@@ -54,10 +54,12 @@ use "lava help environment".
 	`,
 }
 
-var cfgfile = CmdScan.Flag.String("c", "lava.yaml", "config file")
+// Command-line flags.
+var scanC string // -c flag
 
 func init() {
-	CmdScan.Run = run // Break initialization cycle.
+	CmdScan.Run = runScan // Break initialization cycle.
+	CmdScan.Flag.StringVar(&scanC, "c", "lava.yaml", "config file")
 }
 
 // osExit is used by tests to capture the exit code.
@@ -66,8 +68,8 @@ var osExit = os.Exit
 // debugReadBuildInfo is used by tests to set the command version.
 var debugReadBuildInfo = debug.ReadBuildInfo
 
-// run is the entry point of the scan command.
-func run(args []string) error {
+// runScan is the entry point of the scan command.
+func runScan(args []string) error {
 	exitCode, err := scan(args)
 	if err != nil {
 		return err
@@ -88,7 +90,7 @@ func scan(args []string) (int, error) {
 	startTime := time.Now()
 	metrics.Collect("start_time", startTime)
 
-	cfg, err := config.ParseFile(*cfgfile)
+	cfg, err := config.ParseFile(scanC)
 	if err != nil {
 		return 0, fmt.Errorf("parse config file: %w", err)
 	}

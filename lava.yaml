@@ -11,7 +11,9 @@ agent:
 report:
   severity: high
   exclusions:
-    - description: Ignore test targets.
+    - description: Ignore lava scan test targets.
       resource: 'cmd/lava/internal/scan/testdata/(goodpath|vulnpath)/Dockerfile'
-    - description: Ignore test targets.
+    - description: Ignore lava run test targets.
+      resource: 'cmd/lava/internal/run/testdata/(goodpath|vulnpath)/Dockerfile'
+    - description: Ignore engine test targets.
       resource: 'internal/engine/testdata/engine/vulnpath/Dockerfile'

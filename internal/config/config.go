@@ -225,6 +225,16 @@ type RegistryAuth struct {
 	Password string `yaml:"password"`
 }
 
+// String returns the string representation of the [RegistryAuth]
+// masking the password.
+func (auth RegistryAuth) String() string {
+	var s string
+	if auth.Username != "" {
+		s = auth.Username + ":*****@"
+	}
+	return s + auth.Server
+}
+
 // Severity is the severity of a given finding.
 type Severity int
 
@@ -259,7 +269,7 @@ func (s Severity) IsValid() bool {
 	return s >= SeverityInfo && s <= SeverityCritical
 }
 
-// String returns value of a severity.
+// String returns the string representation of the severity.
 func (s Severity) String() string {
 	for k, v := range severityNames {
 		if v == s {
@@ -269,7 +279,8 @@ func (s Severity) String() string {
 	return ""
 }
 
-// MarshalText encode a [Severity] as a text.
+// MarshalText encodes a [Severity] as text. It returns error is the
+// severity is not valid.
 func (s Severity) MarshalText() (text []byte, err error) {
 	if !s.IsValid() {
 		return nil, ErrInvalidSeverity
@@ -277,9 +288,9 @@ func (s Severity) MarshalText() (text []byte, err error) {
 	return []byte(s.String()), nil
 }
 
-// UnmarshalText decodes a Severity text into a
-// [Severity] value. It returns error if the provided
-// string does not match any known severity.
+// UnmarshalText decodes a [Severity] text into a [Severity] value. It
+// returns error if the provided string does not match any known
+// severity.
 func (s *Severity) UnmarshalText(text []byte) error {
 	severity, err := parseSeverity(string(text))
 	if err != nil {
@@ -311,11 +322,40 @@ func parseOutputFormat(format string) (OutputFormat, error) {
 	return OutputFormat(0), fmt.Errorf("%w: %v", ErrInvalidOutputFormat, format)
 }
 
-// UnmarshalYAML decodes an OutputFormat yaml node containing a string
-// into an [OutputFormat] value. It returns error if the provided
-// string does not match any known output format.
-func (f *OutputFormat) UnmarshalYAML(value *yaml.Node) error {
-	format, err := parseOutputFormat(value.Value)
+// String returns the string representation of the output format.
+func (f OutputFormat) String() string {
+	for k, v := range outputFormatNames {
+		if v == f {
+			return k
+		}
+	}
+	return ""
+}
+
+// IsValid reports whether the output format is known.
+func (f OutputFormat) IsValid() bool {
+	for _, v := range outputFormatNames {
+		if v == f {
+			return true
+		}
+	}
+	return false
+}
+
+// MarshalText encodes an [OutputFormat] as text. It returns error if
+// the output format is not valid.
+func (f OutputFormat) MarshalText() (text []byte, err error) {
+	if !f.IsValid() {
+		return nil, ErrInvalidOutputFormat
+	}
+	return []byte(f.String()), nil
+}
+
+// UnmarshalText decodes an [OutputFormat] text into an [OutputFormat]
+// value. It returns error if the provided string does not match any
+// known output format.
+func (f *OutputFormat) UnmarshalText(text []byte) error {
+	format, err := parseOutputFormat(string(text))
 	if err != nil {
 		return err
 	}

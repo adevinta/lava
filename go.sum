@@ -47,8 +47,8 @@ github.com/Microsoft/hcsshim v0.11.4 h1:68vKo2VN8DE9AdN4tnkWnmdhqdbpUFM8OF3Airm7
 github.com/Microsoft/hcsshim v0.11.4/go.mod h1:smjE4dvqPX9Zldna+t5FG3rnoHhaB7QYxPRqGcpAD9w=
 github.com/Shopify/logrus-bugsnag v0.0.0-20170309145241-6dbc35f2c30d h1:hi6J4K6DKrR4/ljxn6SF6nURyu785wKMuQcjt7H3VCQ=
 github.com/Shopify/logrus-bugsnag v0.0.0-20170309145241-6dbc35f2c30d/go.mod h1:HI8ITrYtUY+O+ZhtlqUnD8+KwNPOyugEhfP9fdUIaEQ=
-github.com/adevinta/vulcan-agent v1.2.8 h1:RnEb5BJCaH7Qa/DpZbc6FdRw9rVCwZRvcAz5qWGqbBE=
-github.com/adevinta/vulcan-agent v1.2.8/go.mod h1:C29A34Y4p5FcO/iNC1Vjo/5iBrv6580/aelDmIWPDp0=
+github.com/adevinta/vulcan-agent v1.2.10 h1:9oKfHB5gKnI7ZsJ+LPKerQEjI2A9M0INMi7kKTPORQY=
+github.com/adevinta/vulcan-agent v1.2.10/go.mod h1:LkxBNBvlH8fS5CjjmYv8/pjOwC9YKPEq2fVokvtFquI=
 github.com/adevinta/vulcan-check-catalog v0.0.0-20240321120804-fe4ed05f8505 h1:NzoZOXE/i7LgtKQywpEf2cPNK95AmA7/ZGMKwOmljEw=
 github.com/adevinta/vulcan-check-catalog v0.0.0-20240321120804-fe4ed05f8505/go.mod h1:izYvaAtGdfsTtm7mBUjrjagXbnCuXWVmmIyRfIaqiZI=
 github.com/adevinta/vulcan-metrics-client v1.0.1 h1:BAugnnRWvkA3vnuCX77W04PWhneZyenkrXtf9YgtZQk=
@@ -62,8 +62,8 @@ github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuy
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d/go.mod h1:rBZYJk541a8SKzHPHnH3zbiI+7dagKZ0cgpgrD7Fyho=
-github.com/aws/aws-sdk-go v1.51.30 h1:RVFkjn9P0JMwnuZCVH0TlV5k9zepHzlbc4943eZMhGw=
-github.com/aws/aws-sdk-go v1.51.30/go.mod h1:LF8svs817+Nz+DmiMQKTO3ubZ/6IaTpq3TjupRn3Eqk=
+github.com/aws/aws-sdk-go v1.52.0 h1:ptgek/4B2v/ljsjYSEvLQ8LTD+SQyrqhOOWvHc/VGPI=
+github.com/aws/aws-sdk-go v1.52.0/go.mod h1:LF8svs817+Nz+DmiMQKTO3ubZ/6IaTpq3TjupRn3Eqk=
 github.com/beorn7/perks v0.0.0-20150223135152-b965b613227f/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=

@@ -11,9 +11,9 @@ import (
 	"testing"
 )
 
-func TestRun(t *testing.T) {
-	oldCfgfile := *cfgfile
-	defer func() { *cfgfile = oldCfgfile }()
+func TestRunInit(t *testing.T) {
+	oldInitC := initC
+	defer func() { initC = oldInitC }()
 
 	tmpPath, err := os.MkdirTemp("", "")
 	if err != nil {
@@ -21,13 +21,13 @@ func TestRun(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpPath)
 
-	*cfgfile = filepath.Join(tmpPath, "lava.yaml")
+	initC = filepath.Join(tmpPath, "lava.yaml")
 
-	if err := run(nil); err != nil {
+	if err := runInit(nil); err != nil {
 		t.Fatalf("run error: %v", err)
 	}
 
-	data, err := os.ReadFile(*cfgfile)
+	data, err := os.ReadFile(initC)
 	if err != nil {
 		t.Fatalf("error reading file: %v", err)
 	}
@@ -37,12 +37,12 @@ func TestRun(t *testing.T) {
 	}
 }
 
-func TestRun_force(t *testing.T) {
-	oldCfgfile := *cfgfile
-	oldForce := *force
+func TestRunInit_force(t *testing.T) {
+	oldInitC := initC
+	oldInitF := initF
 	defer func() {
-		*cfgfile = oldCfgfile
-		*force = oldForce
+		initC = oldInitC
+		initF = oldInitF
 	}()
 
 	tmpPath, err := os.MkdirTemp("", "")
@@ -51,18 +51,18 @@ func TestRun_force(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpPath)
 
-	*cfgfile = filepath.Join(tmpPath, "lava.yaml")
+	initC = filepath.Join(tmpPath, "lava.yaml")
 
-	if err := os.WriteFile(*cfgfile, []byte("test"), 0644); err != nil {
+	if err := os.WriteFile(initC, []byte("test"), 0644); err != nil {
 		t.Fatalf("error writing file: %v", err)
 	}
 
-	*force = true
-	if err := run(nil); err != nil {
+	initF = true
+	if err := runInit(nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	data, err := os.ReadFile(*cfgfile)
+	data, err := os.ReadFile(initC)
 	if err != nil {
 		t.Fatalf("error reading file: %v", err)
 	}
@@ -72,9 +72,9 @@ func TestRun_force(t *testing.T) {
 	}
 }
 
-func TestRun_file_exists(t *testing.T) {
-	oldCfgfile := *cfgfile
-	defer func() { *cfgfile = oldCfgfile }()
+func TestRunInit_file_exists(t *testing.T) {
+	oldInitC := initC
+	defer func() { initC = oldInitC }()
 
 	tmpPath, err := os.MkdirTemp("", "")
 	if err != nil {
@@ -82,13 +82,13 @@ func TestRun_file_exists(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpPath)
 
-	*cfgfile = filepath.Join(tmpPath, "lava.yaml")
+	initC = filepath.Join(tmpPath, "lava.yaml")
 
-	if err := os.WriteFile(*cfgfile, []byte("test"), 0644); err != nil {
+	if err := os.WriteFile(initC, []byte("test"), 0644); err != nil {
 		t.Fatalf("error writing file: %v", err)
 	}
 
-	if err := run(nil); !errors.Is(err, fs.ErrExist) {
+	if err := runInit(nil); !errors.Is(err, fs.ErrExist) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

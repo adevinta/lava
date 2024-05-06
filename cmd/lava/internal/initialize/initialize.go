@@ -31,26 +31,29 @@ exists.
 	`,
 }
 
+// Command-line flags.
 var (
-	cfgfile = CmdInit.Flag.String("c", "lava.yaml", "config file")
-	force   = CmdInit.Flag.Bool("f", false, "overwrite config file")
-
-	//go:embed default.yaml
-	defaultConfig []byte
+	initC string // -c flag
+	initF bool   // -f flag
 )
 
+//go:embed default.yaml
+var defaultConfig []byte
+
 func init() {
-	CmdInit.Run = run // Break initialization cycle.
+	CmdInit.Run = runInit // Break initialization cycle.
+	CmdInit.Flag.StringVar(&initC, "c", "lava.yaml", "config file")
+	CmdInit.Flag.BoolVar(&initF, "f", false, "overwrite config file")
 }
 
-// run is the entry point of the init command.
-func run(args []string) error {
+// runInit is the entry point of the init command.
+func runInit(args []string) error {
 	if len(args) > 0 {
 		return errors.New("too many arguments")
 	}
 
-	if !*force {
-		_, err := os.Stat(*cfgfile)
+	if !initF {
+		_, err := os.Stat(initC)
 		if err == nil {
 			return fs.ErrExist
 		}
@@ -59,7 +62,7 @@ func run(args []string) error {
 		}
 	}
 
-	if err := os.WriteFile(*cfgfile, defaultConfig, 0644); err != nil {
+	if err := os.WriteFile(initC, defaultConfig, 0644); err != nil {
 		return fmt.Errorf("write file: %w", err)
 	}
 
