@@ -5,10 +5,8 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"net"
 	"net/url"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -224,22 +222,6 @@ loop:
 // handleGitRepo serves the provided Git repository using Lava's
 // internal Git server.
 func (srv *targetServer) handleGitRepo(target config.Target) (targetMap, error) {
-	info, err := os.Stat(target.Identifier)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			// If the path does not exist, assume that the
-			// target is a remote Git repository.
-			return targetMap{}, nil
-		}
-		return targetMap{}, fmt.Errorf("stat repository path: %w", err)
-	}
-
-	if !info.IsDir() {
-		// If the path does not point to a directory, do not
-		// handle the Git repository.
-		return targetMap{}, nil
-	}
-
 	repo, err := srv.gs.AddRepository(target.Identifier)
 	if err != nil {
 		return targetMap{}, fmt.Errorf("add Git repository: %w", err)

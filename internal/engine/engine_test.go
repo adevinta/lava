@@ -202,15 +202,6 @@ func TestEngine_Run_path(t *testing.T) {
 			wantStatus: "FINISHED",
 			wantVulns:  true,
 		},
-		{
-			name: "not exist",
-			target: config.Target{
-				Identifier: "testdata/engine/notexist",
-				AssetType:  assettypes.Path,
-			},
-			wantStatus: "FAILED",
-			wantVulns:  false,
-		},
 	}
 
 	for _, tt := range tests {
@@ -252,15 +243,17 @@ func TestEngine_Run_path(t *testing.T) {
 	}
 }
 
-func TestEngine_Run_inconclusive(t *testing.T) {
-	checktypeURLs := []string{"testdata/engine/checktypes_trivy.json"}
-	agentConfig := config.AgentConfig{
-		PullPolicy: agentconfig.PullPolicyAlways,
-	}
-	target := config.Target{
-		Identifier: "testdata/engine/vulnpath",
-		AssetType:  types.GitRepository,
-	}
+func TestEngine_Run_path_not_exist(t *testing.T) {
+	var (
+		checktypeURLs = []string{"testdata/engine/checktypes_trivy.json"}
+		agentConfig   = config.AgentConfig{
+			PullPolicy: agentconfig.PullPolicyAlways,
+		}
+		target = config.Target{
+			Identifier: "testdata/engine/notexist",
+			AssetType:  assettypes.Path,
+		}
+	)
 
 	eng, err := New(agentConfig, checktypeURLs)
 	if err != nil {
@@ -280,18 +273,43 @@ func TestEngine_Run_inconclusive(t *testing.T) {
 		checkReports = append(checkReports, v)
 	}
 
-	if len(checkReports) != 1 {
+	if len(checkReports) != 0 {
 		t.Fatalf("unexpected number of reports: %v", len(checkReports))
 	}
+}
 
-	gotReport := checkReports[0]
+func TestEngine_Run_not_repo(t *testing.T) {
+	var (
+		checktypeURLs = []string{"testdata/engine/checktypes_trivy.json"}
+		agentConfig   = config.AgentConfig{
+			PullPolicy: agentconfig.PullPolicyAlways,
+		}
+		target = config.Target{
+			Identifier: "testdata/engine/vulnpath",
+			AssetType:  types.GitRepository,
+		}
+	)
 
-	if gotReport.Status != "INCONCLUSIVE" {
-		t.Errorf("unexpected status: %v", gotReport.Status)
+	eng, err := New(agentConfig, checktypeURLs)
+	if err != nil {
+		t.Fatalf("engine initialization error: %v", err)
+	}
+	defer eng.Close()
+
+	engineReport, err := eng.Run([]config.Target{target})
+	if err != nil {
+		t.Fatalf("engine run error: %v", err)
 	}
 
-	if len(gotReport.Vulnerabilities) > 0 {
-		t.Errorf("unexpected number of vulnerabilities: %v", len(gotReport.Vulnerabilities))
+	checkReportTarget(t, engineReport, eng.cli.HostGatewayHostname())
+
+	var checkReports []report.Report
+	for _, v := range engineReport {
+		checkReports = append(checkReports, v)
+	}
+
+	if len(checkReports) != 0 {
+		t.Fatalf("unexpected number of reports: %v", len(checkReports))
 	}
 }
 

@@ -359,13 +359,13 @@ func (eng Engine) beforeRun(params backend.RunParams, rc *docker.RunConfig, srv 
 		Identifier: params.Target,
 		AssetType:  types.AssetType(params.AssetType),
 	}
-	if tm, err := srv.Handle(params.CheckID, target); err == nil {
-		if !tm.IsZero() {
-			rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_CHECK_TARGET", tm.NewIdentifier)
-			rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_CHECK_ASSET_TYPE", string(tm.NewAssetType))
-		}
-	} else {
-		slog.Warn("could not handle target", "target", target, "err", err)
+	tm, err := srv.Handle(params.CheckID, target)
+	if err != nil {
+		return fmt.Errorf("handle target: %w", err)
+	}
+	if !tm.IsZero() {
+		rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_CHECK_TARGET", tm.NewIdentifier)
+		rc.ContainerConfig.Env = setenv(rc.ContainerConfig.Env, "VULCAN_CHECK_ASSET_TYPE", string(tm.NewAssetType))
 	}
 
 	return nil
