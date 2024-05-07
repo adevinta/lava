@@ -5,10 +5,18 @@
 package assettypes
 
 import (
+	"errors"
+	"fmt"
+	"io/fs"
+	"os"
 	"slices"
 
 	types "github.com/adevinta/vulcan-types"
 )
+
+// ErrUnsupported is returned when the requested operation does not
+// support the specified asset type.
+var ErrUnsupported = errors.New("unsupported asset type")
 
 // Lava asset types.
 const (
@@ -36,4 +44,38 @@ func ToVulcan(at types.AssetType) types.AssetType {
 		return vt
 	}
 	return at
+}
+
+// CheckReachable checks if the asset with the specified type and
+// identifier is reachable. CheckReachable does not check if the asset
+// is functional. If the asset is reachable, it returns a nil
+// error. If the asset is unreachable, it returns an error explaining
+// the cause. If the asset type is not supported, it returns an
+// [ErrUnsupported] error. If the reachability test fails, it returns
+// the error that caused the failure.
+func CheckReachable(typ types.AssetType, ident string) error {
+	switch typ {
+	case types.GitRepository:
+		info, err := os.Stat(ident)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				// If the path does not exist, assume
+				// it is a remote Git repository and,
+				// thus, reachability test is not
+				// supported.
+				return ErrUnsupported
+			}
+			return err
+		}
+		if !info.IsDir() {
+			return fmt.Errorf("not a directory")
+		}
+	case Path:
+		if _, err := os.Stat(ident); err != nil {
+			return err
+		}
+	default:
+		return ErrUnsupported
+	}
+	return nil
 }
