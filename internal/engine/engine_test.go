@@ -243,7 +243,7 @@ func TestEngine_Run_path(t *testing.T) {
 	}
 }
 
-func TestEngine_Run_path_not_exist(t *testing.T) {
+func TestEngine_Run_unreachable_target(t *testing.T) {
 	var (
 		checktypeURLs = []string{"testdata/engine/checktypes_trivy.json"}
 		agentConfig   = config.AgentConfig{
@@ -261,20 +261,8 @@ func TestEngine_Run_path_not_exist(t *testing.T) {
 	}
 	defer eng.Close()
 
-	engineReport, err := eng.Run([]config.Target{target})
-	if err != nil {
-		t.Fatalf("engine run error: %v", err)
-	}
-
-	checkReportTarget(t, engineReport, eng.cli.HostGatewayHostname())
-
-	var checkReports []report.Report
-	for _, v := range engineReport {
-		checkReports = append(checkReports, v)
-	}
-
-	if len(checkReports) != 0 {
-		t.Fatalf("unexpected number of reports: %v", len(checkReports))
+	if _, err := eng.Run([]config.Target{target}); err == nil {
+		t.Fatal("unexpected nil error")
 	}
 }
 
