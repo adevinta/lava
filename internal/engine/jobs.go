@@ -99,14 +99,14 @@ func generateChecks(catalog checktypes.Catalog, targets []config.Target) []check
 }
 
 // dedup returns a deduplicated slice.
-func dedup[S ~[]E, E any](targets S) S {
-	var ts S
-	for _, target := range targets {
-		if !contains(ts, target) {
-			ts = append(ts, target)
+func dedup[S ~[]E, E any](s S) S {
+	var ret S
+	for _, v := range s {
+		if !contains(ret, v) {
+			ret = append(ret, v)
 		}
 	}
-	return ts
+	return ret
 }
 
 // contains reports whether v is present in s. It uses

@@ -6,6 +6,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -22,6 +23,7 @@ import (
 	report "github.com/adevinta/vulcan-report"
 	types "github.com/adevinta/vulcan-types"
 
+	"github.com/adevinta/lava/internal/assettypes"
 	"github.com/adevinta/lava/internal/checktypes"
 	"github.com/adevinta/lava/internal/config"
 	"github.com/adevinta/lava/internal/containers"
@@ -145,11 +147,20 @@ func (eng Engine) Close() error {
 	return nil
 }
 
-// Run runs vulcan checks and returns the generated report. The check
+// Run runs vulcan checks and returns the generated report. Before
+// running the scan, it checks that all the provided targets are
+// reachable and returns an error if any of them is not. The check
 // list is based on the configured checktype catalogs and the provided
 // targets. These checks are run by a Vulcan agent, which is
 // configured using the specified configuration.
 func (eng Engine) Run(targets []config.Target) (Report, error) {
+	for _, t := range targets {
+		err := assettypes.CheckReachable(t.AssetType, t.Identifier)
+		if err != nil && !errors.Is(err, assettypes.ErrUnsupported) {
+			return nil, fmt.Errorf("unreachable target: %v: %w", t, err)
+		}
+	}
+
 	jobs, err := generateJobs(eng.catalog, targets)
 	if err != nil {
 		return nil, fmt.Errorf("generate jobs: %w", err)

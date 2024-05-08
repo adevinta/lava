@@ -199,6 +199,11 @@ type Target struct {
 	Options map[string]any `yaml:"options"`
 }
 
+// String returns the string representation of the [Target].
+func (t Target) String() string {
+	return fmt.Sprintf("%v(%v)", t.AssetType, t.Identifier)
+}
+
 // validate reports whether the target is a valid configuration value.
 func (t Target) validate() error {
 	if t.Identifier == "" {

@@ -5,8 +5,10 @@ package engine
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/url"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -167,8 +169,9 @@ func (srv *targetServer) handle(target config.Target) (targetMap, error) {
 		return targetMap{}, fmt.Errorf("generate stream: %w", err)
 	}
 
+	// If the target is not a loopback address, ignore it.
 	if !loopback {
-		return targetMap{}, errors.New("not a loopback address")
+		return targetMap{}, nil
 	}
 
 	batch := srv.pg.ListenAndServe(stream)
@@ -222,6 +225,15 @@ loop:
 // handleGitRepo serves the provided Git repository using Lava's
 // internal Git server.
 func (srv *targetServer) handleGitRepo(target config.Target) (targetMap, error) {
+	if _, err := os.Stat(target.Identifier); err != nil {
+		// If the path does not exist, assume that the target
+		// is a remote Git repository and ignore it.
+		if errors.Is(err, fs.ErrNotExist) {
+			return targetMap{}, nil
+		}
+		return targetMap{}, err
+	}
+
 	repo, err := srv.gs.AddRepository(target.Identifier)
 	if err != nil {
 		return targetMap{}, fmt.Errorf("add Git repository: %w", err)
