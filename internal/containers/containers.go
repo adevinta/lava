@@ -21,6 +21,7 @@ import (
 	"github.com/docker/cli/cli/flags"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/go-connections/tlsconfig"
 )
 
@@ -233,4 +234,30 @@ func (cli *DockerdClient) gateways(ctx context.Context, network string) ([]*net.
 		gws = append(gws, subnet)
 	}
 	return gws, nil
+}
+
+// ImageBuild builds a Docker image in the context of a path using the
+// provided dockerfile and assigns it the specified reference.
+func (cli *DockerdClient) ImageBuild(ctx context.Context, path, dockerfile, tag string) error {
+	tar, err := archive.TarWithOptions(path, &archive.TarOptions{})
+	if err != nil {
+		return fmt.Errorf("new tar: %w", err)
+	}
+
+	opts := types.ImageBuildOptions{
+		Tags:       []string{tag},
+		Dockerfile: dockerfile,
+		Remove:     true,
+	}
+	resp, err := cli.APIClient.ImageBuild(ctx, tar, opts)
+	if err != nil {
+		return fmt.Errorf("image build: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+		return fmt.Errorf("read response: %w", err)
+	}
+
+	return nil
 }

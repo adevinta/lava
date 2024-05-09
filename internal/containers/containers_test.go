@@ -3,20 +3,41 @@
 package containers
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/google/go-cmp/cmp"
 )
+
+var testRuntime Runtime
+
+func TestMain(m *testing.M) {
+	rt, err := GetenvRuntime()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: get env runtime: %v", err)
+		os.Exit(2)
+	}
+	testRuntime = rt
+
+	os.Exit(m.Run())
+}
 
 func TestParseRuntime(t *testing.T) {
 	tests := []struct {
@@ -141,18 +162,18 @@ func TestRuntime_UnmarshalText(t *testing.T) {
 }
 
 var (
-	bridgeCfgs = []ipamConfig{{Subnet: "172.17.0.0/16", Gateway: "172.17.0.1"}}
+	bridgeCfgs = []mockDockerdIPAMConfig{{Subnet: "172.17.0.0/16", Gateway: "172.17.0.1"}}
 	bridgeAddr = &net.IPNet{IP: net.ParseIP("172.17.0.1"), Mask: net.CIDRMask(16, 32)}
 
-	defaultAPITestdata = apiTestdata{
-		networks: map[string]networkTestdata{
+	defaultAPITestdata = mockDockerdTestdata{
+		networks: map[string]mockDockerdNetworkTestdata{
 			defaultDockerBridgeNetwork: {
 				cfgs:          bridgeCfgs,
 				gateways:      []*net.IPNet{bridgeAddr},
 				bridgeGateway: bridgeAddr,
 			},
 			"multi": {
-				cfgs: []ipamConfig{
+				cfgs: []mockDockerdIPAMConfig{
 					{Subnet: "172.18.0.0/16", Gateway: "172.18.0.1"},
 					{Subnet: "172.19.0.0/16", Gateway: "172.19.0.10"},
 				},
@@ -163,22 +184,22 @@ var (
 			},
 			"empty": {},
 			"mismatch": {
-				cfgs: []ipamConfig{
+				cfgs: []mockDockerdIPAMConfig{
 					{Subnet: "172.17.0.0/16", Gateway: "172.18.0.1"},
 				},
 			},
 			"badgateway": {
-				cfgs: []ipamConfig{
+				cfgs: []mockDockerdIPAMConfig{
 					{Subnet: "172.18.0.0/16", Gateway: "172.18.0.555"},
 				},
 			},
 			"badsubnet": {
-				cfgs: []ipamConfig{
+				cfgs: []mockDockerdIPAMConfig{
 					{Subnet: "172.18.555.0/16", Gateway: "172.18.0.1"},
 				},
 			},
 		},
-		system: systemTestdata{
+		system: mockDockerdSystemTestdata{
 			id: "dockerutil",
 		},
 	}
@@ -207,7 +228,7 @@ func TestNewDockerdClient_tls(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv := httptest.NewUnstartedServer(testAPI{testdata: defaultAPITestdata})
+			srv := httptest.NewUnstartedServer(mockDockerd{testdata: defaultAPITestdata})
 
 			cert, err := tls.LoadX509KeyPair("testdata/certs/server-cert.pem", "testdata/certs/server-key.pem")
 			if err != nil {
@@ -228,7 +249,7 @@ func TestNewDockerdClient_tls(t *testing.T) {
 
 			cli, err := NewDockerdClient(RuntimeDockerd)
 			if err != nil {
-				t.Fatalf("new API client: %v", err)
+				t.Fatalf("could not create API client: %v", err)
 			}
 			defer cli.Close()
 
@@ -264,7 +285,7 @@ func TestDockerdClient_DaemonHost(t *testing.T) {
 
 	cli, err := NewDockerdClient(RuntimeDockerd)
 	if err != nil {
-		t.Fatalf("new API client: %v", err)
+		t.Fatalf("could not create API client: %v", err)
 	}
 	defer cli.Close()
 
@@ -300,7 +321,7 @@ func TestDockerdClient_HostGatewayHostname(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cli, err := NewDockerdClient(tt.rt)
 			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+				t.Fatalf("could not create API client: %v", err)
 			}
 			defer cli.Close()
 
@@ -339,7 +360,7 @@ func TestDockerdClient_HostGatewayMapping(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cli, err := NewDockerdClient(tt.rt)
 			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+				t.Fatalf("could not create API client: %v", err)
 			}
 			defer cli.Close()
 
@@ -396,9 +417,9 @@ func TestDockerdClient_gateways(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli, err := newTestDockerdClient(t, RuntimeDockerd, defaultAPITestdata)
+			cli, err := newMockDockerdClient(t, RuntimeDockerd, defaultAPITestdata)
 			if err != nil {
-				t.Fatalf("new test client: %v", err)
+				t.Fatalf("could not create test client: %v", err)
 			}
 			defer cli.Close()
 
@@ -419,7 +440,7 @@ func TestDockerdClient_gateways(t *testing.T) {
 func TestDockerdClient_bridgeGateway(t *testing.T) {
 	tests := []struct {
 		name       string
-		td         apiTestdata
+		td         mockDockerdTestdata
 		wantNilErr bool
 	}{
 		{
@@ -429,10 +450,10 @@ func TestDockerdClient_bridgeGateway(t *testing.T) {
 		},
 		{
 			name: "multiple gateways",
-			td: apiTestdata{
-				networks: map[string]networkTestdata{
+			td: mockDockerdTestdata{
+				networks: map[string]mockDockerdNetworkTestdata{
 					defaultDockerBridgeNetwork: {
-						cfgs: []ipamConfig{
+						cfgs: []mockDockerdIPAMConfig{
 							{Subnet: "172.18.0.0/16", Gateway: "172.18.0.1"},
 							{Subnet: "172.19.0.0/16", Gateway: "172.19.0.10"},
 						},
@@ -443,8 +464,8 @@ func TestDockerdClient_bridgeGateway(t *testing.T) {
 		},
 		{
 			name: "no gateways",
-			td: apiTestdata{
-				networks: map[string]networkTestdata{
+			td: mockDockerdTestdata{
+				networks: map[string]mockDockerdNetworkTestdata{
 					defaultDockerBridgeNetwork: {},
 				},
 			},
@@ -454,9 +475,9 @@ func TestDockerdClient_bridgeGateway(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli, err := newTestDockerdClient(t, RuntimeDockerd, tt.td)
+			cli, err := newMockDockerdClient(t, RuntimeDockerd, tt.td)
 			if err != nil {
-				t.Fatalf("new test client: %v", err)
+				t.Fatalf("could not create test client: %v", err)
 			}
 			defer cli.Close()
 
@@ -494,9 +515,9 @@ func TestDockerdClient_HostGatewayInterfaceAddr(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cli, err := newTestDockerdClient(t, tt.rt, defaultAPITestdata)
+			cli, err := newMockDockerdClient(t, tt.rt, defaultAPITestdata)
 			if err != nil {
-				t.Fatalf("new test client: %v", err)
+				t.Fatalf("could not create test client: %v", err)
 			}
 			defer cli.Close()
 
@@ -512,41 +533,141 @@ func TestDockerdClient_HostGatewayInterfaceAddr(t *testing.T) {
 	}
 }
 
-type testDockerdClient struct {
+func TestDockerdClient_ImageBuild(t *testing.T) {
+	cli, err := NewDockerdClient(testRuntime)
+	if err != nil {
+		t.Fatalf("could not create API client: %v", err)
+	}
+	defer cli.Close()
+
+	const imgRef = "lava-internal-containers-test:go-test"
+
+	if err := cli.ImageBuild(context.Background(), "testdata/image", "Dockerfile", imgRef); err != nil {
+		t.Fatalf("image build error: %v", err)
+	}
+	defer func() {
+		rmOpts := image.RemoveOptions{Force: true, PruneChildren: true}
+		if _, err := cli.ImageRemove(context.Background(), imgRef, rmOpts); err != nil {
+			t.Logf("could not delete test Docker image %q: %v", imgRef, err)
+		}
+	}()
+
+	summ, err := cli.ImageList(context.Background(), image.ListOptions{
+		Filters: filters.NewArgs(filters.Arg("reference", imgRef)),
+	})
+	if err != nil {
+		t.Fatalf("image list error: %v", err)
+	}
+
+	if len(summ) != 1 {
+		t.Errorf("unexpected number of images: %v", len(summ))
+	}
+
+	const want = "image build test"
+
+	got, err := dockerRun(t, cli.APIClient, imgRef, want)
+	if err != nil {
+		t.Fatalf("docker run error: %v", err)
+	}
+
+	if got != want {
+		t.Errorf("unexpected output: got: %q, want: %q", got, want)
+	}
+}
+
+func dockerRun(t *testing.T, cli client.APIClient, ref string, cmd ...string) (stdout string, err error) {
+	contCfg := &container.Config{
+		Image: ref,
+		Cmd:   cmd,
+		Tty:   false,
+	}
+	resp, err := cli.ContainerCreate(context.Background(), contCfg, nil, nil, nil, "")
+	if err != nil {
+		return "", fmt.Errorf("container create: %w", err)
+	}
+	defer func() {
+		rmOpts := container.RemoveOptions{Force: true}
+		if err := cli.ContainerRemove(context.Background(), resp.ID, rmOpts); err != nil {
+			t.Logf("could not delete test Docker container %q: %v", resp.ID, err)
+		}
+	}()
+
+	if err := cli.ContainerStart(context.Background(), resp.ID, container.StartOptions{}); err != nil {
+		return "", fmt.Errorf("container start: %w", err)
+	}
+
+	statusCh, errCh := cli.ContainerWait(context.Background(), resp.ID, container.WaitConditionNotRunning)
+	select {
+	case err := <-errCh:
+		if err != nil {
+			return "", fmt.Errorf("container wait: %w", err)
+		}
+	case <-statusCh:
+	}
+
+	logs, err := cli.ContainerLogs(context.Background(), resp.ID, container.LogsOptions{ShowStdout: true})
+	if err != nil {
+		return "", fmt.Errorf("container logs: %w", err)
+	}
+
+	var out bytes.Buffer
+	if _, err := stdcopy.StdCopy(&out, io.Discard, logs); err != nil {
+		return "", fmt.Errorf("std copy: %w", err)
+	}
+
+	return out.String(), nil
+}
+
+type mockDockerdClient struct {
 	DockerdClient
 	srv *httptest.Server
 }
 
-func newTestDockerdClient(t *testing.T, rt Runtime, td apiTestdata) (testDockerdClient, error) {
-	srv := httptest.NewServer(testAPI{testdata: td})
+func newMockDockerdClient(t *testing.T, rt Runtime, td mockDockerdTestdata) (mockDockerdClient, error) {
+	srv := httptest.NewServer(mockDockerd{testdata: td})
 
 	t.Setenv("DOCKER_HOST", "tcp://"+srv.Listener.Addr().String())
 
 	cli, err := NewDockerdClient(rt)
 	if err != nil {
 		srv.Close()
-		return testDockerdClient{}, fmt.Errorf("new client: %w", err)
+		return mockDockerdClient{}, fmt.Errorf("new client: %w", err)
 	}
 
-	tdc := testDockerdClient{
+	mockcli := mockDockerdClient{
 		DockerdClient: cli,
 		srv:           srv,
 	}
-	return tdc, nil
+	return mockcli, nil
 }
 
-func (tdc testDockerdClient) Close() error {
-	tdc.srv.Close()
-	return tdc.DockerdClient.Close()
+func (mockcli mockDockerdClient) Close() error {
+	mockcli.srv.Close()
+	return mockcli.DockerdClient.Close()
 }
 
-type testAPI struct {
-	testdata apiTestdata
+type mockDockerd struct {
+	testdata mockDockerdTestdata
+}
+
+type mockDockerdTestdata struct {
+	networks map[string]mockDockerdNetworkTestdata
+	system   mockDockerdSystemTestdata
+}
+
+type mockDockerdNetworkTestdata struct {
+	cfgs          []mockDockerdIPAMConfig
+	gateways      []*net.IPNet
+	bridgeGateway *net.IPNet
+}
+
+type mockDockerdSystemTestdata struct {
+	id string
 }
 
 var routeRegexp = regexp.MustCompile(`^/v\d+\.\d+(/.*)$`)
 
-func (api testAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (api mockDockerd) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m := routeRegexp.FindStringSubmatch(r.URL.Path)
 	if m == nil {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -569,53 +690,38 @@ func (api testAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type apiTestdata struct {
-	networks map[string]networkTestdata
-	system   systemTestdata
+type mockDockerdNetwork struct {
+	IPAM mockDockerdIPAM `json:"IPAM"`
 }
 
-type networkTestdata struct {
-	cfgs          []ipamConfig
-	gateways      []*net.IPNet
-	bridgeGateway *net.IPNet
+type mockDockerdIPAM struct {
+	Config []mockDockerdIPAMConfig `json:"Config"`
 }
 
-type network struct {
-	IPAM ipam `json:"IPAM"`
-}
-
-type ipam struct {
-	Config []ipamConfig `json:"Config"`
-}
-
-type ipamConfig struct {
+type mockDockerdIPAMConfig struct {
 	Subnet  string `json:"Subnet"`
 	Gateway string `json:"Gateway"`
 }
 
-func (api testAPI) handleNetworks(w http.ResponseWriter, _ *http.Request, name string) {
+func (api mockDockerd) handleNetworks(w http.ResponseWriter, _ *http.Request, name string) {
 	td, ok := api.testdata.networks[name]
 	if !ok {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
-	net := network{IPAM: ipam{Config: td.cfgs}}
+	net := mockDockerdNetwork{IPAM: mockDockerdIPAM{Config: td.cfgs}}
 	if err := json.NewEncoder(w).Encode(net); err != nil {
 		http.Error(w, fmt.Sprintf("marshal: %v", err), http.StatusInternalServerError)
 	}
 }
 
-type systemTestdata struct {
-	id string
-}
-
-type info struct {
+type mockDockerdInfo struct {
 	ID string `json:"ID"`
 }
 
-func (api testAPI) handleInfo(w http.ResponseWriter, _ *http.Request) {
-	net := info{ID: api.testdata.system.id}
+func (api mockDockerd) handleInfo(w http.ResponseWriter, _ *http.Request) {
+	net := mockDockerdInfo{ID: api.testdata.system.id}
 	if err := json.NewEncoder(w).Encode(net); err != nil {
 		http.Error(w, fmt.Sprintf("marshal: %v", err), http.StatusInternalServerError)
 	}
