@@ -4,22 +4,29 @@
 package run
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"runtime/debug"
 	"time"
 
 	agentconfig "github.com/adevinta/vulcan-agent/config"
 	checkcatalog "github.com/adevinta/vulcan-check-catalog/pkg/model"
 	types "github.com/adevinta/vulcan-types"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 
 	"github.com/adevinta/lava/cmd/lava/internal/base"
 	"github.com/adevinta/lava/internal/assettypes"
 	"github.com/adevinta/lava/internal/checktypes"
 	"github.com/adevinta/lava/internal/config"
+	"github.com/adevinta/lava/internal/containers"
 	"github.com/adevinta/lava/internal/engine"
 	"github.com/adevinta/lava/internal/metrics"
 	"github.com/adevinta/lava/internal/report"
@@ -34,7 +41,8 @@ Run a checktype against a target.
 
 Run accepts two arguments: the checktype to run and the target of the
 scan. The checktype is a container image reference (e.g.
-"vulcansec/vulcan-trivy:edge"). The target is any of the targets
+"vulcansec/vulcan-trivy:edge") or a path pointing to a directory with
+the source code of a checktype. The target is any of the targets
 supported by the -type flag.
 
 The -type flag determines the type of the provided target. Valid
@@ -61,7 +69,8 @@ times.
 The -pull flag determines the pull policy for container images. Valid
 values are "Always" (always download the image), "IfNotPresent" (pull
 the image if it not present in the local cache) and "Never" (never
-pull the image). If not specified, "IfNotPresent" is used.
+pull the image). If not specified, "IfNotPresent" is used. If the
+checktype is a path, "Always" is not allowed.
 
 The -registry flag specifies the container registry. If the registry
 requires authentication, the credentials are provided using the -user
@@ -87,6 +96,66 @@ use "lava help metrics".
 
 The -log flag defines the logging level. Valid values are "debug",
 "info", "warn" and "error". If not specified, "info" is used.
+
+# Path checktype
+
+When the specified checktype is a path that points to a directory,
+Lava assumes that the directory contains the source code of the
+checktype.
+
+The directory must contains at least the following files:
+
+  - Dockerfile
+  - Go source code (*.go)
+
+Lava will build the Go source code and then it will create a Docker
+image based on the Dockerfile file found in the directory. The
+reference of the generated image has the format "name:lava-run". Where
+name is the name of the directory pointed by the specified path. If
+the path is "/", the string "lava-checktype" is used. If the path is
+".", the name of the current directory is used.
+
+Thus, the following command:
+
+	lava run /path/to/vulcan-trivy .
+
+would generate a Docker image with the reference
+"vulcan-trivy:lava-run".
+
+Finally, the generated Docker image is used as checktype to run a scan
+against the provided target with the specified options.
+
+This mode requires a working Go toolchain in PATH.
+
+# Examples
+
+Run the checktype "vulcansec/vulcan-trivy:edge" against the current
+directory:
+
+	lava run vulcansec/vulcan-trivy:edge .
+
+Run the checktype "vulcansec/vulcan-trivy:edge" against the current
+directory with the options stored in the "options.json" file:
+
+	lava run -optfile=options.json vulcansec/vulcan-trivy:edge .
+
+Build and run the checktype in the path "/path/to/vulcan-trivy"
+against the current directory:
+
+	lava run /path/to/vulcan-trivy .
+
+Run the checktype "vulcansec/vulcan-nuclei:edge" against the remote
+"WebAddress" target "https://example.com":
+
+	lava run -type=WebAddress vulcansec/vulcan-nuclei:edge https://example.com
+
+Run the checktype "vulcansec/vulcan-nuclei:edge" against the local
+"WebAddress" target "http://localhost:1234". Write the results in JSON
+format to the "output.json" file. Also write security, operational and
+configuration metrics to the "metrics.json" file:
+
+	lava run -o output.json -fmt=json -metrics=metrics.json \
+	         -type=WebAddress vulcansec/vulcan-nuclei:edge http://localhost:1234
 	`}
 
 // Command-line flags.
@@ -132,7 +201,7 @@ func run(args []string) (int, error) {
 		return 0, errors.New("invalid number of arguments")
 	}
 	checktype := args[0]
-	targetIdentifier := args[1]
+	targetIdent := args[1]
 
 	startTime := time.Now()
 	metrics.Collect("start_time", startTime)
@@ -145,54 +214,128 @@ func run(args []string) (int, error) {
 	}
 	metrics.Collect("lava_version", bi.Main.Version)
 
-	target, err := mkTarget(targetIdentifier)
-	if err != nil {
-		return 0, fmt.Errorf("generate target: %w", err)
-	}
-	metrics.Collect("targets", []config.Target{target})
-
-	agentConfig := mkAgentConfig()
-	checktypeCatalog := mkChecktypeCatalog(checktype)
-	eng, err := engine.NewWithCatalog(agentConfig, checktypeCatalog)
-	if err != nil {
-		return 0, fmt.Errorf("engine initialization: %w", err)
-	}
-	defer eng.Close()
-
-	er, err := eng.Run([]config.Target{target})
+	rep, err := engineRun(targetIdent, checktype)
 	if err != nil {
 		return 0, fmt.Errorf("engine run: %w", err)
 	}
 
-	reportConfig := mkReportConfig()
-	metrics.Collect("severity", reportConfig.Severity)
-
-	rw, err := report.NewWriter(reportConfig)
+	exitCode, err := writeOutputs(rep)
 	if err != nil {
-		return 0, fmt.Errorf("new writer: %w", err)
-	}
-	defer rw.Close()
-
-	exitCode, err := rw.Write(er)
-	if err != nil {
-		return 0, fmt.Errorf("render report: %w", err)
+		return 0, fmt.Errorf("write report: %w", err)
 	}
 
 	metrics.Collect("exit_code", exitCode)
 	metrics.Collect("duration", time.Since(startTime).Seconds())
 
-	if reportConfig.Metrics != "" {
-		if err = metrics.WriteFile(reportConfig.Metrics); err != nil {
-			return 0, fmt.Errorf("write metrics: %w", err)
+	return int(exitCode), nil
+}
+
+// engineRun runs a check against the specified targetIdent with the
+// specified checktype. It gets the configuration from the provided
+// flags.
+func engineRun(targetIdent string, checktype string) (engine.Report, error) {
+	target, err := mkTarget(targetIdent)
+	if err != nil {
+		return nil, fmt.Errorf("generate target: %w", err)
+	}
+	metrics.Collect("targets", []config.Target{target})
+
+	agentConfig := mkAgentConfig()
+	info, err := os.Stat(checktype)
+	switch {
+	case err != nil && !errors.Is(err, fs.ErrNotExist):
+		return nil, err
+	case err == nil && info.IsDir():
+		if agentConfig.PullPolicy == agentconfig.PullPolicyAlways {
+			return nil, errors.New("path checktypes do not allow Always pull policy")
 		}
+
+		ct, err := buildChecktype(checktype)
+		if err != nil {
+			return nil, fmt.Errorf("build checktype: %w", err)
+		}
+		checktype = ct
 	}
 
-	return int(exitCode), nil
+	checktypeCatalog := mkChecktypeCatalog(checktype)
+	eng, err := engine.NewWithCatalog(agentConfig, checktypeCatalog)
+	if err != nil {
+		return nil, fmt.Errorf("engine initialization: %w", err)
+	}
+	defer eng.Close()
+
+	rep, err := eng.Run([]config.Target{target})
+	if err != nil {
+		return nil, fmt.Errorf("engine run: %w", err)
+	}
+	return rep, nil
+}
+
+// buildChecktype builds the checktype in path. It returns the
+// reference of the new Docker image.
+func buildChecktype(path string) (string, error) {
+	slog.Info("building Go source code", "path", path)
+
+	cmd := exec.Command("go", "build")
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux")
+	cmd.Dir = path
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("go build: %w", err)
+	}
+
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("absolute path: %w", err)
+	}
+	dirname := filepath.Base(abs)
+	if dirname == "/" {
+		dirname = "lava-checktype"
+	}
+
+	rt, err := containers.GetenvRuntime()
+	if err != nil {
+		return "", fmt.Errorf("get env runtime: %w", err)
+	}
+
+	cli, err := containers.NewDockerdClient(rt)
+	if err != nil {
+		return "", fmt.Errorf("new dockerd client: %w", err)
+	}
+
+	ref := dirname + ":lava-run"
+
+	summ, err := cli.ImageList(context.Background(), image.ListOptions{
+		Filters: filters.NewArgs(filters.Arg("reference", ref)),
+	})
+	if err != nil {
+		return "", fmt.Errorf("image list: %w", err)
+	}
+
+	slog.Info("building Docker image", "ref", ref)
+
+	if err := cli.ImageBuild(context.Background(), path, "Dockerfile", ref); err != nil {
+		return "", fmt.Errorf("image build: %w", err)
+	}
+
+	switch n := len(summ); n {
+	case 0:
+		// No image found. Nothing to do.
+	case 1:
+		rmOpts := image.RemoveOptions{Force: true, PruneChildren: true}
+		if _, err := cli.ImageRemove(context.Background(), summ[0].ID, rmOpts); err != nil {
+			return "", fmt.Errorf("image remove: %w", err)
+		}
+	default:
+		return "", fmt.Errorf("image list: unexpected number of images: %v", n)
+	}
+
+	return ref, nil
 }
 
 // mkTarget generates a target from the provided flags and positional
 // arguments.
-func mkTarget(targetIdentifier string) (target config.Target, err error) {
+func mkTarget(targetIdent string) (target config.Target, err error) {
 	if runOpt != "" && runOptfile != "" {
 		return config.Target{}, errors.New("-opt and -optfile cannot be set simultaneously")
 	}
@@ -212,22 +355,11 @@ func mkTarget(targetIdentifier string) (target config.Target, err error) {
 	}
 
 	target = config.Target{
-		Identifier: targetIdentifier,
+		Identifier: targetIdent,
 		AssetType:  types.AssetType(runType),
 		Options:    opts,
 	}
 	return target, nil
-}
-
-// mkReportConfig generates a report configuration from the provided
-// flags.
-func mkReportConfig() config.ReportConfig {
-	return config.ReportConfig{
-		Severity:   runSeverity,
-		Format:     runFmt,
-		OutputFile: runO,
-		Metrics:    runMetrics,
-	}
 }
 
 // mkAgentConfig generates an agent configuration from the provided
@@ -262,4 +394,37 @@ func mkChecktypeCatalog(checktype string) checktypes.Catalog {
 		Assets:  []string{vulcanAssetType.String()},
 	}
 	return checktypes.Catalog{checktype: ct}
+}
+
+// writeOutputs writes the provided report and the metrics file. It
+// returns the exit code of the run command based on the
+// report. writeOutputs gets the configuration from the provided
+// flags.
+func writeOutputs(rep engine.Report) (report.ExitCode, error) {
+	reportConfig := config.ReportConfig{
+		Severity:   runSeverity,
+		Format:     runFmt,
+		OutputFile: runO,
+		Metrics:    runMetrics,
+	}
+	metrics.Collect("severity", reportConfig.Severity)
+
+	rw, err := report.NewWriter(reportConfig)
+	if err != nil {
+		return 0, fmt.Errorf("new writer: %w", err)
+	}
+	defer rw.Close()
+
+	exitCode, err := rw.Write(rep)
+	if err != nil {
+		return 0, fmt.Errorf("render report: %w", err)
+	}
+
+	if reportConfig.Metrics != "" {
+		if err = metrics.WriteFile(reportConfig.Metrics); err != nil {
+			return 0, fmt.Errorf("write metrics: %w", err)
+		}
+	}
+
+	return exitCode, err
 }
