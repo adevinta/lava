@@ -17,3 +17,5 @@ report:
       resource: 'cmd/lava/internal/run/testdata/(goodpath|vulnpath)/Dockerfile'
     - description: Ignore engine test targets.
       resource: 'internal/engine/testdata/engine/vulnpath/Dockerfile'
+    - description: Ignore containers test targets.
+      resource: 'internal/containers/testdata/image/Dockerfile'
