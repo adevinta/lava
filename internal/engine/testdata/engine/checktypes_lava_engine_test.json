@@ -3,7 +3,7 @@
         {
             "name": "lava-engine-test",
             "description": "Lava engine test",
-            "image": "lava-engine-test:latest",
+            "image": "lava-internal-engine-test:go-test",
             "assets": ["WebAddress"]
         }
     ]

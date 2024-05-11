@@ -18,6 +18,7 @@ import (
 	agentconfig "github.com/adevinta/vulcan-agent/config"
 	report "github.com/adevinta/vulcan-report"
 	types "github.com/adevinta/vulcan-types"
+	"github.com/docker/docker/api/types/image"
 	"github.com/jroimartin/clilog"
 
 	"github.com/adevinta/lava/internal/assettypes"
@@ -55,9 +56,17 @@ func TestEngine_Run(t *testing.T) {
 	}
 	defer cli.Close()
 
-	if err := cli.ImageBuild(context.Background(), "testdata/engine/lava-engine-test", "Dockerfile", "lava-engine-test:latest"); err != nil {
+	const imgRef = "lava-internal-engine-test:go-test"
+
+	if err := cli.ImageBuild(context.Background(), "testdata/engine/lava-engine-test", "Dockerfile", imgRef); err != nil {
 		t.Fatalf("could build Docker image: %v", err)
 	}
+	defer func() {
+		rmOpts := image.RemoveOptions{Force: true, PruneChildren: true}
+		if _, err := cli.ImageRemove(context.Background(), imgRef, rmOpts); err != nil {
+			t.Logf("could not delete test Docker image %q: %v", imgRef, err)
+		}
+	}()
 
 	wantDetails := fmt.Sprintf("lava engine test response %v", rand.Uint64())
 
