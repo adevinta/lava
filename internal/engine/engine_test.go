@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"log/slog"
 	"math/rand"
 	"net/http"
@@ -19,8 +18,7 @@ import (
 	agentconfig "github.com/adevinta/vulcan-agent/config"
 	report "github.com/adevinta/vulcan-report"
 	types "github.com/adevinta/vulcan-types"
-	dockertypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/api/types/image"
 	"github.com/jroimartin/clilog"
 
 	"github.com/adevinta/lava/internal/assettypes"
@@ -52,9 +50,23 @@ func TestMain(m *testing.M) {
 }
 
 func TestEngine_Run(t *testing.T) {
-	if err := dockerBuild("testdata/engine/lava-engine-test", "lava-engine-test:latest"); err != nil {
+	cli, err := containers.NewDockerdClient(testRuntime)
+	if err != nil {
+		t.Fatalf("could not create dockerd client: %v", err)
+	}
+	defer cli.Close()
+
+	const imgRef = "lava-internal-engine-test:go-test"
+
+	if err := cli.ImageBuild(context.Background(), "testdata/engine/lava-engine-test", "Dockerfile", imgRef); err != nil {
 		t.Fatalf("could build Docker image: %v", err)
 	}
+	defer func() {
+		rmOpts := image.RemoveOptions{Force: true, PruneChildren: true}
+		if _, err := cli.ImageRemove(context.Background(), imgRef, rmOpts); err != nil {
+			t.Logf("could not delete test Docker image %q: %v", imgRef, err)
+		}
+	}()
 
 	wantDetails := fmt.Sprintf("lava engine test response %v", rand.Uint64())
 
@@ -323,35 +335,6 @@ func TestEngine_Run_no_jobs(t *testing.T) {
 	if len(engineReport) != 0 {
 		t.Fatalf("unexpected number of reports: %v", len(engineReport))
 	}
-}
-
-func dockerBuild(path, tag string) error {
-	cli, err := containers.NewDockerdClient(testRuntime)
-	if err != nil {
-		return fmt.Errorf("new dockerd client: %w", err)
-	}
-	defer cli.Close()
-
-	tar, err := archive.TarWithOptions(path, &archive.TarOptions{})
-	if err != nil {
-		return fmt.Errorf("new tar: %w", err)
-	}
-
-	opts := dockertypes.ImageBuildOptions{
-		Tags:   []string{tag},
-		Remove: true,
-	}
-	resp, err := cli.ImageBuild(context.Background(), tar, opts)
-	if err != nil {
-		return fmt.Errorf("image build: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
-		return fmt.Errorf("read response: %w", err)
-	}
-
-	return nil
 }
 
 // checkReportTarget encodes report as JSON and looks for substr in

@@ -95,6 +95,8 @@ func scan(args []string) (int, error) {
 		return 0, fmt.Errorf("parse config file: %w", err)
 	}
 
+	base.LogLevel.Set(cfg.LogLevel)
+
 	bi, ok := debugReadBuildInfo()
 	if !ok {
 		return 0, errors.New("could not read build info")
@@ -111,8 +113,6 @@ func scan(args []string) (int, error) {
 	metrics.Collect("targets", cfg.Targets)
 	metrics.Collect("severity", cfg.ReportConfig.Severity)
 	metrics.Collect("exclusion_count", len(cfg.ReportConfig.Exclusions))
-
-	base.LogLevel.Set(cfg.LogLevel)
 
 	eng, err := engine.New(cfg.AgentConfig, cfg.ChecktypeURLs)
 	if err != nil {
