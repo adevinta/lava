@@ -58,7 +58,7 @@ func TestEngine_Run(t *testing.T) {
 
 	const imgRef = "lava-internal-engine-test:go-test"
 
-	if err := cli.ImageBuild(context.Background(), "testdata/engine/lava-engine-test", "Dockerfile", imgRef); err != nil {
+	if _, err := cli.ImageBuild(context.Background(), "testdata/engine/lava-engine-test", "Dockerfile", imgRef); err != nil {
 		t.Fatalf("could build Docker image: %v", err)
 	}
 	defer func() {

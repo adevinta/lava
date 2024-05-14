@@ -20,6 +20,8 @@ import (
 	"github.com/docker/cli/cli/config"
 	"github.com/docker/cli/cli/flags"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/go-connections/tlsconfig"
@@ -237,27 +239,39 @@ func (cli *DockerdClient) gateways(ctx context.Context, network string) ([]*net.
 }
 
 // ImageBuild builds a Docker image in the context of a path using the
-// provided dockerfile and assigns it the specified reference.
-func (cli *DockerdClient) ImageBuild(ctx context.Context, path, dockerfile, tag string) error {
+// provided dockerfile and assigns it the specified reference. It
+// returns the ID of the new image.
+func (cli *DockerdClient) ImageBuild(ctx context.Context, path, dockerfile, ref string) (id string, err error) {
 	tar, err := archive.TarWithOptions(path, &archive.TarOptions{})
 	if err != nil {
-		return fmt.Errorf("new tar: %w", err)
+		return "", fmt.Errorf("new tar: %w", err)
 	}
 
 	opts := types.ImageBuildOptions{
-		Tags:       []string{tag},
+		Tags:       []string{ref},
 		Dockerfile: dockerfile,
 		Remove:     true,
 	}
 	resp, err := cli.APIClient.ImageBuild(ctx, tar, opts)
 	if err != nil {
-		return fmt.Errorf("image build: %w", err)
+		return "", fmt.Errorf("image build: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
-		return fmt.Errorf("read response: %w", err)
+		return "", fmt.Errorf("read response: %w", err)
 	}
 
-	return nil
+	summ, err := cli.ImageList(context.Background(), image.ListOptions{
+		Filters: filters.NewArgs(filters.Arg("reference", ref)),
+	})
+	if err != nil {
+		return "", fmt.Errorf("image list: %w", err)
+	}
+
+	if len(summ) != 1 {
+		return "", fmt.Errorf("image list: unexpected number of images: %v", len(summ))
+	}
+
+	return summ[0].ID, nil
 }

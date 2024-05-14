@@ -542,7 +542,8 @@ func TestDockerdClient_ImageBuild(t *testing.T) {
 
 	const imgRef = "lava-internal-containers-test:go-test"
 
-	if err := cli.ImageBuild(context.Background(), "testdata/image", "Dockerfile", imgRef); err != nil {
+	imgID, err := cli.ImageBuild(context.Background(), "testdata/image", "Dockerfile", imgRef)
+	if err != nil {
 		t.Fatalf("image build error: %v", err)
 	}
 	defer func() {
@@ -565,7 +566,7 @@ func TestDockerdClient_ImageBuild(t *testing.T) {
 
 	const want = "image build test"
 
-	got, err := dockerRun(t, cli.APIClient, imgRef, want)
+	got, err := dockerRun(t, cli.APIClient, imgID, want)
 	if err != nil {
 		t.Fatalf("docker run error: %v", err)
 	}
