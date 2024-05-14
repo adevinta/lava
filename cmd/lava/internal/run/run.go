@@ -314,7 +314,8 @@ func buildChecktype(path string) (string, error) {
 
 	slog.Info("building Docker image", "ref", ref)
 
-	if err := cli.ImageBuild(context.Background(), path, "Dockerfile", ref); err != nil {
+	newID, err := cli.ImageBuild(context.Background(), path, "Dockerfile", ref)
+	if err != nil {
 		return "", fmt.Errorf("image build: %w", err)
 	}
 
@@ -322,6 +323,11 @@ func buildChecktype(path string) (string, error) {
 	case 0:
 		// No image found. Nothing to do.
 	case 1:
+		if newID == summ[0].ID {
+			// The new image has the same ID. So, do not
+			// delete it.
+			break
+		}
 		rmOpts := image.RemoveOptions{Force: true, PruneChildren: true}
 		if _, err := cli.ImageRemove(context.Background(), summ[0].ID, rmOpts); err != nil {
 			return "", fmt.Errorf("image remove: %w", err)

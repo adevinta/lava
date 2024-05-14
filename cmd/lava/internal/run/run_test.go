@@ -10,6 +10,8 @@ import (
 	"os"
 	"testing"
 
+	agentconfig "github.com/adevinta/vulcan-agent/config"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/jroimartin/clilog"
 
@@ -130,6 +132,70 @@ func TestRunRun_path_checktype(t *testing.T) {
 
 	if exitCode != int(report.ExitCodeCritical) {
 		t.Errorf("unexpected exit code: %v", exitCode)
+	}
+}
+
+func TestRunRun_path_checktype_same_id(t *testing.T) {
+	oldPwd := mustGetwd()
+	oldOsExit := osExit
+	oldRunO := runO
+	oldPull := runPull
+	defer func() {
+		mustChdir(oldPwd)
+		osExit = oldOsExit
+		runO = oldRunO
+		runPull = oldPull
+	}()
+
+	runO = "output.txt"
+	runPull = agentconfig.PullPolicyNever
+
+	var exitCode int
+	osExit = func(status int) {
+		exitCode = status
+	}
+
+	cli, err := containers.NewDockerdClient(testRuntime)
+	if err != nil {
+		t.Fatalf("could not create dockerd client: %v", err)
+	}
+	defer cli.Close()
+
+	mustChdir("testdata/lava-run-test")
+
+	const ref = "lava-run-test:lava-run"
+
+	defer func() {
+		rmOpts := image.RemoveOptions{Force: true, PruneChildren: true}
+		if _, err := cli.ImageRemove(context.Background(), ref, rmOpts); err != nil {
+			t.Logf("could not delete test Docker image %q: %v", ref, err)
+		}
+	}()
+
+	var ids [2]string
+	for i := 0; i < 2; i++ {
+		exitCode = 0
+		if err := runRun([]string{".", "."}); err != nil {
+			t.Fatalf("unexpected error in run %v: %v", i, err)
+		}
+		if exitCode != int(report.ExitCodeCritical) {
+			t.Errorf("unexpected exit code in run %v: %v", i, exitCode)
+		}
+
+		summ, err := cli.ImageList(context.Background(), image.ListOptions{
+			Filters: filters.NewArgs(filters.Arg("reference", ref)),
+		})
+		if err != nil {
+			t.Fatalf("could not get image details in run %v: %v", i, err)
+		}
+		if len(summ) != 1 {
+			t.Fatalf("wrong number of images in run %v: %v", i, err)
+		}
+		ids[i] = summ[0].ID
+	}
+
+	if ids[0] != ids[1] {
+		t.Errorf("image IDs do not match: %q != %q", ids[0], ids[1])
 	}
 }
 
