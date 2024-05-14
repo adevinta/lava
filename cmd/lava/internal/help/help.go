@@ -72,7 +72,9 @@ Additional help topics:
 Use "lava help <topic>" for more information about that topic.
 `
 
-const helpTemplate = `{{if .Run}}usage: lava {{.UsageLine}}
+const helpTemplate = `{{if .Run}}Usage:
+
+	lava {{.UsageLine}}
 
 {{end}}{{.Long | trim}}
 `
