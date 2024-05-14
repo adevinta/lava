@@ -70,7 +70,7 @@ The -pull flag determines the pull policy for container images. Valid
 values are "Always" (always download the image), "IfNotPresent" (pull
 the image if it not present in the local cache) and "Never" (never
 pull the image). If not specified, "IfNotPresent" is used. If the
-checktype is a path, "Always" is not allowed.
+checktype is a path, only "IfNotPresent" and "Never" are allowed.
 
 The -registry flag specifies the container registry. If the registry
 requires authentication, the credentials are provided using the -user
@@ -246,8 +246,8 @@ func engineRun(targetIdent string, checktype string) (engine.Report, error) {
 	case err != nil && !errors.Is(err, fs.ErrNotExist):
 		return nil, err
 	case err == nil && info.IsDir():
-		if agentConfig.PullPolicy == agentconfig.PullPolicyAlways {
-			return nil, errors.New("path checktypes do not allow Always pull policy")
+		if agentConfig.PullPolicy != agentconfig.PullPolicyIfNotPresent && agentConfig.PullPolicy != agentconfig.PullPolicyNever {
+			return nil, errors.New("path checktypes only allow IfNotPresent and Never pull policies")
 		}
 
 		ct, err := buildChecktype(checktype)
@@ -314,7 +314,8 @@ func buildChecktype(path string) (string, error) {
 
 	slog.Info("building Docker image", "ref", ref)
 
-	if err := cli.ImageBuild(context.Background(), path, "Dockerfile", ref); err != nil {
+	newID, err := cli.ImageBuild(context.Background(), path, "Dockerfile", ref)
+	if err != nil {
 		return "", fmt.Errorf("image build: %w", err)
 	}
 
@@ -322,6 +323,11 @@ func buildChecktype(path string) (string, error) {
 	case 0:
 		// No image found. Nothing to do.
 	case 1:
+		if newID == summ[0].ID {
+			// The new image has the same ID. So, do not
+			// delete it.
+			break
+		}
 		rmOpts := image.RemoveOptions{Force: true, PruneChildren: true}
 		if _, err := cli.ImageRemove(context.Background(), summ[0].ID, rmOpts); err != nil {
 			return "", fmt.Errorf("image remove: %w", err)
