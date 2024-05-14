@@ -70,7 +70,7 @@ The -pull flag determines the pull policy for container images. Valid
 values are "Always" (always download the image), "IfNotPresent" (pull
 the image if it not present in the local cache) and "Never" (never
 pull the image). If not specified, "IfNotPresent" is used. If the
-checktype is a path, "Always" is not allowed.
+checktype is a path, only "IfNotPresent" and "Never" are allowed.
 
 The -registry flag specifies the container registry. If the registry
 requires authentication, the credentials are provided using the -user
@@ -246,8 +246,8 @@ func engineRun(targetIdent string, checktype string) (engine.Report, error) {
 	case err != nil && !errors.Is(err, fs.ErrNotExist):
 		return nil, err
 	case err == nil && info.IsDir():
-		if agentConfig.PullPolicy == agentconfig.PullPolicyAlways {
-			return nil, errors.New("path checktypes do not allow Always pull policy")
+		if agentConfig.PullPolicy != agentconfig.PullPolicyIfNotPresent && agentConfig.PullPolicy != agentconfig.PullPolicyNever {
+			return nil, errors.New("path checktypes only allow IfNotPresent and Never pull policies")
 		}
 
 		ct, err := buildChecktype(checktype)
