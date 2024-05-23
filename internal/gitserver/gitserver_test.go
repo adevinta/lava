@@ -35,7 +35,7 @@ func TestServer_AddRepository(t *testing.T) {
 	// Not parallel: uses global test hook.
 	defer func() { testHookServerServe = nil }()
 
-	tmpPath, err := gittest.ExtractTemp(filepath.Join("testdata", "testrepo.tar"))
+	tmpPath, err := gittest.ExtractTemp("testdata/repo.tar")
 	if err != nil {
 		t.Fatalf("unable to create a repository: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestServer_AddRepository_do_not_cache_error(t *testing.T) {
 }
 
 func TestServer_AddRepository_already_added(t *testing.T) {
-	tmpPath, err := gittest.ExtractTemp(filepath.Join("testdata", "testrepo.tar"))
+	tmpPath, err := gittest.ExtractTemp("testdata/repo.tar")
 	if err != nil {
 		t.Fatalf("unable to create a repository: %v", err)
 	}
@@ -165,148 +165,84 @@ func TestServer_AddRepository_already_added(t *testing.T) {
 }
 
 func TestServer_AddPath(t *testing.T) {
-	// Not parallel: uses global test hook.
-	defer func() { testHookServerServe = nil }()
-
-	gs, err := New()
-	if err != nil {
-		t.Fatalf("unable to create a server: %v", err)
-	}
-	defer gs.Close()
-
-	lnc := make(chan net.Listener)
-	testHookServerServe = func(gs *Server, ln net.Listener) {
-		lnc <- ln
-	}
-
-	go gs.ListenAndServe("127.0.0.1:0") //nolint:errcheck
-
-	ln := <-lnc
-
-	repoName, err := gs.AddPath("testdata/dir")
-	if err != nil {
-		t.Fatalf("unable to add a path: %v", err)
-	}
-
-	repoPath, err := gittest.CloneTemp(fmt.Sprintf("http://%v/%s", ln.Addr(), repoName))
-	if err != nil {
-		t.Fatalf("unable to clone the repo %s: %v", repoName, err)
-	}
-	defer os.RemoveAll(repoPath)
-
-	if _, err := os.Stat(filepath.Join(repoPath, "foo.txt")); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestServer_AddPath_file(t *testing.T) {
-	// Not parallel: uses global test hook.
-	defer func() { testHookServerServe = nil }()
-
-	gs, err := New()
-	if err != nil {
-		t.Fatalf("unable to create a server: %v", err)
-	}
-	defer gs.Close()
-
-	lnc := make(chan net.Listener)
-	testHookServerServe = func(gs *Server, ln net.Listener) {
-		lnc <- ln
+	tests := []struct {
+		name string
+		path string
+		want string
+	}{
+		{
+			name: "dir",
+			path: "testdata/dir",
+			want: "foo.txt",
+		},
+		{
+			name: "file",
+			path: "testdata/dir/foo.txt",
+			want: "foo.txt",
+		},
+		{
+			name: "symlink",
+			path: "testdata/symlink",
+			want: "bar.txt",
+		},
+		{
+			name: "repo",
+			path: "testdata/repo.tar",
+			want: "foo.txt",
+		},
+		{
+			name: "submodule",
+			path: "testdata/submodule.tar",
+			want: "foo.txt",
+		},
 	}
 
-	go gs.ListenAndServe("127.0.0.1:0") //nolint:errcheck
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Not parallel: uses global test hook.
+			defer func() { testHookServerServe = nil }()
 
-	ln := <-lnc
+			path := tt.path
+			if filepath.Ext(tt.path) == ".tar" {
+				tmpPath, err := gittest.ExtractTemp(tt.path)
+				if err != nil {
+					t.Fatalf("unable to create a repository: %v", err)
+				}
+				defer os.RemoveAll(tmpPath)
 
-	repoName, err := gs.AddPath("testdata/dir/foo.txt")
-	if err != nil {
-		t.Fatalf("unable to add a path: %v", err)
-	}
+				path = tmpPath
+			}
 
-	repoPath, err := gittest.CloneTemp(fmt.Sprintf("http://%v/%s", ln.Addr(), repoName))
-	if err != nil {
-		t.Fatalf("unable to clone the repo %s: %v", repoName, err)
-	}
-	defer os.RemoveAll(repoPath)
+			gs, err := New()
+			if err != nil {
+				t.Fatalf("unable to create a server: %v", err)
+			}
+			defer gs.Close()
 
-	if _, err := os.Stat(filepath.Join(repoPath, "foo.txt")); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
+			lnc := make(chan net.Listener)
+			testHookServerServe = func(gs *Server, ln net.Listener) {
+				lnc <- ln
+			}
 
-func TestServer_AddPath_symlink(t *testing.T) {
-	// Not parallel: uses global test hook.
-	defer func() { testHookServerServe = nil }()
+			go gs.ListenAndServe("127.0.0.1:0") //nolint:errcheck
 
-	gs, err := New()
-	if err != nil {
-		t.Fatalf("unable to create a server: %v", err)
-	}
-	defer gs.Close()
+			ln := <-lnc
 
-	lnc := make(chan net.Listener)
-	testHookServerServe = func(gs *Server, ln net.Listener) {
-		lnc <- ln
-	}
+			repoName, err := gs.AddPath(path)
+			if err != nil {
+				t.Fatalf("unable to add a path: %v", err)
+			}
 
-	go gs.ListenAndServe("127.0.0.1:0") //nolint:errcheck
+			repoPath, err := gittest.CloneTemp(fmt.Sprintf("http://%v/%s", ln.Addr(), repoName))
+			if err != nil {
+				t.Fatalf("unable to clone the repo %s: %v", repoName, err)
+			}
+			defer os.RemoveAll(repoPath)
 
-	ln := <-lnc
-
-	repoName, err := gs.AddPath("testdata/symlink")
-	if err != nil {
-		t.Fatalf("unable to add a path: %v", err)
-	}
-
-	repoPath, err := gittest.CloneTemp(fmt.Sprintf("http://%v/%s", ln.Addr(), repoName))
-	if err != nil {
-		t.Fatalf("unable to clone the repo %s: %v", repoName, err)
-	}
-	defer os.RemoveAll(repoPath)
-
-	if _, err := os.Stat(filepath.Join(repoPath, "bar.txt")); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestServer_AddPath_repo(t *testing.T) {
-	// Not parallel: uses global test hook.
-	defer func() { testHookServerServe = nil }()
-
-	tmpPath, err := gittest.ExtractTemp(filepath.Join("testdata", "testrepo.tar"))
-	if err != nil {
-		t.Fatalf("unable to create a repository: %v", err)
-	}
-	defer os.RemoveAll(tmpPath)
-
-	gs, err := New()
-	if err != nil {
-		t.Fatalf("unable to create a server: %v", err)
-	}
-	defer gs.Close()
-
-	lnc := make(chan net.Listener)
-	testHookServerServe = func(gs *Server, ln net.Listener) {
-		lnc <- ln
-	}
-
-	go gs.ListenAndServe("127.0.0.1:0") //nolint:errcheck
-
-	ln := <-lnc
-
-	repoName, err := gs.AddPath(tmpPath)
-	if err != nil {
-		t.Fatalf("unable to add a path: %v", err)
-	}
-
-	repoPath, err := gittest.CloneTemp(fmt.Sprintf("http://%v/%s", ln.Addr(), repoName))
-	if err != nil {
-		t.Fatalf("unable to clone the repo %s: %v", repoName, err)
-	}
-	defer os.RemoveAll(repoPath)
-
-	if _, err := os.Stat(filepath.Join(repoPath, "foo.txt")); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+			if _, err := os.Stat(filepath.Join(repoPath, tt.want)); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
 	}
 }
 
