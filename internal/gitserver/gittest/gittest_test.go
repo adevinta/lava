@@ -16,7 +16,7 @@ func TestExtractTemp(t *testing.T) {
 	}{
 		{
 			name:       "valid",
-			tarfile:    "testrepo.tar",
+			tarfile:    "repo.tar",
 			wantNilErr: true,
 		},
 		{
@@ -50,7 +50,7 @@ func TestExtractTemp(t *testing.T) {
 }
 
 func TestCloneTemp(t *testing.T) {
-	tmpPath, err := ExtractTemp(filepath.Join("testdata", "testrepo.tar"))
+	tmpPath, err := ExtractTemp("testdata/repo.tar")
 	if err != nil {
 		t.Fatalf("unexpected extract error: %v", err)
 	}

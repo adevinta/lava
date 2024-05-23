@@ -147,7 +147,7 @@ func (srv *Server) AddPath(path string) (string, error) {
 }
 
 // fscopy copies src to dst recursively. It ignores all .git
-// directories.
+// files and directories.
 func fscopy(dst, src string) error {
 	err := filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -182,6 +182,14 @@ func fscopy(dst, src string) error {
 				// source file.
 				rel = filepath.Base(path)
 			}
+
+			if filepath.Base(rel) == ".git" {
+				// Ignore .git file. This file is
+				// present in the case of git
+				// submodules.
+				return nil
+			}
+
 			fsrc, err := os.Open(path)
 			if err != nil {
 				return fmt.Errorf("open source file: %w", err)
