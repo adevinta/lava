@@ -393,11 +393,16 @@ func mkAgentConfig() config.AgentConfig {
 // flags and positional arguments.
 func mkChecktypeCatalog(checktype string) checktypes.Catalog {
 	vulcanAssetType := assettypes.ToVulcan(types.AssetType(runType))
+	var reqVars []any
+	for k := range runVar {
+		reqVars = append(reqVars, k)
+	}
 	ct := checkcatalog.Checktype{
-		Name:    checktype,
-		Image:   checktype,
-		Timeout: int(runTimeout.Seconds()),
-		Assets:  []string{vulcanAssetType.String()},
+		Name:         checktype,
+		Image:        checktype,
+		Timeout:      int(runTimeout.Seconds()),
+		Assets:       []string{vulcanAssetType.String()},
+		RequiredVars: reqVars,
 	}
 	return checktypes.Catalog{checktype: ct}
 }
