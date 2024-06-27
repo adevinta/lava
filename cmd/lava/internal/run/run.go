@@ -97,6 +97,10 @@ use "lava help metrics".
 The -log flag defines the logging level. Valid values are "debug",
 "info", "warn" and "error". If not specified, "info" is used.
 
+Lava supports several container runtimes. The environment variable
+LAVA_RUNTIME allows to select which one is in use. For more details,
+use "lava help environment".
+
 # Path checktype
 
 When the specified checktype is a path that points to a directory,
