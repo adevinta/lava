@@ -282,3 +282,96 @@ General-purpose environment variables:
 		considered experimental.
 	`,
 }
+
+// HelpChecktypes documents the Lava checktype catalog format.
+var HelpChecktypes = &base.Command{
+	UsageLine: "checktypes",
+	Short:     "checktype catalog format",
+	Long: `
+A checktype is a program that integrates a third-party tool
+(e.g. Trivy, Semgrep, etc.) or implements a custom detection for a
+given vulnerability. A check is a concrete instance of a checktype
+that is run against a specific target with a specific set of
+options.
+
+Checktypes are organized in catalogs. A checktype catalog is a
+collection of checktypes with their metadata and default options. This
+help topic describes the checktype catalog format in detail.
+
+The list of enabled checktype catalogs is specified in the Lava
+configuration file. For more details, use "lava help lava.yaml".
+
+A checktype can cover one or multiple security controls like DAST
+(Dynamic Application Security Testing), SAST (Static Application
+Security Testing), SCA (Software Composition Analysis), secret
+detection, etc. For instance, the vulcan-trivy checktype covers SAST
+for IaC, SCA and secret detection.
+
+For more details about the security controls covered by Lava, visit
+https://adevinta.github.io/lava-docs/controls.html.
+
+The "lava init" command generates a configuration file that points to
+a remote catalog curated by the Adevinta Security Team to provide a
+balanced configuration. This catalog is continuously updated to improve
+the quality of the results, support new types of projects, etc. By
+default, the configuration file pins the "v0" version, which means
+that every Lava execution benefits from these updates.
+
+A checktype catalog is a JSON document as shown in the following
+example:
+
+	{
+	    "checktypes": [
+	        {
+	            "name": "vulcan-example",
+	            "description": "Description of the checktype",
+	            "image": "vulcan-example:latest",
+	            "timeout": 600,
+	            "options": {
+	                "branch": "example",
+	                "depth": 1,
+	                "check_option_1": "value_option_1",
+	                "check_option_2": ["item1, item2"],
+	            },
+	            "required_vars": [
+	                "REQUIRED_VARIABLE_1",
+	                "REQUIRED_VARIABLE_2"
+	            ],
+	            "assets": [
+	                "GitRepository"
+	            ]
+	        }
+	    ]
+	}
+
+A checktype catalog entry specifies the following parameters:
+
+  - name: Name of the checktype.
+  - description: Description of the checktype.
+  - image: Name of the image needed to run the check.
+  - timeout: Timeout of the check.
+  - required_vars: Environment variables passed to the check. They
+    are defined in the checktype's manifest.toml file.
+  - assets: Asset types accepted as target by the check. They are
+    defined in the checktype's manifest.toml file.
+  - options:
+    - depth: Number of commits to fetch when the asset type is a git
+      repository.
+    - branch: Branch to check out when the asset type is a git
+      repository.
+    - Others options defined in the checktype's manifest.toml file of
+      the check.
+
+Users may provide a custom catalog if it complies with the JSON Schema
+defined at https://adevinta.github.io/lava-docs/specs/checktype_catalog.json.
+
+A public collection of checktypes is maintained at
+https://github.com/adevinta/vulcan-checks and their corresponding
+Docker images are pushed to https://hub.docker.com/u/vulcansec. Every
+checktype includes a manifest.toml file, which contains all the
+information required to configure a check.
+
+Users may also develop their own checktypes. For more details, visit
+https://adevinta.github.io/vulcan-docs/developing-checks.
+	`,
+}
