@@ -297,6 +297,7 @@ options.
 Checktypes are organized in catalogs. A checktype catalog is a
 collection of checktypes with their metadata and default options. This
 help topic describes the checktype catalog format in detail.
+
 The list of enabled checktype catalogs is specified in the Lava
 configuration file. For more details, use "lava help lava.yaml".
 
@@ -304,7 +305,8 @@ A checktype can cover one or multiple security controls like DAST
 (Dynamic Application Security Testing), SAST (Static Application
 Security Testing), SCA (Software Composition Analysis), secret
 detection, etc. For instance, the vulcan-trivy checktype covers SAST
-for IaC, SCA and secret detection. 
+for IaC, SCA and secret detection.
+
 For more details about the security controls covered by Lava, visit
 https://adevinta.github.io/lava-docs/controls.html.
 
@@ -313,9 +315,9 @@ a remote catalog curated by the Adevinta Security Team to provide a
 balanced configuration. This catalog is continuously updated to improve
 the quality of the results, support new types of projects, etc. By
 default, the configuration file pins the "v0" version, which means
-that every Lava execution benefits benefit from these updates.
+that every Lava execution benefits from these updates.
 
-A checktype catalog is a YAML document as shown in the following
+A checktype catalog is a JSON document as shown in the following
 example:
 
 	{
@@ -344,8 +346,8 @@ example:
 
 A checktype catalog entry specifies the following parameters:
 
-  - name: Name of the check.
-  - description: Description of the check.
+  - name: Name of the checktype.
+  - description: Description of the checktype.
   - image: Name of the image needed to run the check.
   - timeout: Timeout of the check.
   - required_vars: Environment variables passed to the check. They
