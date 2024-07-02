@@ -2,9 +2,7 @@
 
 package help
 
-import (
-	"github.com/adevinta/lava/cmd/lava/internal/base"
-)
+import "github.com/adevinta/lava/cmd/lava/internal/base"
 
 // HelpLavaYAML documents the configuration file format.
 var HelpLavaYAML = &base.Command{
@@ -285,24 +283,28 @@ General-purpose environment variables:
 	`,
 }
 
-// HelpChecktypes documents the Lava checktypes file.
+// HelpChecktypes documents the Lava checktype catalog format.
 var HelpChecktypes = &base.Command{
 	UsageLine: "checktypes",
-	Short:     "checktype catalog file",
+	Short:     "checktype catalog format",
 	Long: `
-Checktypes are programs that integrate third-party tools (e.g. Trivy,
-Semgrep, etc.) or implement a custom detection for a given
-vulnerability. On the other hand, a check is a concrete instance of a
-checktype that is run against a specific target with a specific set of
+A checktype is a program that integrates a third-party tool
+(e.g. Trivy, Semgrep, etc.) or implements a custom detection for a
+given vulnerability. A check is a concrete instance of a checktype
+that is run against a specific target with a specific set of
 options.
-Enabled checktype catalogs are configured in the Lava configuration
-file. For more details, use "lava help lava.yaml".
 
-Also, checktypes cover many security controls like DAST (Dynamic
-Application Security Testing), SAST (Static Application Security
-Testing), SCA (Software Composition Analysis), secret detection,
-etc. For instance, the vulcan-trivy checktype covers SAST for IaC, SCA
-and secret detection.
+Checktypes are organized in catalogs. A checktype catalog is a
+collection of checktypes with their metadata and default options. This
+help topic describes the checktype catalog format in detail.
+The list of enabled checktype catalogs is specified in the Lava
+configuration file. For more details, use "lava help lava.yaml".
+
+A checktype can cover one or multiple security controls like DAST
+(Dynamic Application Security Testing), SAST (Static Application
+Security Testing), SCA (Software Composition Analysis), secret
+detection, etc. For instance, the vulcan-trivy checktype covers SAST
+for IaC, SCA and secret detection. 
 For more details about the security controls covered by Lava, visit
 https://adevinta.github.io/lava-docs/controls.html.
 
@@ -310,17 +312,17 @@ The "lava init" command generates a configuration file that points to
 a remote catalog curated by the Adevinta Security Team to provide a
 balanced configuration. This catalog is continuously updated to improve
 the quality of the results, support new types of projects, etc. By
-default, the configuration file pins the "v0"" version, which means
-that future runs of Lava will benefit from these updates.
+default, the configuration file pins the "v0" version, which means
+that every Lava execution benefits benefit from these updates.
 
-A checktype catalog file is a YAML document as shown in the following
+A checktype catalog is a YAML document as shown in the following
 example:
 
 	{
 	    "checktypes": [
 	        {
-	            "name": "vulcan-check",
-	            "description": "Description of the check",
+	            "name": "vulcan-example",
+	            "description": "Description of the checktype",
 	            "image": "vulcan-example:latest",
 	            "timeout": 600,
 	            "options": {
@@ -351,8 +353,8 @@ A checktype catalog entry specifies the following parameters:
   - assets: Asset types accepted as target by the check. They are
     defined in the checktype's manifest.toml file.
   - options:
-    - depth: Limits fetching to the specified number of commits when
-      the asset type is a git repository.
+    - depth: Number of commits to fetch when the asset type is a git
+      repository.
     - branch: Branch to check out when the asset type is a git 
       repository.
     - Others options defined in the checktype's manifest.toml file of
@@ -366,7 +368,8 @@ https://github.com/adevinta/vulcan-checks and their corresponding
 Docker images are pushed to https://hub.docker.com/u/vulcansec. Every
 checktype includes a manifest.toml file, which contains all the
 information required to configure a check.
+
 Users may also develop their own checktypes. For more details, visit
 https://adevinta.github.io/vulcan-docs/developing-checks.
-`,
+	`,
 }
