@@ -76,9 +76,11 @@ func (srv *Server) AddRepository(path string) (string, error) {
 	// branches, notes etc.) and sets up a refspec configuration
 	// such that all these refs are overwritten by a git remote
 	// update in the target repository.
+	buf := &bytes.Buffer{}
 	cmd := exec.Command("git", "clone", "--mirror", path, dstPath)
+	cmd.Stderr = buf
 	if err = cmd.Run(); err != nil {
-		return "", fmt.Errorf("git clone: %w", err)
+		return "", fmt.Errorf("git clone: %w: %#q", err, buf)
 	}
 
 	// Create a branch at HEAD. So, if HEAD is detached, the Git
@@ -88,9 +90,11 @@ func (srv *Server) AddRepository(path string) (string, error) {
 	// Reference: https://github.com/go-git/go-git/blob/f92cb0d49088af996433ebb106b9fc7c2adb8875/plumbing/protocol/packp/advrefs.go#L94-L104
 	branch := fmt.Sprintf("lava-%v", rand.Int63())
 	cmd = exec.Command("git", "branch", branch)
+	buf.Reset()
+	cmd.Stderr = buf
 	cmd.Dir = dstPath
 	if err = cmd.Run(); err != nil {
-		return "", fmt.Errorf("git branch: %w", err)
+		return "", fmt.Errorf("git branch: %w: %#q", err, buf)
 	}
 
 	repoName := filepath.Base(dstPath)
@@ -118,16 +122,20 @@ func (srv *Server) AddPath(path string) (string, error) {
 		return "", fmt.Errorf("copy files: %w", err)
 	}
 
+	buf := &bytes.Buffer{}
 	cmd := exec.Command("git", "init")
+	cmd.Stderr = buf
 	cmd.Dir = dstPath
 	if err = cmd.Run(); err != nil {
-		return "", fmt.Errorf("git init: %w", err)
+		return "", fmt.Errorf("git init: %w: %#q", err, buf)
 	}
 
 	cmd = exec.Command("git", "add", "-f", ".")
+	buf.Reset()
+	cmd.Stderr = buf
 	cmd.Dir = dstPath
 	if err = cmd.Run(); err != nil {
-		return "", fmt.Errorf("git add: %w", err)
+		return "", fmt.Errorf("git add: %w: %#q", err, buf)
 	}
 
 	cmd = exec.Command(
@@ -137,8 +145,10 @@ func (srv *Server) AddPath(path string) (string, error) {
 		"commit", "-m", "[auto] lava",
 	)
 	cmd.Dir = dstPath
+	buf.Reset()
+	cmd.Stderr = buf
 	if err = cmd.Run(); err != nil {
-		return "", fmt.Errorf("git commit: %w", err)
+		return "", fmt.Errorf("git commit: %w: %#q", err, buf)
 	}
 
 	repoName := filepath.Base(dstPath)
