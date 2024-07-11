@@ -132,9 +132,12 @@ in the configuration file.
 The "report" field describes how to report the findings. It supports
 the following properties.
 
-  - severity: minimum severity required to report a finding. Valid
+  - severity: minimum severity required to exit with error. Valid
     values are "critical", "high", "medium", "low" and "info". If not
     specified, "high" is used.
+  - show: minimum severity required to show a finding. Valid values
+    are "critical", "high", "medium", "low" and "info". If not
+    specified, the severity value is used.
   - format: output format. Valid values are "human" and "json". If not
     specified, "human" is used.
   - output: path of the output file. If not specified, stdout is used.
@@ -149,6 +152,7 @@ The sample below is a full report configuration:
 
 	report:
 	  severity: high
+	  show: low
 	  format: json
 	  output: findings.json
 	  metrics: metrics.json
