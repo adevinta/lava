@@ -32,6 +32,7 @@ func init() {
 		help.HelpEnvironment,
 		help.HelpLavaYAML,
 		help.HelpMetrics,
+		help.HelpChecktypes,
 	}
 }
 
