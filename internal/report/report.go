@@ -22,11 +22,12 @@ import (
 
 // Writer represents a Lava report writer.
 type Writer struct {
-	prn         printer
-	w           io.WriteCloser
-	isStdout    bool
-	minSeverity config.Severity
-	exclusions  []config.Exclusion
+	prn          printer
+	w            io.WriteCloser
+	isStdout     bool
+	minSeverity  config.Severity
+	showSeverity config.Severity
+	exclusions   []config.Exclusion
 }
 
 // NewWriter creates a new instance of a report writer.
@@ -52,12 +53,20 @@ func NewWriter(cfg config.ReportConfig) (Writer, error) {
 		isStdout = false
 	}
 
+	var showSeverity config.Severity
+	if cfg.ShowSeverity != nil {
+		showSeverity = *cfg.ShowSeverity
+	} else {
+		showSeverity = cfg.Severity
+	}
+
 	return Writer{
-		prn:         prn,
-		w:           w,
-		isStdout:    isStdout,
-		minSeverity: cfg.Severity,
-		exclusions:  cfg.Exclusions,
+		prn:          prn,
+		w:            w,
+		isStdout:     isStdout,
+		minSeverity:  cfg.Severity,
+		showSeverity: showSeverity,
+		exclusions:   cfg.Exclusions,
 	}, nil
 }
 
@@ -176,13 +185,15 @@ func (writer Writer) isExcluded(v report.Vulnerability, target string) (bool, er
 // configuration.
 func (writer Writer) filterVulns(vulns []vulnerability) []vulnerability {
 	// Sort the results by severity in reverse order.
-	slices.SortFunc(vulns, func(a, b vulnerability) int {
+	vs := make([]vulnerability, len(vulns))
+	copy(vs, vulns)
+	slices.SortFunc(vs, func(a, b vulnerability) int {
 		return cmp.Compare(b.Severity, a.Severity)
 	})
 
 	fvulns := make([]vulnerability, 0)
-	for _, v := range vulns {
-		if v.Severity < writer.minSeverity {
+	for _, v := range vs {
+		if v.Severity < writer.showSeverity {
 			break
 		}
 		if v.excluded {
