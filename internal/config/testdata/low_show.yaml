@@ -1,0 +1,8 @@
+lava: v1.0.0
+checktypes:
+  - checktypes.json
+targets:
+  - identifier: example.com
+    type: DomainName
+report:
+  show: low

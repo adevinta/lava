@@ -166,9 +166,13 @@ type AgentConfig struct {
 
 // ReportConfig is the configuration of the report.
 type ReportConfig struct {
-	// Severity is the minimum severity required to report a
-	// finding.
+	// Severity is the minimum severity required to exit with
+	// error.
 	Severity Severity `yaml:"severity"`
+
+	// ShowSeverity is the minimum severity required to show a
+	// finding.
+	ShowSeverity *Severity `yaml:"show"`
 
 	// Format is the output format.
 	Format OutputFormat `yaml:"format"`
