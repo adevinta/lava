@@ -80,9 +80,13 @@ the first instance of the colon. So the username cannot contain a
 colon. If there is no colon, the password is read from the standard
 input.
 
-The -severity flag determines the minimum severity required to report
-a finding. Valid values are "critical", "high", "medium", "low" and
+The -severity flag determines the minimum severity required to exit
+with error. Valid values are "critical", "high", "medium", "low" and
 "info". If not specified, "high" is used.
+
+The -show flag determines the minimum severity required to show a
+finding. Valid values are "critical", "high", "medium", "low" and
+"info". If not specified, the severity value is used.
 
 The -o flag specifies the output file to write the results of the
 scan. If not specified, the standard output is used. The format of the
@@ -173,6 +177,7 @@ var (
 	runRegistry string                          // -registry flag
 	runUser     userFlag                        // -user flag
 	runSeverity config.Severity                 // -severity flag
+	runShow     showFlag                        // -show flag
 	runO        string                          // -o flag
 	runFmt      config.OutputFormat             // -fmt flag
 	runMetrics  string                          // -metrics flag
@@ -416,11 +421,18 @@ func mkChecktypeCatalog(checktype string) checktypes.Catalog {
 // report. writeOutputs gets the configuration from the provided
 // flags.
 func writeOutputs(rep engine.Report) (report.ExitCode, error) {
+	var showSeverity *config.Severity
+	if runShow.IsSet {
+		showSeverity = &runShow.Value
+	} else {
+		showSeverity = &runSeverity
+	}
 	reportConfig := config.ReportConfig{
-		Severity:   runSeverity,
-		Format:     runFmt,
-		OutputFile: runO,
-		Metrics:    runMetrics,
+		Severity:     runSeverity,
+		ShowSeverity: showSeverity,
+		Format:       runFmt,
+		OutputFile:   runO,
+		Metrics:      runMetrics,
 	}
 	metrics.Collect("severity", reportConfig.Severity)
 

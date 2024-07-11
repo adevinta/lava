@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/adevinta/lava/internal/assettypes"
+	"github.com/adevinta/lava/internal/config"
 )
 
 func TestTypeFlag_Set(t *testing.T) {
@@ -282,6 +283,73 @@ func TestUserFlag_Set(t *testing.T) {
 			}
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("userinfo mismatch (-want +got):\n%v", diff)
+			}
+		})
+	}
+}
+
+func TestShowFlag_Set(t *testing.T) {
+	tests := []struct {
+		name       string
+		values     []string
+		want       showFlag
+		wantNilErr []bool
+	}{
+		{
+			name:   "valid",
+			values: []string{"low"},
+			want: showFlag{
+				Value: config.SeverityLow,
+				IsSet: true,
+			},
+			wantNilErr: []bool{true},
+		},
+		{
+			name:       "invalid",
+			values:     []string{"invalid"},
+			want:       showFlag{},
+			wantNilErr: []bool{false},
+		},
+		{
+			name:       "empty",
+			values:     []string{""},
+			want:       showFlag{},
+			wantNilErr: []bool{false},
+		},
+		{
+			name:   "multiple",
+			values: []string{"low", "medium"},
+			want: showFlag{
+				Value: config.SeverityMedium,
+				IsSet: true,
+			},
+			wantNilErr: []bool{true, true},
+		},
+		{
+			name:   "multiple valid invalid",
+			values: []string{"low", "invalid", "medium", "invalid"},
+			want: showFlag{
+				Value: config.SeverityMedium,
+				IsSet: true,
+			},
+			wantNilErr: []bool{true, false, true, false},
+		},
+	}
+
+	for _, tt := range tests {
+		if len(tt.values) != len(tt.wantNilErr) {
+			panic("values and wantNilErr arrays must have the same length")
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			var got showFlag
+			for i, v := range tt.values {
+				if err := got.Set(v); (err == nil) != tt.wantNilErr[i] {
+					t.Errorf("unexpected error: %v", err)
+				}
+			}
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("show mismatch (-want +got):\n%v", diff)
 			}
 		})
 	}
