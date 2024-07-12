@@ -137,6 +137,25 @@ func TestParse(t *testing.T) {
 			wantErr: ErrInvalidSeverity,
 		},
 		{
+			name: "low show",
+			file: "testdata/low_show.yaml",
+			want: Config{
+				LavaVersion: "v1.0.0",
+				ChecktypeURLs: []string{
+					"checktypes.json",
+				},
+				ReportConfig: ReportConfig{
+					ShowSeverity: ptr(SeverityLow),
+				},
+				Targets: []Target{
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+				},
+			},
+		},
+		{
 			name: "never pull policy",
 			file: "testdata/never_pull_policy.yaml",
 			want: Config{
@@ -353,4 +372,8 @@ func TestSeverity_MarshalText(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ptr[V any](v V) *V {
+	return &v
 }

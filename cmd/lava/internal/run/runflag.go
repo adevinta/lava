@@ -22,7 +22,7 @@ import (
 type typeFlag types.AssetType
 
 // Set parses the value provided with the -type flag. It returns error
-// if it is not a know asset type.
+// if it is not a known asset type.
 func (typ *typeFlag) Set(s string) error {
 	if s == "" {
 		return errors.New("empty asset type")
@@ -124,6 +124,31 @@ func (userinfo userFlag) String() string {
 	return userinfo.Username + ":****"
 }
 
+// showFlag represents the severity provided with the -show flag.
+type showFlag struct {
+	Value config.Severity
+	IsSet bool
+}
+
+// Set parses the value provided with the -show flag. It returns error
+// if it is not a known severity.
+func (show *showFlag) Set(s string) error {
+	if err := show.Value.UnmarshalText([]byte(s)); err != nil {
+		return err
+	}
+	show.IsSet = true
+	return nil
+}
+
+// String returns the string representation of the provided show
+// value.
+func (show showFlag) String() string {
+	if show.IsSet {
+		return show.Value.String()
+	}
+	return ""
+}
+
 func init() {
 	CmdRun.Flag.Var(&runType, "type", "target type")
 	CmdRun.Flag.DurationVar(&runTimeout, "timeout", 600*time.Second, "checktype timeout")
@@ -133,7 +158,8 @@ func init() {
 	CmdRun.Flag.TextVar(&runPull, "pull", agentconfig.PullPolicyIfNotPresent, "container image pull policy")
 	CmdRun.Flag.StringVar(&runRegistry, "registry", "", "container registry")
 	CmdRun.Flag.Var(&runUser, "user", "container registry credentials")
-	CmdRun.Flag.TextVar(&runSeverity, "severity", config.SeverityHigh, "minimum severity required to report a finding")
+	CmdRun.Flag.TextVar(&runSeverity, "severity", config.SeverityHigh, "minimum severity required to exit with error")
+	CmdRun.Flag.Var(&runShow, "show", "minimum severity required to show a finding")
 	CmdRun.Flag.StringVar(&runO, "o", "", "output file")
 	CmdRun.Flag.TextVar(&runFmt, "fmt", config.OutputFormatHuman, "output format")
 	CmdRun.Flag.StringVar(&runMetrics, "metrics", "", "metrics file")

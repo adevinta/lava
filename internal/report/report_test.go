@@ -1082,6 +1082,170 @@ func TestWriter_filterVulns(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "show",
+			vulnerabilities: []vulnerability{
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 1",
+					},
+					Severity: config.SeverityCritical,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 2",
+					},
+					Severity: config.SeverityHigh,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 3",
+					},
+					Severity: config.SeverityMedium,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 4",
+					},
+					Severity: config.SeverityLow,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 5",
+					},
+					Severity: config.SeverityInfo,
+				},
+			},
+			rConfig: config.ReportConfig{
+				Severity:     config.SeverityCritical,
+				ShowSeverity: ptr(config.SeverityMedium),
+			},
+			want: []vulnerability{
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 1",
+					},
+					Severity: config.SeverityCritical,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 2",
+					},
+					Severity: config.SeverityHigh,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 3",
+					},
+					Severity: config.SeverityMedium,
+				},
+			},
+		},
+		{
+			name: "show higher than severity",
+			vulnerabilities: []vulnerability{
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 1",
+					},
+					Severity: config.SeverityCritical,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 2",
+					},
+					Severity: config.SeverityHigh,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 3",
+					},
+					Severity: config.SeverityMedium,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 4",
+					},
+					Severity: config.SeverityLow,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 5",
+					},
+					Severity: config.SeverityInfo,
+				},
+			},
+			rConfig: config.ReportConfig{
+				Severity:     config.SeverityMedium,
+				ShowSeverity: ptr(config.SeverityHigh),
+			},
+			want: []vulnerability{
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 1",
+					},
+					Severity: config.SeverityCritical,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 2",
+					},
+					Severity: config.SeverityHigh,
+				},
+			},
+		},
+		{
+			name: "default show",
+			vulnerabilities: []vulnerability{
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 1",
+					},
+					Severity: config.SeverityCritical,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 2",
+					},
+					Severity: config.SeverityHigh,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 3",
+					},
+					Severity: config.SeverityMedium,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 4",
+					},
+					Severity: config.SeverityLow,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 5",
+					},
+					Severity: config.SeverityInfo,
+				},
+			},
+			rConfig: config.ReportConfig{
+				Severity: config.SeverityHigh,
+			},
+			want: []vulnerability{
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 1",
+					},
+					Severity: config.SeverityCritical,
+				},
+				{
+					Vulnerability: vreport.Vulnerability{
+						Summary: "Vulnerability Summary 2",
+					},
+					Severity: config.SeverityHigh,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1289,4 +1453,8 @@ func statusLess(a, b checkStatus) bool {
 		return fmt.Sprintf("%#v", v)
 	}
 	return h(a) < h(b)
+}
+
+func ptr[V any](v V) *V {
+	return &v
 }
