@@ -694,6 +694,42 @@ func TestWriter_isExcluded(t *testing.T) {
 	}
 }
 
+func TestWriter_isExcluded_exclusionMatched(t *testing.T) {
+	v := vreport.Vulnerability{
+		Summary: "Vulnerability Summary 1",
+		Score:   6.7,
+	}
+	target := "."
+	rConfig := config.ReportConfig{
+		Exclusions: []config.Exclusion{
+			{
+				Summary:     "Summary 1",
+				Description: "Excluded vulnerabilities Summary 1",
+			},
+			{
+				Summary: "Unused exclusion",
+			},
+		},
+	}
+	wantMatches := []bool{true, false}
+	w, err := NewWriter(rConfig)
+	if err != nil {
+		t.Fatalf("unable to create a report writer: %v", err)
+	}
+	got, err := w.isExcluded(v, target)
+	if err != nil {
+		t.Errorf("unexpected error value: %v", err)
+	}
+	if !got {
+		t.Errorf("unexpected excluded value: got: %v, want: %v", got, true)
+	}
+	for i, want := range wantMatches {
+		if w.exclusions[i].Matched != want {
+			t.Errorf("unexpected matched value: got: %v, want: %v", w.exclusions[i].Matched, want)
+		}
+	}
+}
+
 func TestMkSummary(t *testing.T) {
 	tests := []struct {
 		name            string
