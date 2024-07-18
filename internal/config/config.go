@@ -11,6 +11,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	agentconfig "github.com/adevinta/vulcan-agent/config"
 	types "github.com/adevinta/vulcan-types"
@@ -50,6 +51,10 @@ var (
 	// ErrInvalidOutputFormat means that the output format is
 	// invalid.
 	ErrInvalidOutputFormat = errors.New("invalid output format")
+
+	// ErrInvalidExpirationDate means that the expiration date is
+	// invalid.
+	ErrInvalidExpirationDate = errors.New("invalid expiration date")
 )
 
 // Config represents a Lava configuration.
@@ -391,6 +396,49 @@ type Exclusion struct {
 	// the vulnerability.
 	Summary string `yaml:"summary"`
 
+	// ExpirationDate is the date on which the exclusion becomes inactive.
+	// The format is YYYY/MM/DD.
+	ExpirationDate ExpirationDate `yaml:"expiration"`
+
 	// Description describes the exclusion.
 	Description string `yaml:"description"`
+}
+
+// ExpirationDateLayout is the input format for the [ExpirationDate].
+const ExpirationDateLayout = "2006/01/02"
+
+// ExpirationDate represents when an exclusion is not valid any more.
+type ExpirationDate struct {
+	time.Time
+}
+
+// parseExpirationDate converts a string into an [ExpirationDate] value.
+func parseExpirationDate(date string) (ExpirationDate, error) {
+	t, err := time.Parse(ExpirationDateLayout, date)
+	if err != nil {
+		return ExpirationDate{}, fmt.Errorf("%w: %w", ErrInvalidExpirationDate, err)
+	}
+	return ExpirationDate{Time: t}, nil
+}
+
+// UnmarshalText decodes an [ExpirationDate] text into an [ExpirationDate]
+// value. It returns error if the provided string does not match the
+// date format.
+func (ed *ExpirationDate) UnmarshalText(text []byte) error {
+	expirationDate, err := parseExpirationDate(string(text))
+	if err != nil {
+		return err
+	}
+	*ed = expirationDate
+	return nil
+}
+
+// MarshalText encodes an [ExpirationDate] value as text.
+func (ed ExpirationDate) MarshalText() (text []byte, err error) {
+	return []byte(ed.String()), nil
+}
+
+// String returns the string representation of the expiration date.
+func (ed ExpirationDate) String() string {
+	return ed.Format(ExpirationDateLayout)
 }

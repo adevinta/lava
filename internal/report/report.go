@@ -12,6 +12,7 @@ import (
 	"os"
 	"regexp"
 	"slices"
+	"time"
 
 	report "github.com/adevinta/vulcan-report"
 
@@ -29,6 +30,9 @@ type Writer struct {
 	showSeverity config.Severity
 	exclusions   []config.Exclusion
 }
+
+// timeNow is set by tests to mock the current time.
+var timeNow = time.Now
 
 // NewWriter creates a new instance of a report writer.
 func NewWriter(cfg config.ReportConfig) (Writer, error) {
@@ -138,6 +142,10 @@ func (writer Writer) parseReport(er engine.Report) ([]vulnerability, error) {
 // excluded based on the [Writer] configuration and the affected target.
 func (writer Writer) isExcluded(v report.Vulnerability, target string) (bool, error) {
 	for _, excl := range writer.exclusions {
+		if !excl.ExpirationDate.IsZero() && excl.ExpirationDate.Before(timeNow()) {
+			continue
+		}
+
 		if excl.Fingerprint != "" && v.Fingerprint != excl.Fingerprint {
 			continue
 		}

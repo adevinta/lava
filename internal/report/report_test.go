@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	vreport "github.com/adevinta/vulcan-report"
 	"github.com/google/go-cmp/cmp"
@@ -631,9 +632,53 @@ func TestWriter_isExcluded(t *testing.T) {
 			want:       false,
 			wantNilErr: true,
 		},
+		{
+			name: "active exclusion",
+			vulnerability: vreport.Vulnerability{
+				Summary: "Vulnerability Summary 1",
+				Score:   6.7,
+			},
+			target: ".",
+			rConfig: config.ReportConfig{
+				Exclusions: []config.Exclusion{
+					{
+						Summary:        "Summary 1",
+						Description:    "Excluded vulnerabilities Summary 1",
+						ExpirationDate: mustParseExpDate("2024/05/06"),
+					},
+				},
+			},
+			want:       true,
+			wantNilErr: true,
+		},
+		{
+			name: "expired exclusion",
+			vulnerability: vreport.Vulnerability{
+				Summary: "Vulnerability Summary 1",
+				Score:   6.7,
+			},
+			target: ".",
+			rConfig: config.ReportConfig{
+				Exclusions: []config.Exclusion{
+					{
+						Summary:        "Summary 1",
+						Description:    "Excluded vulnerabilities Summary 1",
+						ExpirationDate: mustParseExpDate("2023/05/06"),
+					},
+				},
+			},
+			want:       false,
+			wantNilErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			oldTimeNow := timeNow
+			defer func() { timeNow = oldTimeNow }()
+			timeNow = func() time.Time {
+				tn, _ := time.Parse(time.RFC3339, "2024-01-02T15:04:05Z")
+				return tn
+			}
 			w, err := NewWriter(tt.rConfig)
 			if err != nil {
 				t.Fatalf("unable to create a report writer: %v", err)
@@ -1457,4 +1502,12 @@ func statusLess(a, b checkStatus) bool {
 
 func ptr[V any](v V) *V {
 	return &v
+}
+
+func mustParseExpDate(date string) config.ExpirationDate {
+	t, err := time.Parse(config.ExpirationDateLayout, date)
+	if err != nil {
+		panic(err)
+	}
+	return config.ExpirationDate{Time: t}
 }

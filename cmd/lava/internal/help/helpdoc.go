@@ -172,6 +172,8 @@ The exclusion rules support the following filters:
     and the checktype options.
   - summary: regular expression that matches the summary of the
     vulnerability.
+  - expiration: is the date on which the exclusion becomes inactive.
+    The format is YYYY/MM/DD.
 
 A finding is excluded if it matches all the filters of an exclusion
 rule.
