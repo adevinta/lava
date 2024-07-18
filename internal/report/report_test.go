@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
 	"testing"
 	"time"
 
@@ -19,11 +20,12 @@ import (
 
 func TestWriter_calculateExitCode(t *testing.T) {
 	tests := []struct {
-		name    string
-		summ    summary
-		status  []checkStatus
-		rConfig config.ReportConfig
-		want    ExitCode
+		name       string
+		summ       summary
+		status     []checkStatus
+		staleExcls []config.Exclusion
+		rConfig    config.ReportConfig
+		want       ExitCode
 	}{
 		{
 			name: "critical",
@@ -210,6 +212,73 @@ func TestWriter_calculateExitCode(t *testing.T) {
 			},
 			want: ExitCodeCheckError,
 		},
+		{
+			name: "stale exclusions (warn)",
+			summ: summary{
+				count: map[config.Severity]int{
+					config.SeverityCritical: 0,
+					config.SeverityHigh:     0,
+					config.SeverityMedium:   1,
+					config.SeverityLow:      1,
+					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
+				},
+			},
+			staleExcls: []config.Exclusion{
+				{
+					Summary: "Unused exclusion",
+				},
+			},
+			rConfig: config.ReportConfig{
+				Severity: config.SeverityHigh,
+				Exclusions: []config.Exclusion{
+					{
+						Summary: "Unused exclusion",
+					},
+				},
+			},
+			want: 0,
+		},
+		{
+			name: "stale exclusions (error)",
+			summ: summary{
+				count: map[config.Severity]int{
+					config.SeverityCritical: 0,
+					config.SeverityHigh:     0,
+					config.SeverityMedium:   1,
+					config.SeverityLow:      1,
+					config.SeverityInfo:     1,
+				},
+			},
+			status: []checkStatus{
+				{
+					Checktype: "Checktype1",
+					Target:    "Target1",
+					Status:    "FINISHED",
+				},
+			},
+			staleExcls: []config.Exclusion{
+				{
+					Summary: "Unused exclusion",
+				},
+			},
+			rConfig: config.ReportConfig{
+				Severity:               config.SeverityHigh,
+				ErrorOnStaleExclusions: true,
+				Exclusions: []config.Exclusion{
+					{
+						Summary: "Unused exclusion",
+					},
+				},
+			},
+			want: ExitCodeStaleExclusions,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -217,7 +286,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unable to create a report writer: %v", err)
 			}
-			got := w.calculateExitCode(tt.summ, tt.status)
+			got := w.calculateExitCode(tt.summ, tt.status, tt.staleExcls)
 			if got != tt.want {
 				t.Errorf("unexpected exit code: got: %v, want: %v", got, tt.want)
 			}
@@ -315,8 +384,8 @@ func TestWriter_parseReport(t *testing.T) {
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 1",
 					},
-					Severity: config.SeverityInfo,
-					excluded: false,
+					Severity:          config.SeverityInfo,
+					matchedExclusions: nil,
 				},
 				{
 					CheckData: vreport.CheckData{
@@ -326,8 +395,8 @@ func TestWriter_parseReport(t *testing.T) {
 						Summary: "Vulnerability Summary 2",
 						Score:   6.7,
 					},
-					Severity: config.SeverityMedium,
-					excluded: false,
+					Severity:          config.SeverityMedium,
+					matchedExclusions: nil,
 				},
 			},
 			wantNilErr: true,
@@ -374,8 +443,8 @@ func TestWriter_parseReport(t *testing.T) {
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 1",
 					},
-					Severity: config.SeverityInfo,
-					excluded: false,
+					Severity:          config.SeverityInfo,
+					matchedExclusions: nil,
 				},
 				{
 					CheckData: vreport.CheckData{
@@ -385,8 +454,46 @@ func TestWriter_parseReport(t *testing.T) {
 						Summary: "Vulnerability Summary 2",
 						Score:   6.7,
 					},
-					Severity: config.SeverityMedium,
-					excluded: true,
+					Severity:          config.SeverityMedium,
+					matchedExclusions: []int{0},
+				},
+			},
+			wantNilErr: true,
+		},
+		{
+			name: "vulnerability excluded by all the exclusions",
+			report: map[string]vreport.Report{
+				"CheckID1": {
+					CheckData: vreport.CheckData{
+						CheckID: "CheckID1",
+					},
+					ResultData: vreport.ResultData{
+						Vulnerabilities: []vreport.Vulnerability{
+							{
+								Summary:          "Vulnerability Summary 1",
+								AffectedResource: "Affected Resource 1",
+							},
+						},
+					},
+				},
+			},
+			rConfig: config.ReportConfig{
+				Exclusions: []config.Exclusion{
+					{Summary: "Summary 1"},
+					{Resource: "Affected Resource 1"},
+				},
+			},
+			want: []vulnerability{
+				{
+					CheckData: vreport.CheckData{
+						CheckID: "CheckID1",
+					},
+					Vulnerability: vreport.Vulnerability{
+						Summary:          "Vulnerability Summary 1",
+						AffectedResource: "Affected Resource 1",
+					},
+					Severity:          config.SeverityInfo,
+					matchedExclusions: []int{0, 1},
 				},
 			},
 			wantNilErr: true,
@@ -413,13 +520,13 @@ func TestWriter_parseReport(t *testing.T) {
 	}
 }
 
-func TestWriter_isExcluded(t *testing.T) {
+func TestWriter_matchExclusions(t *testing.T) {
 	tests := []struct {
 		name          string
 		vulnerability vreport.Vulnerability
 		target        string
 		rConfig       config.ReportConfig
-		want          bool
+		want          []int
 		wantNilErr    bool
 	}{
 		{
@@ -432,7 +539,7 @@ func TestWriter_isExcluded(t *testing.T) {
 			rConfig: config.ReportConfig{
 				Exclusions: []config.Exclusion{},
 			},
-			want:       false,
+			want:       []int{},
 			wantNilErr: true,
 		},
 		{
@@ -450,7 +557,7 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       true,
+			want:       []int{0},
 			wantNilErr: true,
 		},
 		{
@@ -468,7 +575,7 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       false,
+			want:       []int{},
 			wantNilErr: true,
 		},
 		{
@@ -486,7 +593,7 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       true,
+			want:       []int{0},
 			wantNilErr: true,
 		},
 		{
@@ -504,7 +611,7 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       true,
+			want:       []int{0},
 			wantNilErr: true,
 		},
 		{
@@ -522,7 +629,7 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       true,
+			want:       []int{0},
 			wantNilErr: true,
 		},
 		{
@@ -539,7 +646,7 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       true,
+			want:       []int{0},
 			wantNilErr: true,
 		},
 		{
@@ -561,7 +668,7 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       true,
+			want:       []int{0},
 			wantNilErr: true,
 		},
 		{
@@ -583,7 +690,7 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       true,
+			want:       []int{0},
 			wantNilErr: true,
 		},
 		{
@@ -606,7 +713,7 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       true,
+			want:       []int{0},
 			wantNilErr: true,
 		},
 		{
@@ -629,7 +736,7 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       false,
+			want:       []int{},
 			wantNilErr: true,
 		},
 		{
@@ -648,7 +755,7 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       true,
+			want:       []int{0},
 			wantNilErr: true,
 		},
 		{
@@ -667,7 +774,24 @@ func TestWriter_isExcluded(t *testing.T) {
 					},
 				},
 			},
-			want:       false,
+			want:       []int{},
+			wantNilErr: true,
+		},
+		{
+			name: "match more than an exclusion",
+			vulnerability: vreport.Vulnerability{
+				Summary:          "Vulnerability Summary 1",
+				Score:            6.7,
+				AffectedResource: "Resource 1",
+			},
+			target: ".",
+			rConfig: config.ReportConfig{
+				Exclusions: []config.Exclusion{
+					{Summary: "Summary 1"},
+					{Resource: "Resource 1"},
+				},
+			},
+			want:       []int{0, 1},
 			wantNilErr: true,
 		},
 	}
@@ -683,11 +807,11 @@ func TestWriter_isExcluded(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unable to create a report writer: %v", err)
 			}
-			got, err := w.isExcluded(tt.vulnerability, tt.target)
+			got, err := w.matchExclusions(tt.vulnerability, tt.target)
 			if (err == nil) != tt.wantNilErr {
 				t.Errorf("unexpected error value: %v", err)
 			}
-			if got != tt.want {
+			if !slices.Equal(tt.want, got) {
 				t.Errorf("unexpected excluded value: got: %v, want: %v", got, tt.want)
 			}
 		})
@@ -708,71 +832,71 @@ func TestMkSummary(t *testing.T) {
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 1",
 					},
-					Severity: config.SeverityCritical,
-					excluded: false,
+					Severity:          config.SeverityCritical,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 2",
 					},
-					Severity: config.SeverityCritical,
-					excluded: true,
+					Severity:          config.SeverityCritical,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 3",
 					},
-					Severity: config.SeverityHigh,
-					excluded: false,
+					Severity:          config.SeverityHigh,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 4",
 					},
-					Severity: config.SeverityHigh,
-					excluded: true,
+					Severity:          config.SeverityHigh,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 5",
 					},
-					Severity: config.SeverityMedium,
-					excluded: false,
+					Severity:          config.SeverityMedium,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 6",
 					},
-					Severity: config.SeverityMedium,
-					excluded: true,
+					Severity:          config.SeverityMedium,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 7",
 					},
-					Severity: config.SeverityLow,
-					excluded: false,
+					Severity:          config.SeverityLow,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 8",
 					},
-					Severity: config.SeverityLow,
-					excluded: true,
+					Severity:          config.SeverityLow,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 9",
 					},
-					Severity: config.SeverityInfo,
-					excluded: false,
+					Severity:          config.SeverityInfo,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 10",
 					},
-					Severity: config.SeverityInfo,
-					excluded: true,
+					Severity:          config.SeverityInfo,
+					matchedExclusions: []int{0},
 				},
 			},
 			want: summary{
@@ -794,8 +918,8 @@ func TestMkSummary(t *testing.T) {
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 1",
 					},
-					Severity: 7,
-					excluded: false,
+					Severity:          7,
+					matchedExclusions: []int{},
 				},
 			},
 			want: summary{
@@ -925,71 +1049,71 @@ func TestWriter_filterVulns(t *testing.T) {
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 1",
 					},
-					Severity: config.SeverityCritical,
-					excluded: false,
+					Severity:          config.SeverityCritical,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 2",
 					},
-					Severity: config.SeverityCritical,
-					excluded: true,
+					Severity:          config.SeverityCritical,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 3",
 					},
-					Severity: config.SeverityHigh,
-					excluded: false,
+					Severity:          config.SeverityHigh,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 4",
 					},
-					Severity: config.SeverityHigh,
-					excluded: true,
+					Severity:          config.SeverityHigh,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 5",
 					},
-					Severity: config.SeverityMedium,
-					excluded: false,
+					Severity:          config.SeverityMedium,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 6",
 					},
-					Severity: config.SeverityMedium,
-					excluded: true,
+					Severity:          config.SeverityMedium,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 7",
 					},
-					Severity: config.SeverityLow,
-					excluded: false,
+					Severity:          config.SeverityLow,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 8",
 					},
-					Severity: config.SeverityLow,
-					excluded: true,
+					Severity:          config.SeverityLow,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 9",
 					},
-					Severity: config.SeverityInfo,
-					excluded: false,
+					Severity:          config.SeverityInfo,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 10",
 					},
-					Severity: config.SeverityInfo,
-					excluded: true,
+					Severity:          config.SeverityInfo,
+					matchedExclusions: []int{0},
 				},
 			},
 			rConfig: config.ReportConfig{
@@ -1000,36 +1124,36 @@ func TestWriter_filterVulns(t *testing.T) {
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 1",
 					},
-					Severity: config.SeverityCritical,
-					excluded: false,
+					Severity:          config.SeverityCritical,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 3",
 					},
-					Severity: config.SeverityHigh,
-					excluded: false,
+					Severity:          config.SeverityHigh,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 5",
 					},
-					Severity: config.SeverityMedium,
-					excluded: false,
+					Severity:          config.SeverityMedium,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 7",
 					},
-					Severity: config.SeverityLow,
-					excluded: false,
+					Severity:          config.SeverityLow,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 9",
 					},
-					Severity: config.SeverityInfo,
-					excluded: false,
+					Severity:          config.SeverityInfo,
+					matchedExclusions: []int{},
 				},
 			},
 		},
@@ -1040,71 +1164,71 @@ func TestWriter_filterVulns(t *testing.T) {
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 1",
 					},
-					Severity: config.SeverityCritical,
-					excluded: false,
+					Severity:          config.SeverityCritical,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 2",
 					},
-					Severity: config.SeverityCritical,
-					excluded: true,
+					Severity:          config.SeverityCritical,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 3",
 					},
-					Severity: config.SeverityHigh,
-					excluded: false,
+					Severity:          config.SeverityHigh,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 4",
 					},
-					Severity: config.SeverityHigh,
-					excluded: true,
+					Severity:          config.SeverityHigh,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 5",
 					},
-					Severity: config.SeverityMedium,
-					excluded: false,
+					Severity:          config.SeverityMedium,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 6",
 					},
-					Severity: config.SeverityMedium,
-					excluded: true,
+					Severity:          config.SeverityMedium,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 7",
 					},
-					Severity: config.SeverityLow,
-					excluded: false,
+					Severity:          config.SeverityLow,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 8",
 					},
-					Severity: config.SeverityLow,
-					excluded: true,
+					Severity:          config.SeverityLow,
+					matchedExclusions: []int{0},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 9",
 					},
-					Severity: config.SeverityInfo,
-					excluded: false,
+					Severity:          config.SeverityInfo,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 10",
 					},
-					Severity: config.SeverityInfo,
-					excluded: true,
+					Severity:          config.SeverityInfo,
+					matchedExclusions: []int{0},
 				},
 			},
 			rConfig: config.ReportConfig{
@@ -1115,15 +1239,15 @@ func TestWriter_filterVulns(t *testing.T) {
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 1",
 					},
-					Severity: config.SeverityCritical,
-					excluded: false,
+					Severity:          config.SeverityCritical,
+					matchedExclusions: []int{},
 				},
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 3",
 					},
-					Severity: config.SeverityHigh,
-					excluded: false,
+					Severity:          config.SeverityHigh,
+					matchedExclusions: []int{},
 				},
 			},
 		},
@@ -1486,6 +1610,62 @@ func TestNewWriter_OutputFile(t *testing.T) {
 	}
 }
 
+func TestWriter_getStaleExclusions(t *testing.T) {
+	tests := []struct {
+		name       string
+		exclusions []config.Exclusion
+		vulns      []vulnerability
+		want       []config.Exclusion
+	}{
+		{
+			name: "without stale exclusions",
+			exclusions: []config.Exclusion{
+				{Summary: "Summary 1"},
+				{Resource: "Resource 1"},
+			},
+			vulns: []vulnerability{
+				{matchedExclusions: []int{0, 1}},
+			},
+			want: []config.Exclusion{},
+		},
+		{
+			name: "matched all exclusion in different vulnerabilities",
+			exclusions: []config.Exclusion{
+				{Summary: "Summary 1"},
+				{Resource: "Resource 2"},
+			},
+			vulns: []vulnerability{
+				{matchedExclusions: []int{0, 1}},
+				{matchedExclusions: []int{0, 1}},
+			},
+			want: []config.Exclusion{},
+		},
+		{
+			name: "one stale exclusions",
+			exclusions: []config.Exclusion{
+				{Summary: "Summary 1"},
+				{Resource: "Resource 1"},
+				{Summary: "Stale Exclusion 1"},
+			},
+			vulns: []vulnerability{
+				{matchedExclusions: []int{0, 1}},
+			},
+			want: []config.Exclusion{
+				{Summary: "Stale Exclusion 1"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			writer := Writer{
+				exclusions: tt.exclusions,
+			}
+			if got := writer.getStaleExclusions(tt.vulns); !slices.Equal(tt.want, got) {
+				t.Errorf("unexpected list of stale vulnerabilities: got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
 func vulnLess(a, b vulnerability) bool {
 	h := func(v vulnerability) string {
 		return fmt.Sprintf("%#v", v)

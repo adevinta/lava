@@ -36,6 +36,7 @@ that have been found.
   -   1: Command error
   -   2: Syntax error
   -   3: Check error
+  -   4: Stale exclusions
   - 100: Informational vulnerabilities found
   - 101: Low severity vulnerabilities found
   - 102: Medium severity vulnerabilities found

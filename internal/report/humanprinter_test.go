@@ -18,6 +18,7 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 		vulnerabilities []vulnerability
 		summ            summary
 		status          []checkStatus
+		staleExcls      []config.Exclusion
 		want            []string
 	}{
 		{
@@ -162,6 +163,9 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 					Status:    "FINISHED",
 				},
 			},
+			staleExcls: []config.Exclusion{
+				{Summary: "Unused exclusion"},
+			},
 			want: []string{
 				"STATUS",
 				"FINISHED",
@@ -169,6 +173,8 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 				"Number of excluded vulnerabilities not included in the summary table: 3",
 				"VULNERABILITIES",
 				"Vulnerability Summary 1",
+				"STALE EXCLUSIONS",
+				"- Summary: Unused exclusion",
 			},
 		},
 		{
@@ -193,7 +199,7 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			w := humanPrinter{}
-			if err := w.Print(&buf, tt.vulnerabilities, tt.summ, tt.status); err != nil {
+			if err := w.Print(&buf, tt.vulnerabilities, tt.summ, tt.status, tt.staleExcls); err != nil {
 				t.Errorf("unexpected error value: %v", err)
 			}
 			text := buf.String()

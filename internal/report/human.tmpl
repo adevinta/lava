@@ -5,6 +5,9 @@
 {{- if .Vulns}}
 {{template "vulns" . -}}
 {{end -}}
+{{- if .StaleExcls}}
+{{template "staleExcls" . -}}
+{{end -}}
 {{- end -}}
 
 
@@ -158,10 +161,41 @@ Number of excluded vulnerabilities not included in the summary table: {{.Exclude
 {{- $rsc := . -}}
 - {{$rsc.Name | bold}}:
 {{- range $row := $rsc.Rows}}{{range $i, $header := $rsc.Header}}
-  {{if eq $i 0}}- {{else}}  {{end}}{{ $header | trim | bold}}: {{index $row $header | trim -}}
+  {{if eq $i 0}}- {{else}}  {{end}}{{$header | trim | bold}}: {{index $row $header | trim -}}
 {{end}}{{end}}
 {{- end -}}
 
+{{- /* staleExcls is the template used to render the details of the stale exclusions. */ -}}
+{{- define "staleExcls"  -}}
+{{"STALE EXCLUSIONS" | bold | underline}}
+
+{{range $excl := .StaleExcls}}
+{{- template "excl" . -}}
+{{end}}
+{{- end -}}
+
+{{- /* excl is the template used to render an exclusion. */ -}}
+{{- define "excl" -}}
+{{- $pref := "- " -}}
+{{- if .Target}}
+{{- $pref}}{{"Target" | bold}}: {{.Target | trim}}{{$pref = "  "}}
+{{end -}}
+{{- if .Description}}
+{{- $pref}}{{"Description" | bold}}: {{.Description | trim}}{{$pref = "  "}}
+{{end -}}
+{{- if .Resource}}
+{{- $pref}}{{"Resource" | bold}}: {{.Resource | trim}}{{$pref = "  "}}
+{{end -}}
+{{- if .Fingerprint}}
+{{- $pref}}{{"Fingerprint" | bold}}: {{.Fingerprint | trim}}{{$pref = "  "}}
+{{end -}}
+{{- if .Summary}}
+{{- $pref}}{{"Summary" | bold}}: {{.Summary | trim}}{{$pref = "  "}}
+{{end -}}
+{{- if not .ExpirationDate.IsZero}}
+{{- $pref}}{{"Expiration Date" | bold}}: {{.ExpirationDate.String | trim}}{{$pref = "  "}}
+{{end -}}
+{{- end -}}
 
 {{- /* Render the report. */ -}}
 {{- template "report" . -}}

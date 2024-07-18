@@ -163,7 +163,7 @@ func TestJsonPrinter_Print(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			w := jsonPrinter{}
-			err := w.Print(&buf, tt.vulnerabilities, summary{}, nil)
+			err := w.Print(&buf, tt.vulnerabilities, summary{}, nil, nil)
 			if (err == nil) != tt.wantNilErr {
 				t.Errorf("unexpected error value: %v", err)
 			}
