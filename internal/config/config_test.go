@@ -3,11 +3,13 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"log/slog"
 	"regexp"
 	"testing"
+	"time"
 
 	agentconfig "github.com/adevinta/vulcan-agent/config"
 	types "github.com/adevinta/vulcan-types"
@@ -234,6 +236,39 @@ func TestParse(t *testing.T) {
 			want:          Config{},
 			wantErrRegexp: regexp.MustCompile(`level string ".*": unknown name`),
 		},
+		{
+			name: "valid expiration date",
+			file: "testdata/valid_expiration_date.yaml",
+			want: Config{
+				LavaVersion: "v1.0.0",
+				ChecktypeURLs: []string{
+					"checktypes.json",
+				},
+				Targets: []Target{
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+				},
+				ReportConfig: ReportConfig{
+					Format:     OutputFormatHuman,
+					OutputFile: "",
+					Exclusions: []Exclusion{
+						{
+							Summary:        "Secret Leaked in Git Repository",
+							Description:    "Ignore test certificates.",
+							ExpirationDate: mustParseExpDate("2024/07/05"),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid expiration date",
+			file:    "testdata/invalid_expiration_date.yaml",
+			want:    Config{},
+			wantErr: ErrInvalidExpirationDate,
+		},
 	}
 
 	for _, tt := range tests {
@@ -259,7 +294,6 @@ func TestParse(t *testing.T) {
 					t.Errorf("unexpected error: %v", err)
 				}
 			}
-
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("configs mismatch (-want +got):\n%v", diff)
 			}
@@ -376,4 +410,58 @@ func TestSeverity_MarshalText(t *testing.T) {
 
 func ptr[V any](v V) *V {
 	return &v
+}
+
+func TestParseExpirationDate(t *testing.T) {
+	tests := []struct {
+		name    string
+		date    string
+		want    ExpirationDate
+		wantErr error
+	}{
+		{
+			name:    "valid date",
+			date:    "2024/07/05",
+			want:    mustParseExpDate("2024/07/05"),
+			wantErr: nil,
+		},
+		{
+			name:    "invalid date",
+			date:    "2024-07-05",
+			want:    ExpirationDate{},
+			wantErr: ErrInvalidExpirationDate,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseExpirationDate(tt.date)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("unexpected error: want: %v, got: %v", tt.wantErr, err)
+			}
+			if !got.Equal(tt.want.Time) {
+				t.Errorf("unexpected date: want: %v, got: %v", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestExpirationDate_MarshalText(t *testing.T) {
+	date := mustParseExpDate("2024/07/05")
+	want := []byte("2024/07/05")
+
+	got, err := date.MarshalText()
+	if err != nil {
+		t.Errorf("unexpected error: want: %v, got: %v", nil, err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Errorf("unexpected expiration date string: want: %s, got: %s", want, got)
+	}
+}
+
+func mustParseExpDate(date string) ExpirationDate {
+	t, err := time.Parse(ExpirationDateLayout, date)
+	if err != nil {
+		panic(err)
+	}
+	return ExpirationDate{Time: t}
 }
