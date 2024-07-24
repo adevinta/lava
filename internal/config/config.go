@@ -185,14 +185,10 @@ type ReportConfig struct {
 	// OutputFile is the path of the output file.
 	OutputFile string `yaml:"output"`
 
-	// Exclusions is a list of findings that will be ignored. For
-	// instance, accepted risks, false positives, etc.
+	// Exclusions is a list of rules that allow to exclude
+	// findings from the generated report. For instance, accepted
+	// risks, false positives, etc.
 	Exclusions []Exclusion `yaml:"exclusions"`
-
-	// Metrics is the file where the metrics will be written.
-	// If Metrics is an empty string or not specified in the yaml file, then
-	// the metrics report is not saved.
-	Metrics string `yaml:"metrics"`
 }
 
 // Target represents the target of a scan.
@@ -381,27 +377,27 @@ func (f *OutputFormat) UnmarshalText(text []byte) error {
 type Exclusion struct {
 	// Target is a regular expression that matches the name of the
 	// affected target.
-	Target string `yaml:"target"`
+	Target string `yaml:"target" json:"target"`
 
 	// Resource is a regular expression that matches the name of
 	// the affected resource.
-	Resource string `yaml:"resource"`
+	Resource string `yaml:"resource" json:"resource"`
 
 	// Fingerprint defines the context in where the vulnerability
 	// has been found. It includes the checktype image, the
 	// affected target, the asset type and the checktype options.
-	Fingerprint string `yaml:"fingerprint"`
+	Fingerprint string `yaml:"fingerprint" json:"fingerprint"`
 
 	// Summary is a regular expression that matches the summary of
 	// the vulnerability.
-	Summary string `yaml:"summary"`
+	Summary string `yaml:"summary" json:"summary"`
 
 	// ExpirationDate is the date on which the exclusion becomes inactive.
 	// The format is YYYY/MM/DD.
-	ExpirationDate ExpirationDate `yaml:"expiration"`
+	ExpirationDate ExpirationDate `yaml:"expiration" json:"expiration"`
 
 	// Description describes the exclusion.
-	Description string `yaml:"description"`
+	Description string `yaml:"description" json:"description"`
 }
 
 // ExpirationDateLayout is the input format for the [ExpirationDate].
