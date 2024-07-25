@@ -24,15 +24,16 @@ import (
 
 func init() {
 	base.Commands = []*base.Command{
-		scan.CmdScan,
-		run.CmdRun,
 		initialize.CmdInit,
+		run.CmdRun,
+		scan.CmdScan,
 		version.CmdVersion,
 
+		help.HelpChecktypes,
 		help.HelpEnvironment,
+		help.HelpFullReport,
 		help.HelpLavaYAML,
 		help.HelpMetrics,
-		help.HelpChecktypes,
 	}
 }
 
