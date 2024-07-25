@@ -15,14 +15,14 @@ import (
 func TestUserFriendlyPrinter_Print(t *testing.T) {
 	tests := []struct {
 		name            string
-		vulnerabilities []vulnerability
+		vulnerabilities []repVuln
 		summ            summary
 		status          []checkStatus
 		want            []string
 	}{
 		{
 			name: "User Friendly Report",
-			vulnerabilities: []vulnerability{
+			vulnerabilities: []repVuln{
 				{
 					Vulnerability: vreport.Vulnerability{
 						Summary: "Vulnerability Summary 1",
@@ -149,11 +149,11 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 				},
 			},
 			summ: summary{
-				count: map[config.Severity]int{
+				Count: map[config.Severity]int{
 					config.SeverityHigh:   3,
 					config.SeverityMedium: 15,
 				},
-				excluded: 3,
+				Excluded: 3,
 			},
 			status: []checkStatus{
 				{
