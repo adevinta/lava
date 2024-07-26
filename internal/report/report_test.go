@@ -421,7 +421,7 @@ func TestWriter_parseReport(t *testing.T) {
 					},
 					Shown:    false,
 					Excluded: true,
-					Rule: config.Exclusion{
+					ExclusionRule: &config.Exclusion{
 						Summary: "Summary 2",
 					},
 				},
@@ -750,7 +750,7 @@ func TestWriter_isExcluded(t *testing.T) {
 						{
 							Summary:        "Summary 1",
 							Description:    "Excluded vulnerabilities Summary 1",
-							ExpirationDate: mustParseExpDate("2024/05/06"),
+							ExpirationDate: ptr(mustParseExpDate("2024/05/06")),
 						},
 					},
 				},
@@ -772,7 +772,7 @@ func TestWriter_isExcluded(t *testing.T) {
 						{
 							Summary:        "Summary 1",
 							Description:    "Excluded vulnerabilities Summary 1",
-							ExpirationDate: mustParseExpDate("2023/05/06"),
+							ExpirationDate: ptr(mustParseExpDate("2023/05/06")),
 						},
 					},
 				},

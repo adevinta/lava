@@ -377,27 +377,27 @@ func (f *OutputFormat) UnmarshalText(text []byte) error {
 type Exclusion struct {
 	// Target is a regular expression that matches the name of the
 	// affected target.
-	Target string `yaml:"target" json:"target"`
+	Target string `yaml:"target" json:"target,omitempty"`
 
 	// Resource is a regular expression that matches the name of
 	// the affected resource.
-	Resource string `yaml:"resource" json:"resource"`
+	Resource string `yaml:"resource" json:"resource,omitempty"`
 
 	// Fingerprint defines the context in where the vulnerability
 	// has been found. It includes the checktype image, the
 	// affected target, the asset type and the checktype options.
-	Fingerprint string `yaml:"fingerprint" json:"fingerprint"`
+	Fingerprint string `yaml:"fingerprint" json:"fingerprint,omitempty"`
 
 	// Summary is a regular expression that matches the summary of
 	// the vulnerability.
-	Summary string `yaml:"summary" json:"summary"`
+	Summary string `yaml:"summary" json:"summary,omitempty"`
 
 	// ExpirationDate is the date on which the exclusion becomes inactive.
 	// The format is YYYY/MM/DD.
-	ExpirationDate ExpirationDate `yaml:"expiration" json:"expiration"`
+	ExpirationDate *ExpirationDate `yaml:"expiration" json:"expiration,omitempty"`
 
 	// Description describes the exclusion.
-	Description string `yaml:"description" json:"description"`
+	Description string `yaml:"description" json:"description,omitempty"`
 }
 
 // ExpirationDateLayout is the input format for the [ExpirationDate].

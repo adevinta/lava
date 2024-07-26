@@ -157,9 +157,9 @@ func (writer Writer) parseReport(er engine.Report) ([]metaVuln, error) {
 			if err != nil {
 				return nil, fmt.Errorf("vulnerability exlusion: %w", err)
 			}
-			var rule config.Exclusion
+			var rule *config.Exclusion
 			if excluded {
-				rule = writer.exclusions[ruleIdx]
+				rule = &writer.exclusions[ruleIdx]
 			}
 			shown := !excluded && severity >= writer.showSeverity
 			v := metaVuln{
@@ -168,9 +168,9 @@ func (writer Writer) parseReport(er engine.Report) ([]metaVuln, error) {
 					Vulnerability: vuln,
 					Severity:      severity,
 				},
-				Shown:    shown,
-				Excluded: excluded,
-				Rule:     rule,
+				Shown:         shown,
+				Excluded:      excluded,
+				ExclusionRule: rule,
 			}
 			vulns = append(vulns, v)
 		}
@@ -184,7 +184,7 @@ func (writer Writer) parseReport(er engine.Report) ([]metaVuln, error) {
 // rule is returned.
 func (writer Writer) isExcluded(v report.Vulnerability, target string) (excluded bool, rule int, err error) {
 	for i, excl := range writer.exclusions {
-		if !excl.ExpirationDate.IsZero() && excl.ExpirationDate.Before(timeNow()) {
+		if excl.ExpirationDate != nil && excl.ExpirationDate.Before(timeNow()) {
 			continue
 		}
 
@@ -294,9 +294,9 @@ type metaVuln struct {
 	// from the generated report.
 	Excluded bool `json:"excluded"`
 
-	// Rule is the matching exclusion rule in the case of an
-	// excluded finding.
-	Rule config.Exclusion `json:"rule"`
+	// ExclusionRule is the matching exclusion rule in the case of
+	// an excluded finding.
+	ExclusionRule *config.Exclusion `json:"exclusion_rule,omitempty"`
 }
 
 // A printer renders a Vulcan report in a specific format.
