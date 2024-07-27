@@ -34,6 +34,7 @@ func init() {
 		help.HelpFullReport,
 		help.HelpLavaYAML,
 		help.HelpMetrics,
+		help.HelpReport,
 	}
 }
 
