@@ -163,5 +163,6 @@ func init() {
 	CmdRun.Flag.StringVar(&runO, "o", "", "output file")
 	CmdRun.Flag.TextVar(&runFmt, "fmt", config.OutputFormatHuman, "output format")
 	CmdRun.Flag.StringVar(&runMetrics, "metrics", "", "metrics file")
+	CmdRun.Flag.StringVar(&runFullReport, "fullreport", "", "full report file")
 	CmdRun.Flag.TextVar(&runLog, "log", slog.LevelInfo, "log level")
 }

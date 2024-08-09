@@ -98,6 +98,10 @@ The -metrics flag specifies the file to write the security,
 operational and configuration metrics of the scan. For more details,
 use "lava help metrics".
 
+The -fullreport flag specifies the file to write the internal data
+used to generate the report. For more details, use "lava help
+fullreport".
+
 The -log flag defines the logging level. Valid values are "debug",
 "info", "warn" and "error". If not specified, "info" is used.
 
@@ -168,20 +172,21 @@ configuration metrics to the "metrics.json" file:
 
 // Command-line flags.
 var (
-	runType     typeFlag               = "Path" // -type flag
-	runTimeout  time.Duration                   // -timeout flag
-	runOpt      string                          // -opt flag
-	runOptfile  string                          // -optfile flag
-	runVar      varFlag                         // -var flag
-	runPull     agentconfig.PullPolicy          // -pull flag
-	runRegistry string                          // -registry flag
-	runUser     userFlag                        // -user flag
-	runSeverity config.Severity                 // -severity flag
-	runShow     showFlag                        // -show flag
-	runO        string                          // -o flag
-	runFmt      config.OutputFormat             // -fmt flag
-	runMetrics  string                          // -metrics flag
-	runLog      slog.Level                      // -log flag
+	runType       typeFlag               = "Path" // -type flag
+	runTimeout    time.Duration                   // -timeout flag
+	runOpt        string                          // -opt flag
+	runOptfile    string                          // -optfile flag
+	runVar        varFlag                         // -var flag
+	runPull       agentconfig.PullPolicy          // -pull flag
+	runRegistry   string                          // -registry flag
+	runUser       userFlag                        // -user flag
+	runSeverity   config.Severity                 // -severity flag
+	runShow       showFlag                        // -show flag
+	runO          string                          // -o flag
+	runFmt        config.OutputFormat             // -fmt flag
+	runMetrics    string                          // -metrics flag
+	runFullReport string                          // -fullreport flag
+	runLog        slog.Level                      // -log flag
 )
 
 func init() {
@@ -432,11 +437,14 @@ func writeOutputs(rep engine.Report) (report.ExitCode, error) {
 		ShowSeverity: showSeverity,
 		Format:       runFmt,
 		OutputFile:   runO,
-		Metrics:      runMetrics,
 	}
 	metrics.Collect("severity", reportConfig.Severity)
 
-	rw, err := report.NewWriter(reportConfig)
+	rwcfg := report.WriterConfig{
+		ReportConfig:   reportConfig,
+		FullReportFile: runFullReport,
+	}
+	rw, err := report.NewWriter(rwcfg)
 	if err != nil {
 		return 0, fmt.Errorf("new writer: %w", err)
 	}
@@ -447,8 +455,8 @@ func writeOutputs(rep engine.Report) (report.ExitCode, error) {
 		return 0, fmt.Errorf("render report: %w", err)
 	}
 
-	if reportConfig.Metrics != "" {
-		if err = metrics.WriteFile(reportConfig.Metrics); err != nil {
+	if runMetrics != "" {
+		if err = metrics.WriteFile(runMetrics); err != nil {
 			return 0, fmt.Errorf("write metrics: %w", err)
 		}
 	}

@@ -257,7 +257,7 @@ func TestParse(t *testing.T) {
 						{
 							Summary:        "Secret Leaked in Git Repository",
 							Description:    "Ignore test certificates.",
-							ExpirationDate: mustParseExpDate("2024/07/05"),
+							ExpirationDate: ptr(mustParseExpDate("2024/07/05")),
 						},
 					},
 				},

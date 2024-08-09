@@ -28,6 +28,14 @@ The -c flag allows to specify a configuration file. By default, "lava
 scan" looks for a configuration file with the name "lava.yaml" in the
 current directory.
 
+The -metrics flag specifies the file to write the security,
+operational and configuration metrics of the scan. For more details,
+use "lava help metrics".
+
+The -fullreport flag specifies the file to write the internal data
+used to generate the report. For more details, use "lava help
+fullreport".
+
 The exit code of the command depends on the correct execution of the
 security scan and the highest severity among all the vulnerabilities
 that have been found.
@@ -55,11 +63,17 @@ use "lava help environment".
 }
 
 // Command-line flags.
-var scanC string // -c flag
+var (
+	scanC          string // -c flag
+	scanMetrics    string // -metrics flag
+	scanFullReport string // -fullreport flag
+)
 
 func init() {
 	CmdScan.Run = runScan // Break initialization cycle.
 	CmdScan.Flag.StringVar(&scanC, "c", "lava.yaml", "config file")
+	CmdScan.Flag.StringVar(&scanMetrics, "metrics", "", "metrics file")
+	CmdScan.Flag.StringVar(&scanFullReport, "fullreport", "", "full report file")
 }
 
 // osExit is used by tests to capture the exit code.
@@ -125,7 +139,11 @@ func scan(args []string) (int, error) {
 		return 0, fmt.Errorf("engine run: %w", err)
 	}
 
-	rw, err := report.NewWriter(cfg.ReportConfig)
+	rwcfg := report.WriterConfig{
+		ReportConfig:   cfg.ReportConfig,
+		FullReportFile: scanFullReport,
+	}
+	rw, err := report.NewWriter(rwcfg)
 	if err != nil {
 		return 0, fmt.Errorf("new writer: %w", err)
 	}
@@ -139,8 +157,8 @@ func scan(args []string) (int, error) {
 	metrics.Collect("exit_code", exitCode)
 	metrics.Collect("duration", time.Since(startTime).Seconds())
 
-	if cfg.ReportConfig.Metrics != "" {
-		if err = metrics.WriteFile(cfg.ReportConfig.Metrics); err != nil {
+	if scanMetrics != "" {
+		if err = metrics.WriteFile(scanMetrics); err != nil {
 			return 0, fmt.Errorf("write metrics: %w", err)
 		}
 	}

@@ -14,6 +14,15 @@ import (
 	"github.com/adevinta/lava/internal/config"
 )
 
+// humanView represents the human-readable view of the report.
+type humanView struct {
+	Stats    map[string]int
+	Total    int
+	Excluded int
+	Vulns    []repVuln
+	Status   []checkStatus
+}
+
 // humanPrinter represents a human-readable report printer.
 type humanPrinter struct{}
 
@@ -40,32 +49,25 @@ var (
 )
 
 // Print renders the scan results in a human-readable format.
-func (prn humanPrinter) Print(w io.Writer, vulns []vulnerability, summ summary, status []checkStatus) error {
+func (prn humanPrinter) Print(w io.Writer, vulns []repVuln, summ summary, status []checkStatus) error {
 	// count the total non-excluded vulnerabilities found.
 	var total int
-	for _, ss := range summ.count {
+	for _, ss := range summ.Count {
 		total += ss
 	}
 
 	stats := make(map[string]int)
 	for s := config.SeverityCritical; s >= config.SeverityInfo; s-- {
-		stats[s.String()] = summ.count[s]
+		stats[s.String()] = summ.Count[s]
 	}
 
-	data := struct {
-		Stats    map[string]int
-		Total    int
-		Excluded int
-		Vulns    []vulnerability
-		Status   []checkStatus
-	}{
+	data := humanView{
 		Stats:    stats,
 		Total:    total,
-		Excluded: summ.excluded,
+		Excluded: summ.Excluded,
 		Vulns:    vulns,
 		Status:   status,
 	}
-
 	if err := humanTmpl.Execute(w, data); err != nil {
 		return fmt.Errorf("execute template summary: %w", err)
 	}
