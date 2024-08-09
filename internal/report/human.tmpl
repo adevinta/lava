@@ -76,6 +76,11 @@ Number of excluded vulnerabilities not included in the summary table: {{.Exclude
 {{$affectedResource | trim}}
 {{end -}}
 
+{{- if .Fingerprint}}
+{{"FINGERPRINT" | bold}}
+{{.Fingerprint | trim}}
+{{end -}}
+
 {{- if .Description}}
 {{"DESCRIPTION" | bold}}
 {{.Description | trim}}
