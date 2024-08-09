@@ -157,8 +157,8 @@ Number of excluded vulnerabilities not included in the summary table: {{.Exclude
 {{- define "vulnRsc" -}}
 {{- $rsc := . -}}
 - {{$rsc.Name | bold}}:
-{{- range $row := $rsc.Rows}}{{range $header := $rsc.Header}}
-  {{$header | trim | bold}}: {{index $row $header | trim -}}
+{{- range $row := $rsc.Rows}}{{range $i, $header := $rsc.Header}}
+  {{if eq $i 0}}- {{else}}  {{end}}{{ $header | trim | bold}}: {{index $row $header | trim -}}
 {{end}}{{end}}
 {{- end -}}
 
