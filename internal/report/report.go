@@ -28,7 +28,12 @@ type Writer struct {
 	isStdout     bool
 	minSeverity  config.Severity
 	showSeverity config.Severity
-	exclusions   []config.Exclusion
+	exclusions   []reportExclusion
+}
+
+type reportExclusion struct {
+	config.Exclusion
+	Matched bool
 }
 
 // timeNow is set by tests to mock the current time.
@@ -64,13 +69,18 @@ func NewWriter(cfg config.ReportConfig) (Writer, error) {
 		showSeverity = cfg.Severity
 	}
 
+	var exclusions []reportExclusion
+	for _, e := range cfg.Exclusions {
+		exclusions = append(exclusions, reportExclusion{Exclusion: e, Matched: false})
+	}
+
 	return Writer{
 		prn:          prn,
 		w:            w,
 		isStdout:     isStdout,
 		minSeverity:  cfg.Severity,
 		showSeverity: showSeverity,
-		exclusions:   cfg.Exclusions,
+		exclusions:   exclusions,
 	}, nil
 }
 
@@ -96,7 +106,7 @@ func (writer Writer) Write(er engine.Report) (ExitCode, error) {
 	status := mkStatus(er)
 	exitCode := writer.calculateExitCode(summ, status)
 
-	if err = writer.prn.Print(writer.w, fvulns, summ, status); err != nil {
+	if err = writer.prn.Print(writer.w, fvulns, summ, status, writer.exclusions); err != nil {
 		return exitCode, fmt.Errorf("print report: %w", err)
 	}
 
@@ -140,8 +150,8 @@ func (writer Writer) parseReport(er engine.Report) ([]vulnerability, error) {
 
 // isExcluded returns whether the provided [report.Vulnerability] is
 // excluded based on the [Writer] configuration and the affected target.
-func (writer Writer) isExcluded(v report.Vulnerability, target string) (bool, error) {
-	for _, excl := range writer.exclusions {
+func (writer *Writer) isExcluded(v report.Vulnerability, target string) (bool, error) {
+	for i, excl := range writer.exclusions {
 		if !excl.ExpirationDate.IsZero() && excl.ExpirationDate.Before(timeNow()) {
 			continue
 		}
@@ -183,6 +193,8 @@ func (writer Writer) isExcluded(v report.Vulnerability, target string) (bool, er
 				continue
 			}
 		}
+
+		writer.exclusions[i].Matched = true
 		return true, nil
 	}
 	return false, nil
@@ -243,7 +255,7 @@ type vulnerability struct {
 
 // A printer renders a Vulcan report in a specific format.
 type printer interface {
-	Print(w io.Writer, vulns []vulnerability, summ summary, status []checkStatus) error
+	Print(w io.Writer, vulns []vulnerability, summ summary, status []checkStatus, exclusions []reportExclusion) error
 }
 
 // scoreToSeverity converts a CVSS score into a [config.Severity].

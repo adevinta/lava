@@ -5,6 +5,9 @@
 {{- if .Vulns}}
 {{template "vulns" . -}}
 {{end -}}
+{{- if not .AllExclMatched}}
+{{template "exclsNotMatched" . -}}
+{{end -}}
 {{- end -}}
 
 
@@ -162,6 +165,37 @@ Number of excluded vulnerabilities not included in the summary table: {{.Exclude
 {{end}}{{end}}
 {{- end -}}
 
+{{- /* exclsNotMatched is the template used to render the details of a the not matched exclusions. */ -}}
+{{define "exclsNotMatched"  -}}
+{{"The following exclusions don't match any finding:" | red }}
+{{range $excl := .Exclusions}}
+    {{- if not $excl.Matched -}}
+        {{template "excl" .}}
+    {{end -}}
+{{end}}
+{{- end -}}
+
+{{- /* excl is the template used to render an exclusion. */ -}}
+{{- define "excl" -}}
+{{- if .Target}}
+{{"Target: " | bold}}{{.Target | trim -}}
+{{end -}}
+{{- if .Description}}
+{{"Description: " | bold}}{{.Description | trim -}}
+{{end -}}
+{{- if .Resource}}
+{{"Resource: " | bold}}{{.Resource | trim -}}
+{{end -}}
+{{- if .Fingerprint}}
+{{"Fingerprint: " | bold}}{{.Fingerprint | trim -}}
+{{end -}}
+{{- if .Summary}}
+{{"Summary: " | bold}}{{.Summary | trim -}}
+{{end -}}
+{{- if not .ExpirationDate.IsZero}}
+{{"Expiration Date: " | bold}}{{.ExpirationDate.String | trim -}}
+{{end -}}
+{{- end -}}
 
 {{- /* Render the report. */ -}}
 {{- template "report" . -}}

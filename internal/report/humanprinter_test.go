@@ -18,6 +18,7 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 		vulnerabilities []vulnerability
 		summ            summary
 		status          []checkStatus
+		exclusions      []reportExclusion
 		want            []string
 	}{
 		{
@@ -193,7 +194,7 @@ func TestUserFriendlyPrinter_Print(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
 			w := humanPrinter{}
-			if err := w.Print(&buf, tt.vulnerabilities, tt.summ, tt.status); err != nil {
+			if err := w.Print(&buf, tt.vulnerabilities, tt.summ, tt.status, tt.exclusions); err != nil {
 				t.Errorf("unexpected error value: %v", err)
 			}
 			text := buf.String()
