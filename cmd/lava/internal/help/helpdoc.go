@@ -167,9 +167,7 @@ The exclusion rules support the following filters:
     target.
   - resource: regular expression that matches the name of the affected
     resource.
-  - fingerprint: context in where the vulnerability has been found. It
-    includes the checktype image, the affected target, the asset type
-    and the checktype options.
+  - fingerprint: context in where the vulnerability has been found.
   - summary: regular expression that matches the summary of the
     vulnerability.
   - expiration: is the date on which the exclusion becomes inactive.
