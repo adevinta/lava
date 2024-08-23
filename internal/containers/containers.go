@@ -22,6 +22,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/go-connections/tlsconfig"
@@ -210,8 +211,8 @@ func (cli *DockerdClient) bridgeGateway() (*net.IPNet, error) {
 }
 
 // gateways returns the gateways of the specified Docker network.
-func (cli *DockerdClient) gateways(ctx context.Context, network string) ([]*net.IPNet, error) {
-	resp, err := cli.NetworkInspect(ctx, network, types.NetworkInspectOptions{})
+func (cli *DockerdClient) gateways(ctx context.Context, dockerNetwork string) ([]*net.IPNet, error) {
+	resp, err := cli.NetworkInspect(ctx, dockerNetwork, network.InspectOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("network inspect: %w", err)
 	}
