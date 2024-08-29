@@ -91,7 +91,7 @@ func scan(args []string) (int, error) {
 	startTime := time.Now()
 	metrics.Collect("start_time", startTime)
 
-	cfg, err := config.ParseFile(scanC)
+	cfg, err := config.Parse(scanC)
 	if err != nil {
 		return 0, fmt.Errorf("parse config file: %w", err)
 	}
