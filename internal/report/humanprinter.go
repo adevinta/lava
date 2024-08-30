@@ -40,7 +40,7 @@ var (
 )
 
 // Print renders the scan results in a human-readable format.
-func (prn humanPrinter) Print(w io.Writer, vulns []vulnerability, summ summary, status []checkStatus) error {
+func (prn humanPrinter) Print(w io.Writer, vulns []vulnerability, summ summary, status []checkStatus, staleExcls []config.Exclusion) error {
 	// count the total non-excluded vulnerabilities found.
 	var total int
 	for _, ss := range summ.count {
@@ -53,17 +53,20 @@ func (prn humanPrinter) Print(w io.Writer, vulns []vulnerability, summ summary, 
 	}
 
 	data := struct {
-		Stats    map[string]int
-		Total    int
-		Excluded int
-		Vulns    []vulnerability
-		Status   []checkStatus
+		Stats          map[string]int
+		Total          int
+		Excluded       int
+		Vulns          []vulnerability
+		Status         []checkStatus
+		AllExclMatched bool
+		StaleExcls     []config.Exclusion
 	}{
-		Stats:    stats,
-		Total:    total,
-		Excluded: summ.excluded,
-		Vulns:    vulns,
-		Status:   status,
+		Stats:      stats,
+		Total:      total,
+		Excluded:   summ.excluded,
+		Vulns:      vulns,
+		Status:     status,
+		StaleExcls: staleExcls,
 	}
 
 	if err := humanTmpl.Execute(w, data); err != nil {

@@ -23,12 +23,13 @@ import (
 
 // Writer represents a Lava report writer.
 type Writer struct {
-	prn          printer
-	w            io.WriteCloser
-	isStdout     bool
-	minSeverity  config.Severity
-	showSeverity config.Severity
-	exclusions   []config.Exclusion
+	prn                    printer
+	w                      io.WriteCloser
+	isStdout               bool
+	minSeverity            config.Severity
+	showSeverity           config.Severity
+	exclusions             []config.Exclusion
+	errorOnStaleExclusions bool
 }
 
 // timeNow is set by tests to mock the current time.
@@ -65,12 +66,13 @@ func NewWriter(cfg config.ReportConfig) (Writer, error) {
 	}
 
 	return Writer{
-		prn:          prn,
-		w:            w,
-		isStdout:     isStdout,
-		minSeverity:  cfg.Severity,
-		showSeverity: showSeverity,
-		exclusions:   cfg.Exclusions,
+		prn:                    prn,
+		w:                      w,
+		isStdout:               isStdout,
+		minSeverity:            cfg.Severity,
+		showSeverity:           showSeverity,
+		exclusions:             cfg.Exclusions,
+		errorOnStaleExclusions: cfg.ErrorOnStaleExclusions,
 	}, nil
 }
 
@@ -92,15 +94,35 @@ func (writer Writer) Write(er engine.Report) (ExitCode, error) {
 	metrics.Collect("excluded_vulnerability_count", summ.excluded)
 	metrics.Collect("vulnerability_count", summ.count)
 
+	staleExcls := writer.getStaleExclusions(vulns)
+
 	fvulns := writer.filterVulns(vulns)
 	status := mkStatus(er)
-	exitCode := writer.calculateExitCode(summ, status)
+	exitCode := writer.calculateExitCode(summ, status, staleExcls)
 
-	if err = writer.prn.Print(writer.w, fvulns, summ, status); err != nil {
+	if err = writer.prn.Print(writer.w, fvulns, summ, status, staleExcls); err != nil {
 		return exitCode, fmt.Errorf("print report: %w", err)
 	}
 
 	return exitCode, nil
+}
+
+// getStaleExclusions returns the list of stale exclusions.
+func (writer Writer) getStaleExclusions(vulns []vulnerability) []config.Exclusion {
+	m := make(map[int]struct{})
+	for _, vuln := range vulns {
+		for _, idx := range vuln.matchedExclusions {
+			m[idx] = struct{}{}
+		}
+	}
+
+	var staleExcls []config.Exclusion
+	for i, excl := range writer.exclusions {
+		if _, ok := m[i]; !ok {
+			staleExcls = append(staleExcls, excl)
+		}
+	}
+	return staleExcls
 }
 
 // Close closes the [Writer].
@@ -122,15 +144,15 @@ func (writer Writer) parseReport(er engine.Report) ([]vulnerability, error) {
 	for _, r := range er {
 		for _, vuln := range r.ResultData.Vulnerabilities {
 			severity := scoreToSeverity(vuln.Score)
-			excluded, err := writer.isExcluded(vuln, r.Target)
+			excls, err := writer.matchExclusions(vuln, r.Target)
 			if err != nil {
 				return nil, fmt.Errorf("vulnerability exlusion: %w", err)
 			}
 			v := vulnerability{
-				CheckData:     r.CheckData,
-				Vulnerability: vuln,
-				Severity:      severity,
-				excluded:      excluded,
+				CheckData:         r.CheckData,
+				Vulnerability:     vuln,
+				Severity:          severity,
+				matchedExclusions: excls,
 			}
 			vulns = append(vulns, v)
 		}
@@ -138,10 +160,15 @@ func (writer Writer) parseReport(er engine.Report) ([]vulnerability, error) {
 	return vulns, nil
 }
 
-// isExcluded returns whether the provided [report.Vulnerability] is
-// excluded based on the [Writer] configuration and the affected target.
-func (writer Writer) isExcluded(v report.Vulnerability, target string) (bool, error) {
-	for _, excl := range writer.exclusions {
+// matchExclusions is responsible for determining if a given [report.Vulnerability]
+// should be excluded based on predefined exclusion criteria. The method
+// compares the [report.Vulnerability] against a list of exclusions stored
+// in the [Writer] and returns a slice of integers representing the indices of
+// the exclusions that match the vulnerability. If any errors occur during the
+// matching process, an error is returned.
+func (writer Writer) matchExclusions(v report.Vulnerability, target string) (excls []int, err error) {
+	var exclusions []int
+	for i, excl := range writer.exclusions {
 		if !excl.ExpirationDate.IsZero() && excl.ExpirationDate.Before(timeNow()) {
 			continue
 		}
@@ -153,7 +180,7 @@ func (writer Writer) isExcluded(v report.Vulnerability, target string) (bool, er
 		if excl.Summary != "" {
 			matched, err := regexp.MatchString(excl.Summary, v.Summary)
 			if err != nil {
-				return false, fmt.Errorf("match string: %w", err)
+				return nil, fmt.Errorf("match string: %w", err)
 			}
 			if !matched {
 				continue
@@ -163,7 +190,7 @@ func (writer Writer) isExcluded(v report.Vulnerability, target string) (bool, er
 		if excl.Target != "" {
 			matched, err := regexp.MatchString(excl.Target, target)
 			if err != nil {
-				return false, fmt.Errorf("match string: %w", err)
+				return nil, fmt.Errorf("match string: %w", err)
 			}
 			if !matched {
 				continue
@@ -173,19 +200,19 @@ func (writer Writer) isExcluded(v report.Vulnerability, target string) (bool, er
 		if excl.Resource != "" {
 			matchedResource, err := regexp.MatchString(excl.Resource, v.AffectedResource)
 			if err != nil {
-				return false, fmt.Errorf("match string: %w", err)
+				return nil, fmt.Errorf("match string: %w", err)
 			}
 			matchedResourceString, err := regexp.MatchString(excl.Resource, v.AffectedResourceString)
 			if err != nil {
-				return false, fmt.Errorf("match string: %w", err)
+				return nil, fmt.Errorf("match string: %w", err)
 			}
 			if !matchedResource && !matchedResourceString {
 				continue
 			}
 		}
-		return true, nil
+		exclusions = append(exclusions, i)
 	}
-	return false, nil
+	return exclusions, nil
 }
 
 // filterVulns takes a list of vulnerabilities and filters out those
@@ -204,7 +231,7 @@ func (writer Writer) filterVulns(vulns []vulnerability) []vulnerability {
 		if v.Severity < writer.showSeverity {
 			break
 		}
-		if v.excluded {
+		if v.isExcluded() {
 			continue
 		}
 		fvulns = append(fvulns, v)
@@ -217,11 +244,15 @@ func (writer Writer) filterVulns(vulns []vulnerability) []vulnerability {
 // min severity configured in the writer. For that it makes use of the summary.
 //
 // See [ExitCode] for more information about exit codes.
-func (writer Writer) calculateExitCode(summ summary, status []checkStatus) ExitCode {
+func (writer Writer) calculateExitCode(summ summary, status []checkStatus, staleExcl []config.Exclusion) ExitCode {
 	for _, cs := range status {
 		if cs.Status != "FINISHED" {
 			return ExitCodeCheckError
 		}
+	}
+
+	if writer.errorOnStaleExclusions && len(staleExcl) > 0 {
+		return ExitCodeStaleExclusions
 	}
 
 	for sev := config.SeverityCritical; sev >= writer.minSeverity; sev-- {
@@ -236,14 +267,20 @@ func (writer Writer) calculateExitCode(summ summary, status []checkStatus) ExitC
 // vulnerability represents a vulnerability found by a check.
 type vulnerability struct {
 	report.Vulnerability
-	CheckData report.CheckData `json:"check_data"`
-	Severity  config.Severity  `json:"severity"`
-	excluded  bool
+	CheckData         report.CheckData `json:"check_data"`
+	Severity          config.Severity  `json:"severity"`
+	matchedExclusions []int
+}
+
+// isExclude reports whether the [vulnerability] should be excluded
+// from the report.
+func (vuln vulnerability) isExcluded() bool {
+	return len(vuln.matchedExclusions) > 0
 }
 
 // A printer renders a Vulcan report in a specific format.
 type printer interface {
-	Print(w io.Writer, vulns []vulnerability, summ summary, status []checkStatus) error
+	Print(w io.Writer, vulns []vulnerability, summ summary, status []checkStatus, staleExcls []config.Exclusion) error
 }
 
 // scoreToSeverity converts a CVSS score into a [config.Severity].
@@ -287,7 +324,7 @@ func mkSummary(vulns []vulnerability) (summary, error) {
 		if !vuln.Severity.IsValid() {
 			return summary{}, fmt.Errorf("invalid severity: %v", vuln.Severity)
 		}
-		if vuln.excluded {
+		if vuln.isExcluded() {
 			summ.excluded++
 		} else {
 			summ.count[vuln.Severity]++
@@ -324,10 +361,11 @@ type ExitCode int
 
 // Exit codes depending on the maximum severity found.
 const (
-	ExitCodeCheckError ExitCode = 3
-	ExitCodeInfo       ExitCode = 100
-	ExitCodeLow        ExitCode = 101
-	ExitCodeMedium     ExitCode = 102
-	ExitCodeHigh       ExitCode = 103
-	ExitCodeCritical   ExitCode = 104
+	ExitCodeCheckError      ExitCode = 3
+	ExitCodeStaleExclusions ExitCode = 4
+	ExitCodeInfo            ExitCode = 100
+	ExitCodeLow             ExitCode = 101
+	ExitCodeMedium          ExitCode = 102
+	ExitCodeHigh            ExitCode = 103
+	ExitCodeCritical        ExitCode = 104
 )

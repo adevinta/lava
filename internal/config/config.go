@@ -189,6 +189,10 @@ type ReportConfig struct {
 	// instance, accepted risks, false positives, etc.
 	Exclusions []Exclusion `yaml:"exclusions"`
 
+	// ErrorOnStaleExclusions specifies whether Lava should exit
+	// with error when stale exclusions are detected.
+	ErrorOnStaleExclusions bool `yaml:"errorOnStaleExclusions"`
+
 	// Metrics is the file where the metrics will be written.
 	// If Metrics is an empty string or not specified in the yaml file, then
 	// the metrics report is not saved.

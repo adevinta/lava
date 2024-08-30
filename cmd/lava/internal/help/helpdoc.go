@@ -147,6 +147,9 @@ the following properties.
   - exclusions: list of rules that define what findings should be
     excluded from the report. It allows to ignore findings because of
     accepted risks, false positives, etc.
+  - errorOnStaleExclusions: boolean specifying whether Lava should
+    exit with error when stale exclusions are detected. If not
+    specified, the default value is false.
 
 The sample below is a full report configuration:
 
@@ -160,6 +163,7 @@ The sample below is a full report configuration:
 	    - description: Ignore test certificates.
 	      summary: 'Secret Leaked in Git Repository'
 	      resource: '/testdata/certs/'
+	  errorOnStaleExclusions: true
 
 The exclusion rules support the following filters:
 
