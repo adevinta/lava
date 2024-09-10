@@ -96,7 +96,7 @@ func scan(args []string) (int, error) {
 		return 0, fmt.Errorf("parse config file: %w", err)
 	}
 
-	base.LogLevel.Set(cfg.LogLevel)
+	base.LogLevel.Set(config.Get(cfg.LogLevel))
 
 	bi, ok := debugReadBuildInfo()
 	if !ok {
@@ -109,10 +109,10 @@ func scan(args []string) (int, error) {
 	}
 
 	metrics.Collect("lava_version", bi.Main.Version)
-	metrics.Collect("config_version", cfg.LavaVersion)
+	metrics.Collect("config_version", config.Get(cfg.LavaVersion))
 	metrics.Collect("checktype_urls", cfg.ChecktypeURLs)
 	metrics.Collect("targets", cfg.Targets)
-	metrics.Collect("severity", cfg.ReportConfig.Severity)
+	metrics.Collect("severity", config.Get(cfg.ReportConfig.Severity))
 	metrics.Collect("exclusion_count", len(cfg.ReportConfig.Exclusions))
 
 	eng, err := engine.New(cfg.AgentConfig, cfg.ChecktypeURLs)
@@ -140,8 +140,8 @@ func scan(args []string) (int, error) {
 	metrics.Collect("exit_code", exitCode)
 	metrics.Collect("duration", time.Since(startTime).Seconds())
 
-	if cfg.ReportConfig.Metrics != "" {
-		if err = metrics.WriteFile(cfg.ReportConfig.Metrics); err != nil {
+	if metricsFile := config.Get(cfg.ReportConfig.Metrics); metricsFile != "" {
+		if err = metrics.WriteFile(metricsFile); err != nil {
 			return 0, fmt.Errorf("write metrics: %w", err)
 		}
 	}

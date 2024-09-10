@@ -60,7 +60,7 @@ var (
 // Config represents a Lava configuration.
 type Config struct {
 	// LavaVersion is the minimum required version of Lava.
-	LavaVersion string `yaml:"lava"`
+	LavaVersion *string `yaml:"lava"`
 
 	// AgentConfig is the configuration of the vulcan-agent.
 	AgentConfig AgentConfig `yaml:"agent"`
@@ -76,7 +76,7 @@ type Config struct {
 	Targets []Target `yaml:"targets"`
 
 	// LogLevel is the logging level.
-	LogLevel slog.Level `yaml:"log"`
+	LogLevel *slog.Level `yaml:"log"`
 }
 
 // reEnv is used to replace embedded environment variables.
@@ -123,7 +123,7 @@ func ParseFile(path string) (Config, error) {
 // validate validates the Lava configuration.
 func (c Config) validate() error {
 	// Lava version validation.
-	if !semver.IsValid(c.LavaVersion) {
+	if !semver.IsValid(Get(c.LavaVersion)) {
 		return ErrInvalidLavaVersion
 	}
 
@@ -148,17 +148,17 @@ func (c Config) validate() error {
 // the specified version. An invalid semantic version string is
 // considered incompatible.
 func (c Config) IsCompatible(v string) bool {
-	return semver.Compare(v, c.LavaVersion) >= 0
+	return semver.Compare(v, Get(c.LavaVersion)) >= 0
 }
 
 // AgentConfig is the configuration passed to the vulcan-agent.
 type AgentConfig struct {
 	// PullPolicy is the pull policy passed to vulcan-agent.
-	PullPolicy agentconfig.PullPolicy `yaml:"pullPolicy"`
+	PullPolicy *agentconfig.PullPolicy `yaml:"pullPolicy"`
 
 	// Parallel is the maximum number of checks that can run in
 	// parallel.
-	Parallel int `yaml:"parallel"`
+	Parallel *int `yaml:"parallel"`
 
 	// Vars is the environment variables required by the Vulcan
 	// checktypes.
@@ -173,17 +173,17 @@ type AgentConfig struct {
 type ReportConfig struct {
 	// Severity is the minimum severity required to exit with
 	// error.
-	Severity Severity `yaml:"severity"`
+	Severity *Severity `yaml:"severity"`
 
 	// ShowSeverity is the minimum severity required to show a
 	// finding.
 	ShowSeverity *Severity `yaml:"show"`
 
 	// Format is the output format.
-	Format OutputFormat `yaml:"format"`
+	Format *OutputFormat `yaml:"format"`
 
 	// OutputFile is the path of the output file.
-	OutputFile string `yaml:"output"`
+	OutputFile *string `yaml:"output"`
 
 	// Exclusions is a list of findings that will be ignored. For
 	// instance, accepted risks, false positives, etc.
@@ -191,12 +191,12 @@ type ReportConfig struct {
 
 	// ErrorOnStaleExclusions specifies whether Lava should exit
 	// with error when stale exclusions are detected.
-	ErrorOnStaleExclusions bool `yaml:"errorOnStaleExclusions"`
+	ErrorOnStaleExclusions *bool `yaml:"errorOnStaleExclusions"`
 
 	// Metrics is the file where the metrics will be written.
 	// If Metrics is an empty string or not specified in the yaml file, then
 	// the metrics report is not saved.
-	Metrics string `yaml:"metrics"`
+	Metrics *string `yaml:"metrics"`
 }
 
 // Target represents the target of a scan.
@@ -445,4 +445,14 @@ func (ed ExpirationDate) MarshalText() (text []byte, err error) {
 // String returns the string representation of the expiration date.
 func (ed ExpirationDate) String() string {
 	return ed.Format(ExpirationDateLayout)
+}
+
+// Get returns the value of a pointer or the zero value if the pointer
+// is nil.
+func Get[T any](p *T) T {
+	var v T
+	if p != nil {
+		v = *p
+	}
+	return v
 }

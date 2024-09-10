@@ -91,7 +91,7 @@ func newAgentConfig(cli containers.DockerdClient, cfg config.AgentConfig) (agent
 		return agentconfig.Config{}, fmt.Errorf("get gateway interface address: %w", err)
 	}
 
-	parallel := cfg.Parallel
+	parallel := config.Get(cfg.Parallel)
 	if parallel == 0 {
 		parallel = 1
 	}
@@ -127,7 +127,7 @@ func newAgentConfig(cli containers.DockerdClient, cfg config.AgentConfig) (agent
 		Runtime: agentconfig.RuntimeConfig{
 			Docker: agentconfig.DockerConfig{
 				Registry: agentconfig.RegistryConfig{
-					PullPolicy:          cfg.PullPolicy,
+					PullPolicy:          config.Get(cfg.PullPolicy),
 					BackoffMaxRetries:   5,
 					BackoffInterval:     5,
 					BackoffJitterFactor: 0.5,

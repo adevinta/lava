@@ -255,7 +255,7 @@ func engineRun(targetIdent string, checktype string) (engine.Report, error) {
 	case err != nil && !errors.Is(err, fs.ErrNotExist):
 		return nil, err
 	case err == nil && info.IsDir():
-		if agentConfig.PullPolicy != agentconfig.PullPolicyIfNotPresent && agentConfig.PullPolicy != agentconfig.PullPolicyNever {
+		if config.Get(agentConfig.PullPolicy) != agentconfig.PullPolicyIfNotPresent && config.Get(agentConfig.PullPolicy) != agentconfig.PullPolicyNever {
 			return nil, errors.New("path checktypes only allow IfNotPresent and Never pull policies")
 		}
 
@@ -392,7 +392,7 @@ func mkAgentConfig() config.AgentConfig {
 	}
 
 	return config.AgentConfig{
-		PullPolicy:    runPull,
+		PullPolicy:    &runPull,
 		Vars:          runVar,
 		RegistryAuths: auths,
 	}
@@ -428,11 +428,11 @@ func writeOutputs(rep engine.Report) (report.ExitCode, error) {
 		showSeverity = &runSeverity
 	}
 	reportConfig := config.ReportConfig{
-		Severity:     runSeverity,
+		Severity:     &runSeverity,
 		ShowSeverity: showSeverity,
-		Format:       runFmt,
-		OutputFile:   runO,
-		Metrics:      runMetrics,
+		Format:       &runFmt,
+		OutputFile:   &runO,
+		Metrics:      &runMetrics,
 	}
 	metrics.Collect("severity", reportConfig.Severity)
 
@@ -447,8 +447,8 @@ func writeOutputs(rep engine.Report) (report.ExitCode, error) {
 		return 0, fmt.Errorf("render report: %w", err)
 	}
 
-	if reportConfig.Metrics != "" {
-		if err = metrics.WriteFile(reportConfig.Metrics); err != nil {
+	if metricsFile := config.Get(reportConfig.Metrics); metricsFile != "" {
+		if err = metrics.WriteFile(metricsFile); err != nil {
 			return 0, fmt.Errorf("write metrics: %w", err)
 		}
 	}

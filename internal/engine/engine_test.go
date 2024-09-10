@@ -86,7 +86,7 @@ func TestEngine_Run(t *testing.T) {
 			},
 		}
 		agentConfig = config.AgentConfig{
-			PullPolicy: agentconfig.PullPolicyNever,
+			PullPolicy: ptr(agentconfig.PullPolicyNever),
 		}
 	)
 
@@ -143,7 +143,7 @@ func TestEngine_Run_docker_image(t *testing.T) {
 			},
 		}
 		agentConfig = config.AgentConfig{
-			PullPolicy: agentconfig.PullPolicyAlways,
+			PullPolicy: ptr(agentconfig.PullPolicyAlways),
 		}
 	)
 
@@ -186,7 +186,7 @@ func TestEngine_Run_path(t *testing.T) {
 	var (
 		checktypeURLs = []string{"testdata/engine/checktypes_trivy.json"}
 		agentConfig   = config.AgentConfig{
-			PullPolicy: agentconfig.PullPolicyAlways,
+			PullPolicy: ptr(agentconfig.PullPolicyAlways),
 		}
 	)
 
@@ -259,7 +259,7 @@ func TestEngine_Run_unreachable_target(t *testing.T) {
 	var (
 		checktypeURLs = []string{"testdata/engine/checktypes_trivy.json"}
 		agentConfig   = config.AgentConfig{
-			PullPolicy: agentconfig.PullPolicyAlways,
+			PullPolicy: ptr(agentconfig.PullPolicyAlways),
 		}
 		target = config.Target{
 			Identifier: "testdata/engine/notexist",
@@ -282,7 +282,7 @@ func TestEngine_Run_not_repo(t *testing.T) {
 	var (
 		checktypeURLs = []string{"testdata/engine/checktypes_trivy.json"}
 		agentConfig   = config.AgentConfig{
-			PullPolicy: agentconfig.PullPolicyAlways,
+			PullPolicy: ptr(agentconfig.PullPolicyAlways),
 		}
 		target = config.Target{
 			Identifier: "testdata/engine/vulnpath",
@@ -317,7 +317,7 @@ func TestEngine_Run_no_jobs(t *testing.T) {
 	var (
 		checktypeURLs = []string{"testdata/engine/checktypes_lava_engine_test.json"}
 		agentConfig   = config.AgentConfig{
-			PullPolicy: agentconfig.PullPolicyNever,
+			PullPolicy: ptr(agentconfig.PullPolicyNever),
 		}
 	)
 
@@ -349,4 +349,8 @@ func checkReportTarget(t *testing.T, report Report, substr string) {
 	if strings.Contains(string(doc), substr) {
 		t.Errorf("report contains %q:\n%s", substr, doc)
 	}
+}
+
+func ptr[V any](v V) *V {
+	return &v
 }
