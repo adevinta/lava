@@ -46,7 +46,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityInfo,
+				Severity: ptr(config.SeverityInfo),
 			},
 			want: ExitCodeCritical,
 		},
@@ -69,7 +69,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityInfo,
+				Severity: ptr(config.SeverityInfo),
 			},
 			want: ExitCodeHigh,
 		},
@@ -92,7 +92,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityInfo,
+				Severity: ptr(config.SeverityInfo),
 			},
 			want: ExitCodeMedium,
 		},
@@ -115,7 +115,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityInfo,
+				Severity: ptr(config.SeverityInfo),
 			},
 			want: ExitCodeLow,
 		},
@@ -138,7 +138,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityInfo,
+				Severity: ptr(config.SeverityInfo),
 			},
 			want: ExitCodeInfo,
 		},
@@ -162,7 +162,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 			},
 
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityHigh,
+				Severity: ptr(config.SeverityHigh),
 			},
 			want: 0,
 		},
@@ -185,7 +185,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityHigh,
+				Severity: ptr(config.SeverityHigh),
 			},
 			want: ExitCodeCheckError,
 		},
@@ -208,7 +208,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityHigh,
+				Severity: ptr(config.SeverityHigh),
 			},
 			want: ExitCodeCheckError,
 		},
@@ -236,7 +236,7 @@ func TestWriter_calculateExitCode(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityHigh,
+				Severity: ptr(config.SeverityHigh),
 				Exclusions: []config.Exclusion{
 					{
 						Summary: "Unused exclusion",
@@ -269,8 +269,8 @@ func TestWriter_calculateExitCode(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity:               config.SeverityHigh,
-				ErrorOnStaleExclusions: true,
+				Severity:               ptr(config.SeverityHigh),
+				ErrorOnStaleExclusions: ptr(true),
 				Exclusions: []config.Exclusion{
 					{
 						Summary: "Unused exclusion",
@@ -1117,7 +1117,7 @@ func TestWriter_filterVulns(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityInfo,
+				Severity: ptr(config.SeverityInfo),
 			},
 			want: []vulnerability{
 				{
@@ -1232,7 +1232,7 @@ func TestWriter_filterVulns(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityHigh,
+				Severity: ptr(config.SeverityHigh),
 			},
 			want: []vulnerability{
 				{
@@ -1286,7 +1286,7 @@ func TestWriter_filterVulns(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity:     config.SeverityCritical,
+				Severity:     ptr(config.SeverityCritical),
 				ShowSeverity: ptr(config.SeverityMedium),
 			},
 			want: []vulnerability{
@@ -1345,7 +1345,7 @@ func TestWriter_filterVulns(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity:     config.SeverityMedium,
+				Severity:     ptr(config.SeverityMedium),
 				ShowSeverity: ptr(config.SeverityHigh),
 			},
 			want: []vulnerability{
@@ -1398,7 +1398,7 @@ func TestWriter_filterVulns(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity: config.SeverityHigh,
+				Severity: ptr(config.SeverityHigh),
 			},
 			want: []vulnerability{
 				{
@@ -1573,9 +1573,9 @@ func TestNewWriter_OutputFile(t *testing.T) {
 				},
 			},
 			rConfig: config.ReportConfig{
-				Severity:   config.SeverityInfo,
-				OutputFile: "test.json",
-				Format:     config.OutputFormatJSON,
+				Severity:   ptr(config.SeverityInfo),
+				OutputFile: ptr("test.json"),
+				Format:     ptr(config.OutputFormatJSON),
 			},
 			wantExitCode: ExitCodeInfo,
 			wantNilErr:   true,
@@ -1589,7 +1589,7 @@ func TestNewWriter_OutputFile(t *testing.T) {
 			}
 			defer os.RemoveAll(tmpPath)
 
-			tt.rConfig.OutputFile = path.Join(tmpPath, tt.rConfig.OutputFile)
+			tt.rConfig.OutputFile = ptr(path.Join(tmpPath, config.Get(tt.rConfig.OutputFile)))
 			writer, err := NewWriter(tt.rConfig)
 			if err != nil {
 				t.Fatalf("unable to create a report writer: %v", err)
@@ -1603,7 +1603,7 @@ func TestNewWriter_OutputFile(t *testing.T) {
 				t.Errorf("unexpected error value: got: %d, want: %d", gotExitCode, tt.wantExitCode)
 			}
 
-			if _, err = os.Stat(tt.rConfig.OutputFile); err != nil {
+			if _, err = os.Stat(config.Get(tt.rConfig.OutputFile)); err != nil {
 				t.Fatalf("unexpected error value: %v", err)
 			}
 		})

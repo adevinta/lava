@@ -29,7 +29,7 @@ func TestParse(t *testing.T) {
 			name: "valid",
 			file: "testdata/valid.yaml",
 			want: Config{
-				LavaVersion: "v1.0.0",
+				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
@@ -45,7 +45,7 @@ func TestParse(t *testing.T) {
 			name: "valid env",
 			file: "testdata/valid_env.yaml",
 			want: Config{
-				LavaVersion: "v1.0.0",
+				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
@@ -65,7 +65,7 @@ func TestParse(t *testing.T) {
 			name: "invalid env",
 			file: "testdata/invalid_env.yaml",
 			want: Config{
-				LavaVersion: "v1.0.0",
+				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
@@ -117,12 +117,12 @@ func TestParse(t *testing.T) {
 			name: "critical severity",
 			file: "testdata/critical_severity.yaml",
 			want: Config{
-				LavaVersion: "v1.0.0",
+				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
 				ReportConfig: ReportConfig{
-					Severity: SeverityCritical,
+					Severity: ptr(SeverityCritical),
 				},
 				Targets: []Target{
 					{
@@ -142,7 +142,7 @@ func TestParse(t *testing.T) {
 			name: "low show",
 			file: "testdata/low_show.yaml",
 			want: Config{
-				LavaVersion: "v1.0.0",
+				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
@@ -161,12 +161,12 @@ func TestParse(t *testing.T) {
 			name: "never pull policy",
 			file: "testdata/never_pull_policy.yaml",
 			want: Config{
-				LavaVersion: "v1.0.0",
+				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
 				AgentConfig: AgentConfig{
-					PullPolicy: agentconfig.PullPolicyNever,
+					PullPolicy: ptr(agentconfig.PullPolicyNever),
 				},
 				Targets: []Target{
 					{
@@ -192,7 +192,7 @@ func TestParse(t *testing.T) {
 			name: "JSON output format",
 			file: "testdata/json_output_format.yaml",
 			want: Config{
-				LavaVersion: "v1.0.0",
+				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
@@ -203,7 +203,7 @@ func TestParse(t *testing.T) {
 					},
 				},
 				ReportConfig: ReportConfig{
-					Format: OutputFormatJSON,
+					Format: ptr(OutputFormatJSON),
 				},
 			},
 		},
@@ -217,7 +217,7 @@ func TestParse(t *testing.T) {
 			name: "debug log level",
 			file: "testdata/debug_log_level.yaml",
 			want: Config{
-				LavaVersion: "v1.0.0",
+				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
@@ -227,7 +227,7 @@ func TestParse(t *testing.T) {
 						AssetType:  types.DomainName,
 					},
 				},
-				LogLevel: slog.LevelDebug,
+				LogLevel: ptr(slog.LevelDebug),
 			},
 		},
 		{
@@ -240,7 +240,7 @@ func TestParse(t *testing.T) {
 			name: "valid expiration date",
 			file: "testdata/valid_expiration_date.yaml",
 			want: Config{
-				LavaVersion: "v1.0.0",
+				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
 					"checktypes.json",
 				},
@@ -251,8 +251,6 @@ func TestParse(t *testing.T) {
 					},
 				},
 				ReportConfig: ReportConfig{
-					Format:     OutputFormatHuman,
-					OutputFile: "",
 					Exclusions: []Exclusion{
 						{
 							Summary:        "Secret Leaked in Git Repository",
@@ -310,31 +308,31 @@ func TestConfig_IsCompatible(t *testing.T) {
 	}{
 		{
 			name: "same version",
-			cfg:  Config{LavaVersion: "v1.0.0"},
+			cfg:  Config{LavaVersion: ptr("v1.0.0")},
 			v:    "v1.0.0",
 			want: true,
 		},
 		{
 			name: "lower version",
-			cfg:  Config{LavaVersion: "v1.1.0"},
+			cfg:  Config{LavaVersion: ptr("v1.1.0")},
 			v:    "1.0.0",
 			want: false,
 		},
 		{
 			name: "higher version",
-			cfg:  Config{LavaVersion: "v1.0.0"},
+			cfg:  Config{LavaVersion: ptr("v1.0.0")},
 			v:    "v1.1.0",
 			want: true,
 		},
 		{
 			name: "pre-release",
-			cfg:  Config{LavaVersion: "v0.0.0"},
+			cfg:  Config{LavaVersion: ptr("v0.0.0")},
 			v:    "v0.0.0-20231216173526-1150d51c5272",
 			want: false,
 		},
 		{
 			name: "invalid version",
-			cfg:  Config{LavaVersion: "v1.0.0"},
+			cfg:  Config{LavaVersion: ptr("v1.0.0")},
 			v:    "invalid",
 			want: false,
 		},

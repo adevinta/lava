@@ -38,7 +38,7 @@ var timeNow = time.Now
 // NewWriter creates a new instance of a report writer.
 func NewWriter(cfg config.ReportConfig) (Writer, error) {
 	var prn printer
-	switch cfg.Format {
+	switch config.Get(cfg.Format) {
 	case config.OutputFormatHuman:
 		prn = humanPrinter{}
 	case config.OutputFormatJSON:
@@ -49,8 +49,8 @@ func NewWriter(cfg config.ReportConfig) (Writer, error) {
 
 	w := os.Stdout
 	isStdout := true
-	if cfg.OutputFile != "" {
-		f, err := os.Create(cfg.OutputFile)
+	if outputFile := config.Get(cfg.OutputFile); outputFile != "" {
+		f, err := os.Create(outputFile)
 		if err != nil {
 			return Writer{}, fmt.Errorf("create file: %w", err)
 		}
@@ -62,17 +62,17 @@ func NewWriter(cfg config.ReportConfig) (Writer, error) {
 	if cfg.ShowSeverity != nil {
 		showSeverity = *cfg.ShowSeverity
 	} else {
-		showSeverity = cfg.Severity
+		showSeverity = config.Get(cfg.Severity)
 	}
 
 	return Writer{
 		prn:                    prn,
 		w:                      w,
 		isStdout:               isStdout,
-		minSeverity:            cfg.Severity,
+		minSeverity:            config.Get(cfg.Severity),
 		showSeverity:           showSeverity,
 		exclusions:             cfg.Exclusions,
-		errorOnStaleExclusions: cfg.ErrorOnStaleExclusions,
+		errorOnStaleExclusions: config.Get(cfg.ErrorOnStaleExclusions),
 	}, nil
 }
 
