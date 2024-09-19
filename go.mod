@@ -3,6 +3,7 @@ module github.com/adevinta/lava
 go 1.21.1
 
 require (
+	dario.cat/mergo v1.0.1
 	github.com/adevinta/vulcan-agent v1.2.17
 	github.com/adevinta/vulcan-check-catalog v0.0.0-20240321120804-fe4ed05f8505
 	github.com/adevinta/vulcan-report v1.0.0
