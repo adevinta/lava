@@ -59,6 +59,9 @@ var (
 
 // Config represents a Lava configuration.
 type Config struct {
+	// Include is the list of the configuration files included.
+	Includes []string `yaml:"include"`
+
 	// LavaVersion is the minimum required version of Lava.
 	LavaVersion *string `yaml:"lava"`
 
@@ -103,21 +106,23 @@ func Parse(r io.Reader) (Config, error) {
 	if err := dec.Decode(&cfg); err != nil {
 		return Config{}, fmt.Errorf("decode config: %w", err)
 	}
-	if err := cfg.validate(); err != nil {
-		return Config{}, fmt.Errorf("validate config: %w", err)
-	}
+
 	return cfg, nil
 }
 
 // ParseFile returns a parsed Lava configuration given a path to a
 // file.
 func ParseFile(path string) (Config, error) {
-	f, err := os.Open(path)
+	r := newResolver(path)
+	cfg, err := r.resolve()
 	if err != nil {
-		return Config{}, fmt.Errorf("open config file: %w", err)
+		return Config{}, fmt.Errorf("process include: %w", err)
 	}
-	defer f.Close()
-	return Parse(f)
+
+	if err := cfg.validate(); err != nil {
+		return Config{}, fmt.Errorf("validate config: %w", err)
+	}
+	return cfg, nil
 }
 
 // validate validates the Lava configuration.
