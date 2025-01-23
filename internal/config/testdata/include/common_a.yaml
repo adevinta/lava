@@ -1,6 +1,6 @@
 lava: v1.0.0
 include:
-  - testdata/includes/without_includes.yaml
+  - testdata/include/no_includes.yaml
 checktypes:
   - checktypes.json
 targets:

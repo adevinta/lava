@@ -16,7 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestParseFile(t *testing.T) {
+func TestParse(t *testing.T) {
 	tests := []struct {
 		name          string
 		file          string
@@ -406,10 +406,6 @@ func TestSeverity_MarshalText(t *testing.T) {
 	}
 }
 
-func ptr[V any](v V) *V {
-	return &v
-}
-
 func TestParseExpirationDate(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -462,4 +458,8 @@ func mustParseExpDate(date string) ExpirationDate {
 		panic(err)
 	}
 	return ExpirationDate{Time: t}
+}
+
+func ptr[V any](v V) *V {
+	return &v
 }
