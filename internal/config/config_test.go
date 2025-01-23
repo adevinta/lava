@@ -16,7 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestParse(t *testing.T) {
+func TestParseFile(t *testing.T) {
 	tests := []struct {
 		name          string
 		file          string
@@ -274,7 +274,7 @@ func TestParse(t *testing.T) {
 			for k, v := range tt.envs {
 				t.Setenv(k, v)
 			}
-			got, err := ParseFile(tt.file)
+			got, err := Parse(tt.file)
 
 			switch {
 			case tt.wantErr != nil:

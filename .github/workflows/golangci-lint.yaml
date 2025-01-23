@@ -9,8 +9,8 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     env:
-      GOLANGCI_LINT_VERSION: v1.57.2
-      GOLANGCI_LINT_OUT_FORMAT: ${{ github.event_name == 'pull_request' && 'github-actions' || 'colored-line-number' }}
+      GOLANGCI_LINT_VERSION: v1.63.4
+      GOLANGCI_LINT_OUT_FORMAT: 'colored-line-number'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

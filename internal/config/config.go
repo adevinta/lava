@@ -6,7 +6,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"regexp"
@@ -59,6 +58,9 @@ var (
 
 // Config represents a Lava configuration.
 type Config struct {
+	// Includes is the list of included configuration files.
+	Includes []string `yaml:"include"`
+
 	// LavaVersion is the minimum required version of Lava.
 	LavaVersion *string `yaml:"lava"`
 
@@ -82,13 +84,31 @@ type Config struct {
 // reEnv is used to replace embedded environment variables.
 var reEnv = regexp.MustCompile(`\$\{[a-zA-Z_][a-zA-Z_0-9]*\}`)
 
-// Parse returns a parsed Lava configuration given an [io.Reader].
-func Parse(r io.Reader) (Config, error) {
-	b, err := io.ReadAll(r)
+// Parse returns a parsed Lava configuration given a path to a
+// file.
+func Parse(path string) (Config, error) {
+	graph, err := NewConfigGraph(path)
 	if err != nil {
-		return Config{}, fmt.Errorf("read config: %w", err)
+		return Config{}, fmt.Errorf("build dag: %w", err)
+	}
+	if err = graph.Resolve(); err != nil {
+		return Config{}, fmt.Errorf("resolve dag: %w", err)
 	}
 
+	cfg, err := graph.Config(path)
+	if err != nil {
+		return Config{}, fmt.Errorf("unknown configuration: %w", err)
+	}
+
+	if err = cfg.validate(); err != nil {
+		return Config{}, fmt.Errorf("validate config: %w", err)
+	}
+
+	return cfg, nil
+}
+
+// Decode decodes from a slice of bytes to a [Config] structure.
+func Decode(b []byte) (Config, error) {
 	s := reEnv.ReplaceAllStringFunc(string(b), func(match string) string {
 		return os.Getenv(match[2 : len(match)-1])
 	})
@@ -103,21 +123,7 @@ func Parse(r io.Reader) (Config, error) {
 	if err := dec.Decode(&cfg); err != nil {
 		return Config{}, fmt.Errorf("decode config: %w", err)
 	}
-	if err := cfg.validate(); err != nil {
-		return Config{}, fmt.Errorf("validate config: %w", err)
-	}
 	return cfg, nil
-}
-
-// ParseFile returns a parsed Lava configuration given a path to a
-// file.
-func ParseFile(path string) (Config, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return Config{}, fmt.Errorf("open config file: %w", err)
-	}
-	defer f.Close()
-	return Parse(f)
 }
 
 // validate validates the Lava configuration.

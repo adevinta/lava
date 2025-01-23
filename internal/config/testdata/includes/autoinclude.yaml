@@ -1,0 +1,8 @@
+lava: v1.0.0
+include:
+  - testdata/includes/autoinclude.yaml
+checktypes:
+  - checktypes.json
+targets:
+  - identifier: example.com
+    type: DomainName
