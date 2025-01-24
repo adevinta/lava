@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestLavaMerger_Merge(t *testing.T) {
+func TestMerge(t *testing.T) {
 	tests := []struct {
 		name    string
 		dst     Config
@@ -18,14 +18,14 @@ func TestLavaMerger_Merge(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Two empty configurations",
+			name:    "empty configurations",
 			dst:     Config{},
 			src:     Config{},
 			want:    Config{},
 			wantErr: false,
 		},
 		{
-			name: "Simple case",
+			name: "simple",
 			dst:  Config{},
 			src: Config{
 				LavaVersion: ptr("v1.0.0"),
@@ -36,7 +36,7 @@ func TestLavaMerger_Merge(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Settings with default values won't override",
+			name: "default values do not override",
 			dst: Config{
 				LavaVersion: ptr("v1.0.0"),
 				AgentConfig: AgentConfig{
@@ -101,7 +101,7 @@ func TestLavaMerger_Merge(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Override value",
+			name: "override",
 			dst: Config{
 				LavaVersion: ptr("v1.0.0"),
 				AgentConfig: AgentConfig{
@@ -204,7 +204,7 @@ func TestLavaMerger_Merge(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Append Exclusions",
+			name: "append exclusions",
 			dst: Config{
 				ReportConfig: ReportConfig{
 					Exclusions: []Exclusion{
@@ -238,7 +238,7 @@ func TestLavaMerger_Merge(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Duplicated Exclusions",
+			name: "duplicated exclusions",
 			dst: Config{
 				ReportConfig: ReportConfig{
 					Exclusions: []Exclusion{

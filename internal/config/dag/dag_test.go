@@ -15,13 +15,13 @@ func TestDAG_Contains(t *testing.T) {
 		want     bool
 	}{
 		{
-			name:     "Vertex has been added",
+			name:     "existing vertex",
 			vertices: []string{"a", "b", "c"},
 			vertex:   "a",
 			want:     true,
 		},
 		{
-			name:     "Vertex has not been added",
+			name:     "unknown vertex",
 			vertices: []string{"a", "b", "c"},
 			vertex:   "d",
 			want:     false,
@@ -36,7 +36,7 @@ func TestDAG_Contains(t *testing.T) {
 				}
 			}
 			if got := dag.Contains(tt.vertex); got != tt.want {
-				t.Errorf("HasVertexBeenIncluded() = %v, want %v", got, tt.want)
+				t.Errorf("unexpected result: %v", got)
 			}
 		})
 	}
@@ -50,13 +50,13 @@ func TestDAG_AddVertex(t *testing.T) {
 		wantErr  error
 	}{
 		{
-			name:     "add unique vertex",
+			name:     "unique vertex",
 			vertices: []string{"a"},
 			vertex:   "b",
 			wantErr:  nil,
 		},
 		{
-			name:     "add duplicate vertex",
+			name:     "duplicated vertex",
 			vertices: []string{"a"},
 			vertex:   "a",
 			wantErr:  ErrDuplicatedVertex,
@@ -70,15 +70,8 @@ func TestDAG_AddVertex(t *testing.T) {
 					t.Fatalf("failed to add vertex %s: %v", v, err)
 				}
 			}
-			_, err := dag.AddVertex(tt.vertex)
-			if tt.wantErr != nil {
-				if !errors.Is(err, tt.wantErr) {
-					t.Errorf("unexpected error: got: %v, want: %v", err, tt.wantErr)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error adding the vertex: %v", err)
-				}
+			if _, err := dag.AddVertex(tt.vertex); !errors.Is(err, tt.wantErr) {
+				t.Errorf("unexpected error: got: %v, want: %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -94,7 +87,7 @@ func TestDAG_AddEdge(t *testing.T) {
 		wantErr  error
 	}{
 		{
-			name:     "add edge",
+			name:     "valid",
 			vertices: []string{"a", "b"},
 			edges:    [][]string{},
 			from:     "a",
@@ -102,7 +95,7 @@ func TestDAG_AddEdge(t *testing.T) {
 			wantErr:  nil,
 		},
 		{
-			name:     "add edge to invalid vertex",
+			name:     "to invalid vertex",
 			vertices: []string{"a", "b"},
 			edges:    [][]string{},
 			from:     "a",
@@ -110,7 +103,7 @@ func TestDAG_AddEdge(t *testing.T) {
 			wantErr:  ErrUnknownVertex,
 		},
 		{
-			name:     "add edge from invalid vertex",
+			name:     "from invalid vertex",
 			vertices: []string{"a", "b"},
 			edges:    [][]string{},
 			from:     "c",
@@ -118,7 +111,7 @@ func TestDAG_AddEdge(t *testing.T) {
 			wantErr:  ErrUnknownVertex,
 		},
 		{
-			name:     "add duplicate edge",
+			name:     "duplicated edge",
 			vertices: []string{"a", "b"},
 			edges:    [][]string{{"a", "b"}},
 			from:     "a",
@@ -126,7 +119,7 @@ func TestDAG_AddEdge(t *testing.T) {
 			wantErr:  ErrDuplicatedEdge,
 		},
 		{
-			name:     "add a cycle",
+			name:     "cycle",
 			vertices: []string{"a", "b", "c"},
 			edges:    [][]string{{"a", "b"}, {"b", "c"}},
 			from:     "c",
@@ -147,15 +140,8 @@ func TestDAG_AddEdge(t *testing.T) {
 					t.Errorf("failed to add edge %s, %s: %v", edge[0], edge[1], err)
 				}
 			}
-			err := dag.AddEdge(tt.from, tt.to)
-			if tt.wantErr != nil {
-				if !errors.Is(err, tt.wantErr) {
-					t.Errorf("unexpected error: got: %v, want: %v", err, tt.wantErr)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error adding the edge: %v", err)
-				}
+			if err := dag.AddEdge(tt.from, tt.to); !errors.Is(err, tt.wantErr) {
+				t.Errorf("unexpected error: got: %v, want: %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -12,7 +12,7 @@ import (
 	"github.com/adevinta/lava/internal/config/dag"
 )
 
-func TestResolver_NewDAG(t *testing.T) {
+func TestNewConfigGraph(t *testing.T) {
 	tests := []struct {
 		name    string
 		URL     string
@@ -20,11 +20,11 @@ func TestResolver_NewDAG(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "File without includes",
-			URL:  "testdata/includes/without_includes.yaml",
+			name: "no includes",
+			URL:  "testdata/include/no_includes.yaml",
 			want: ConfigGraph{
 				configs: map[string]Config{
-					"testdata/includes/without_includes.yaml": {
+					"testdata/include/no_includes.yaml": {
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
 							"checktypes.json",
@@ -41,12 +41,12 @@ func TestResolver_NewDAG(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Include a local file",
-			URL:  "testdata/includes/include_local.yaml",
+			name: "local file",
+			URL:  "testdata/include/local.yaml",
 			want: ConfigGraph{
 				configs: map[string]Config{
-					"testdata/includes/include_local.yaml": {
-						Includes:    []string{"testdata/includes/without_includes.yaml"},
+					"testdata/include/local.yaml": {
+						Includes:    []string{"testdata/include/no_includes.yaml"},
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
 							"checktypes.json",
@@ -58,7 +58,7 @@ func TestResolver_NewDAG(t *testing.T) {
 							},
 						},
 					},
-					"testdata/includes/without_includes.yaml": {
+					"testdata/include/no_includes.yaml": {
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
 							"checktypes.json",
@@ -75,19 +75,19 @@ func TestResolver_NewDAG(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "Import itself",
-			URL:     "testdata/includes/autoinclude.yaml",
+			name:    "autoinclude",
+			URL:     "testdata/include/autoinclude.yaml",
 			wantErr: true,
 		},
 		{
-			name: "Include duplicated",
-			URL:  "testdata/includes/include_duplicated.yaml",
+			name: "duplicated",
+			URL:  "testdata/include/duplicated.yaml",
 			want: ConfigGraph{
 				configs: map[string]Config{
-					"testdata/includes/include_duplicated.yaml": {
+					"testdata/include/duplicated.yaml": {
 						Includes: []string{
-							"testdata/includes/without_includes.yaml",
-							"testdata/includes/without_includes.yaml",
+							"testdata/include/no_includes.yaml",
+							"testdata/include/no_includes.yaml",
 						},
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
@@ -100,7 +100,7 @@ func TestResolver_NewDAG(t *testing.T) {
 							},
 						},
 					},
-					"testdata/includes/without_includes.yaml": {
+					"testdata/include/no_includes.yaml": {
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
 							"checktypes.json",
@@ -117,14 +117,14 @@ func TestResolver_NewDAG(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Include two with common include",
-			URL:  "testdata/includes/include_two_with_common_include.yaml",
+			name: "common includes",
+			URL:  "testdata/include/common.yaml",
 			want: ConfigGraph{
 				configs: map[string]Config{
-					"testdata/includes/include_two_with_common_include.yaml": {
+					"testdata/include/common.yaml": {
 						Includes: []string{
-							"testdata/includes/include_a.yaml",
-							"testdata/includes/include_b.yaml",
+							"testdata/include/common_a.yaml",
+							"testdata/include/common_b.yaml",
 						},
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
@@ -137,8 +137,8 @@ func TestResolver_NewDAG(t *testing.T) {
 							},
 						},
 					},
-					"testdata/includes/include_a.yaml": {
-						Includes:    []string{"testdata/includes/without_includes.yaml"},
+					"testdata/include/common_a.yaml": {
+						Includes:    []string{"testdata/include/no_includes.yaml"},
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
 							"checktypes.json",
@@ -150,8 +150,8 @@ func TestResolver_NewDAG(t *testing.T) {
 							},
 						},
 					},
-					"testdata/includes/include_b.yaml": {
-						Includes:    []string{"testdata/includes/without_includes.yaml"},
+					"testdata/include/common_b.yaml": {
+						Includes:    []string{"testdata/include/no_includes.yaml"},
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
 							"checktypes.json",
@@ -163,7 +163,7 @@ func TestResolver_NewDAG(t *testing.T) {
 							},
 						},
 					},
-					"testdata/includes/without_includes.yaml": {
+					"testdata/include/no_includes.yaml": {
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
 							"checktypes.json",
