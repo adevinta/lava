@@ -91,14 +91,7 @@ func Parse(path string) (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("build dag: %w", err)
 	}
-	if err = graph.Resolve(); err != nil {
-		return Config{}, fmt.Errorf("resolve dag: %w", err)
-	}
-
-	cfg, err := graph.Config(path)
-	if err != nil {
-		return Config{}, fmt.Errorf("unknown configuration: %w", err)
-	}
+	cfg := graph.Resolve()
 
 	if err = cfg.validate(); err != nil {
 		return Config{}, fmt.Errorf("validate config: %w", err)

@@ -94,3 +94,17 @@ func (d *DAG) getVertexID(s string) string {
 	}
 	return ""
 }
+
+// WalkFunc represents a function that implements the [hdag.Visitor]
+// interface.
+type WalkFunc func(vertexID string, vertex interface{})
+
+// Visit is required by the [hdag.Visitor] interface.
+func (fn WalkFunc) Visit(v hdag.Vertexer) {
+	fn(v.Vertex())
+}
+
+// DFSWalk walks the [DAG] using a depth first strategy.
+func (d *DAG) DFSWalk(fn WalkFunc) {
+	d.dag.DFSWalk(fn)
+}

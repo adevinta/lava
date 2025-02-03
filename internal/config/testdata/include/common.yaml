@@ -7,3 +7,5 @@ checktypes:
 targets:
   - identifier: example.com
     type: DomainName
+report:
+  severity: critical
