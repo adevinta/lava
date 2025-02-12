@@ -405,6 +405,13 @@ type Exclusion struct {
 
 	// Description describes the exclusion.
 	Description string `yaml:"description"`
+
+	// URL is where the exclusion has been declared.
+	URL string
+
+	// Index is the position in the list of exclusions in the original
+	// configuration.
+	Index int
 }
 
 // ExpirationDateLayout is the input format for the [ExpirationDate].

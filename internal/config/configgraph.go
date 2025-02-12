@@ -59,6 +59,11 @@ func discoverConfig(url, parent string, d *dag.DAG, configs map[string]Config) e
 	if err != nil {
 		return fmt.Errorf("could not decode include config: %w", err)
 	}
+	// Locate the exclusions.
+	for i := range cfg.ReportConfig.Exclusions {
+		cfg.ReportConfig.Exclusions[i].Index = i
+		cfg.ReportConfig.Exclusions[i].URL = url
+	}
 	configs[url] = cfg
 
 	unique := make(map[string]struct{})
