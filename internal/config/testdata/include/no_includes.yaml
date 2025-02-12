@@ -1,6 +1,6 @@
 lava: v1.0.0
 checktypes:
-  - checktypes.json
+  - checktypes_no_includes.json
 targets:
   - identifier: example.com
     type: DomainName

@@ -76,16 +76,33 @@ func discoverConfig(url, parent string, d *dag.DAG, configs map[string]Config) e
 	return nil
 }
 
-// Resolve walks the dag and merge the configuration.
-func (d *ConfigGraph) Resolve() error {
-	// TODO: Walk the dag and merge configurations.
-	return nil
-}
-
 // Config returns a configuration for the given URL.
-func (d *ConfigGraph) Config(url string) (Config, error) {
-	if cfg, ok := d.configs[url]; ok {
+func (cg *ConfigGraph) Config(url string) (Config, error) {
+	if cfg, ok := cg.configs[url]; ok {
 		return cfg, nil
 	}
 	return Config{}, fmt.Errorf("could not find config for %s", url)
+}
+
+// Resolve walks the dag and merge the configuration.
+func (cg *ConfigGraph) Resolve() Config {
+	var cfg *Config
+	cg.dag.DFSWalk(func(vertexID string, vertex interface{}) {
+		vexCfg, err := cg.Config(vertex.(string))
+		if err != nil {
+			panic(err)
+		}
+
+		if cfg == nil {
+			cfg = &vexCfg
+			return
+		}
+
+		vexCfg, err = merge(vexCfg, *cfg)
+		if err != nil {
+			panic(err)
+		}
+		cfg = &vexCfg
+	})
+	return *cfg
 }
