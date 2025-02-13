@@ -61,8 +61,7 @@ func discoverConfig(url, parent string, d *dag.DAG, configs map[string]Config) e
 	}
 	// Locate the exclusions.
 	for i := range cfg.ReportConfig.Exclusions {
-		cfg.ReportConfig.Exclusions[i].Index = i
-		cfg.ReportConfig.Exclusions[i].URL = url
+		cfg.ReportConfig.Exclusions[i].Location = url
 	}
 	configs[url] = cfg
 
@@ -81,7 +80,7 @@ func discoverConfig(url, parent string, d *dag.DAG, configs map[string]Config) e
 	return nil
 }
 
-// Config returns a configuration for the given URL.
+// Config returns a configuration for the given Location.
 func (cg *ConfigGraph) Config(url string) (Config, error) {
 	if cfg, ok := cg.configs[url]; ok {
 		return cfg, nil

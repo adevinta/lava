@@ -256,6 +256,7 @@ func TestParse(t *testing.T) {
 							Summary:        "Secret Leaked in Git Repository",
 							Description:    "Ignore test certificates.",
 							ExpirationDate: mustParseExpDate("2024/07/05"),
+							Location:       "testdata/valid_expiration_date.yaml",
 						},
 					},
 				},
