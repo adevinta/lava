@@ -195,7 +195,9 @@ Number of excluded vulnerabilities not included in the summary table: {{.Exclude
 {{- if not .ExpirationDate.IsZero}}
 {{- $pref}}{{"Expiration Date" | bold}}: {{.ExpirationDate.String | trim}}{{$pref = "  "}}
 {{end -}}
+{{- if .Location}}
+{{- $pref}}{{"Location" | bold}}: {{.Location | trim}}{{$pref = "  "}}
+{{end -}}
 {{- end -}}
-
 {{- /* Render the report. */ -}}
 {{- template "report" . -}}
