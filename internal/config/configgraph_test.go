@@ -49,7 +49,7 @@ func TestNewConfigGraph(t *testing.T) {
 						Includes:    []string{"testdata/include/no_includes.yaml"},
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
-							"checktypes.json",
+							"checktypes_local.json",
 						},
 						Targets: []Target{
 							{
@@ -128,7 +128,7 @@ func TestNewConfigGraph(t *testing.T) {
 						},
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
-							"checktypes.json",
+							"checktypes_common.json",
 						},
 						Targets: []Target{
 							{
@@ -144,7 +144,7 @@ func TestNewConfigGraph(t *testing.T) {
 						Includes:    []string{"testdata/include/no_includes.yaml"},
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
-							"checktypes.json",
+							"checktypes_a.json",
 						},
 						Targets: []Target{
 							{
@@ -160,7 +160,7 @@ func TestNewConfigGraph(t *testing.T) {
 						Includes:    []string{"testdata/include/no_includes.yaml"},
 						LavaVersion: ptr("v1.0.0"),
 						ChecktypeURLs: []string{
-							"checktypes.json",
+							"checktypes_b.json",
 						},
 						Targets: []Target{
 							{
@@ -235,7 +235,7 @@ func TestConfigGraph_Resolve(t *testing.T) {
 				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
 					"checktypes_no_includes.json",
-					"checktypes.json",
+					"checktypes_local.json",
 				},
 				Targets: []Target{
 					{
@@ -288,10 +288,10 @@ func TestConfigGraph_Resolve(t *testing.T) {
 				},
 				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
-					"checktypes.json",
 					"checktypes_no_includes.json",
-					"checktypes.json",
-					"checktypes.json",
+					"checktypes_a.json",
+					"checktypes_b.json",
+					"checktypes_common.json",
 				},
 				Targets: []Target{
 					{

@@ -87,7 +87,7 @@ func (cg *ConfigGraph) Config(url string) (Config, error) {
 // Resolve walks the dag and merge the configuration.
 func (cg *ConfigGraph) Resolve() Config {
 	var cfg *Config
-	cg.dag.DFSWalk(func(vertexID string, vertex interface{}) {
+	cg.dag.OrderedWalk(func(vertexID string, vertex interface{}) {
 		vexCfg, err := cg.Config(vertex.(string))
 		if err != nil {
 			panic(err)
