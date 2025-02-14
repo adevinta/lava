@@ -3,7 +3,7 @@ include:
   - testdata/include/common_a.yaml
   - testdata/include/common_b.yaml
 checktypes:
-  - checktypes.json
+  - checktypes_common.json
 targets:
   - identifier: example.com
     type: DomainName

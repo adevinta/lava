@@ -104,7 +104,7 @@ func (fn WalkFunc) Visit(v hdag.Vertexer) {
 	fn(v.Vertex())
 }
 
-// DFSWalk walks the [DAG] using a depth first strategy.
-func (d *DAG) DFSWalk(fn WalkFunc) {
-	d.dag.DFSWalk(fn)
+// OrderedWalk walks the [DAG] using the Topological Sort algorithm.
+func (d *DAG) OrderedWalk(fn WalkFunc) {
+	d.dag.OrderedWalk(fn)
 }
