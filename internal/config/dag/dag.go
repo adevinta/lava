@@ -122,8 +122,7 @@ func (d *DAG) DFSWalk(fn WalkFunc) {
 			fn(sv)
 		}
 
-		children, _ := d.outboundEdge[sv]
-		for _, s := range children {
+		for _, s := range d.outboundEdge[sv] {
 			stack.Push(s)
 		}
 	}
