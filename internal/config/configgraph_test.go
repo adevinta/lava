@@ -288,8 +288,8 @@ func TestConfigGraph_Resolve(t *testing.T) {
 				},
 				LavaVersion: ptr("v1.0.0"),
 				ChecktypeURLs: []string{
-					"checktypes_no_includes.json",
 					"checktypes_a.json",
+					"checktypes_no_includes.json",
 					"checktypes_b.json",
 					"checktypes_common.json",
 				},
@@ -310,6 +310,97 @@ func TestConfigGraph_Resolve(t *testing.T) {
 						Identifier: "example.com",
 						AssetType:  types.DomainName,
 					},
+				},
+				ReportConfig: ReportConfig{
+					Severity: ptr(SeverityCritical),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "complex",
+			URL:  "testdata/include/complex/1.yaml",
+			want: Config{
+				Includes: []string{
+					"testdata/include/complex/4.yaml",
+					"testdata/include/complex/5.yaml",
+					"testdata/include/complex/3.yaml",
+					"testdata/include/complex/6.yaml",
+					"testdata/include/complex/10.yaml",
+					"testdata/include/complex/11.yaml",
+					"testdata/include/complex/9.yaml",
+					"testdata/include/complex/12.yaml",
+					"testdata/include/complex/2.yaml",
+					"testdata/include/complex/7.yaml",
+					"testdata/include/complex/8.yaml",
+				},
+				LavaVersion: ptr("v1.0.0"),
+				ChecktypeURLs: []string{
+					"checktypes_4.json",
+					"checktypes_5.json",
+					"checktypes_3.json",
+					"checktypes_6.json",
+					"checktypes_2.json",
+					"checktypes_7.json",
+					"checktypes_10.json",
+					"checktypes_11.json",
+					"checktypes_9.json",
+					"checktypes_12.json",
+					"checktypes_8.json",
+					"checktypes_1.json",
+				},
+				Targets: []Target{
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+					{
+						Identifier: "example.com",
+						AssetType:  types.DomainName,
+					},
+				},
+				AgentConfig: AgentConfig{
+					Parallel: ptr(6),
 				},
 				ReportConfig: ReportConfig{
 					Severity: ptr(SeverityCritical),

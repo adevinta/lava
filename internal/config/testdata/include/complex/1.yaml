@@ -1,0 +1,12 @@
+lava: v1.0.0
+include:
+  - testdata/include/complex/2.yaml
+  - testdata/include/complex/7.yaml
+  - testdata/include/complex/8.yaml
+checktypes:
+  - checktypes_1.json
+targets:
+  - identifier: example.com
+    type: DomainName
+report:
+  severity: critical

@@ -1,0 +1,13 @@
+lava: v1.0.0
+include:
+  - testdata/include/complex/4.yaml
+  - testdata/include/complex/5.yaml
+checktypes:
+  - checktypes_3.json
+targets:
+  - identifier: example.com
+    type: DomainName
+agent:
+  parallel: 3
+report:
+  severity: critical

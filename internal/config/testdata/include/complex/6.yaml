@@ -1,0 +1,10 @@
+lava: v1.0.0
+checktypes:
+  - checktypes_6.json
+targets:
+  - identifier: example.com
+    type: DomainName
+agent:
+  parallel: 6
+report:
+  severity: critical
