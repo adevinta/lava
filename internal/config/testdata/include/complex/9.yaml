@@ -1,9 +1,9 @@
 lava: v1.0.0
 include:
-  - testdata/include/common_a.yaml
-  - testdata/include/common_b.yaml
+  - testdata/include/complex/10.yaml
+  - testdata/include/complex/11.yaml
 checktypes:
-  - checktypes_common.json
+  - checktypes_9.json
 targets:
   - identifier: example.com
     type: DomainName

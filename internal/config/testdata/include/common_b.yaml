@@ -2,7 +2,7 @@ lava: v1.0.0
 include:
   - testdata/include/no_includes.yaml
 checktypes:
-  - checktypes.json
+  - checktypes_b.json
 targets:
   - identifier: example.com
     type: DomainName

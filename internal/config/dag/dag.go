@@ -29,15 +29,17 @@ var (
 
 // DAG represents a Direct Acyclic Graph object.
 type DAG struct {
-	dag      *hdag.DAG
-	vertices map[string]string
+	dag          *hdag.DAG
+	vertices     map[string]string
+	outboundEdge map[string][]string
 }
 
 // New returns a Directed Acyclic Graph object.
 func New() *DAG {
 	return &DAG{
-		dag:      hdag.NewDAG(),
-		vertices: make(map[string]string),
+		dag:          hdag.NewDAG(),
+		vertices:     make(map[string]string),
+		outboundEdge: make(map[string][]string),
 	}
 }
 
@@ -76,6 +78,7 @@ func (d *DAG) AddEdge(from, to string) error {
 		}
 		return fmt.Errorf("add edge: %w", err)
 	}
+	d.outboundEdge[from] = append(d.outboundEdge[from], to)
 	return nil
 }
 
@@ -95,16 +98,32 @@ func (d *DAG) getVertexID(s string) string {
 	return ""
 }
 
-// WalkFunc represents a function that implements the [hdag.Visitor]
-// interface.
-type WalkFunc func(vertexID string, vertex interface{})
+// WalkFunc is the type of the function called for each vertex visited by DFSWalk.
+type WalkFunc func(vertex string)
 
-// Visit is required by the [hdag.Visitor] interface.
-func (fn WalkFunc) Visit(v hdag.Vertexer) {
-	fn(v.Vertex())
-}
-
-// DFSWalk walks the [DAG] using a depth first strategy.
+// DFSWalk implements the Depth-First-Search algorithm to traverse the entire DAG.
+// The algorithm starts at the root node and explores as far as possible
+// along each branch before backtracking.
 func (d *DAG) DFSWalk(fn WalkFunc) {
-	d.dag.DFSWalk(fn)
+	var stack Stack[string]
+	roots := d.dag.GetRoots()
+	for _, s := range roots {
+		stack.Push(s.(string))
+	}
+
+	visited := make(map[string]bool, d.dag.GetSize())
+
+	for !stack.IsEmpty() {
+		v, _ := stack.Pop()
+		sv := *v
+
+		if !visited[sv] {
+			visited[sv] = true
+			fn(sv)
+		}
+
+		for _, s := range d.outboundEdge[sv] {
+			stack.Push(s)
+		}
+	}
 }

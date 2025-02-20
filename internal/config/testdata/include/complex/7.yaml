@@ -1,8 +1,8 @@
 lava: v1.0.0
-include:
-  - testdata/include/no_includes.yaml
 checktypes:
-  - checktypes_local.json
+  - checktypes_7.json
 targets:
   - identifier: example.com
     type: DomainName
+report:
+  severity: critical
