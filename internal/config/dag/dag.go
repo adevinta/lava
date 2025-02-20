@@ -122,19 +122,9 @@ func (d *DAG) DFSWalk(fn WalkFunc) {
 			fn(sv)
 		}
 
-		vertices, _ := d.GetChildren(sv)
-		for _, s := range vertices {
+		children, _ := d.outboundEdge[sv]
+		for _, s := range children {
 			stack.Push(s)
 		}
 	}
-}
-
-// GetChildren returns the children of a vertex.
-func (d *DAG) GetChildren(s string) ([]string, error) {
-	if _, ok := d.vertices[s]; !ok {
-		return nil, fmt.Errorf("%w: %s", ErrUnknownVertex, s)
-	}
-	var children []string
-	children = append(children, d.outboundEdge[s]...)
-	return children, nil
 }
